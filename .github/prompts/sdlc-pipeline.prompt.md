@@ -19,6 +19,7 @@ You are an AI SDLC orchestrator. You run the full software development lifecycle
 | 5 | plan-story | `plan_story_final.md` |
 | 6 | implement-story | _(source code files)_ |
 | 7 | review-implementation | _(review report output)_ |
+| 8 | deploy-application | _(live GitHub Pages URL)_ |
 
 ## Step 1 — Auto-Detect Resume Point
 
@@ -30,6 +31,8 @@ Before executing any stage, check for the existence of each artifact file in the
 4. `epics_stories_final.md` missing → resume from **Stage 4**
 5. `plan_story_final.md` missing → resume from **Stage 5**
 6. All artifacts above exist → resume from **Stage 6** (implement)
+
+> Stage 8 (deploy) is always run last regardless of resume point — it never has a skip artifact.
 
 After detecting the resume point, clearly announce:
 > "Detected resume point: Stage N — [stage name]. Artifacts already present: [list]. Starting from: [stage name]."
@@ -108,7 +111,64 @@ Follow all instructions in the review-implementation prompt:
 
 [review-implementation](.github/prompts/review-implementation.prompt.md)
 
-When complete: output the full review report inline.
+When complete: output the full review report inline, then **stop and present the UAT gate below — do not proceed to Stage 8 automatically**.
+
+---
+
+### UAT Gate — User Sign-Off Required
+
+After the review report is displayed, ask the user:
+
+> **UAT Sign-Off Required**
+> The review report is shown above. Please confirm:
+>
+> - Does the implementation meet the acceptance criteria?
+> - Are you satisfied with the review findings?
+>
+> **Type `yes` to approve and trigger deployment, or `no` to cancel.**
+
+- If the user responds **`yes`** (or any clear affirmative) → proceed to Stage 8.
+- If the user responds **`no`** (or any clear negative) → stop the pipeline and output:
+  > "Deployment cancelled. Address the review findings and re-run the pipeline to deploy."
+- Do **not** proceed to Stage 8 for any ambiguous or non-committal response — re-prompt once, then stop if still unclear.
+
+---
+
+### Stage 8 — Deploy Application
+
+**Before doing anything else, determine whether the app is static-deployable to GitHub Pages.**
+
+Check `architecture_final.md` (and the implemented source code) for any of the following signals:
+- A Node.js / Express / Fastify / NestJS / any HTTP server process
+- A database (PostgreSQL, MySQL, MongoDB, Redis, SQLite, etc.)
+- Server-side rendering at request time (Next.js SSR, Remix, SvelteKit SSR, etc.)
+- API routes or backend endpoints that run server-side code
+- WebSockets or any persistent server connection
+- Docker / container definitions
+- Environment variables that reference server secrets (DB passwords, API keys used server-side)
+
+**If any of the above are present** → GitHub Pages cannot host this app. Output:
+> "⚠️ Stage 8 skipped — this app requires a server and cannot be deployed to GitHub Pages. To deploy, use a platform that supports server-side workloads (e.g. Vercel, Render, Railway, Fly.io). No deployment has been made."
+
+Then skip to the Completion Summary, marking Stage 8 as ⏭️ Skipped.
+
+**If the app is purely static** (React/Vue/Svelte/Astro/vanilla JS that builds to `dist/` with no server process) → proceed with deployment:
+
+Follow all instructions in the deploy-application prompt:
+
+[deploy-application](.github/prompts/deploy-application.prompt.md)
+
+This stage:
+1. Patches `vite.config.ts` with the correct GitHub Pages `base` path.
+2. Creates the GitHub Actions workflow file (`.github/workflows/deploy.yml`) if it does not exist — the workflow triggers on `deploy/**` branches.
+3. Initialises git, ensures a `.gitignore` excludes `node_modules/`, `dist/`, build artefacts, and env files, then creates a `deploy/<app-name>` branch and commits only source files.
+4. Creates the GitHub remote repo if it does not already exist.
+5. Pushes the `deploy/<app-name>` branch to GitHub, which triggers the Actions workflow directly.
+6. Polls for workflow completion and returns the live URL.
+
+> `main` is never touched — each app lives on its own `deploy/<app-name>` branch.
+
+When complete: output the live URL and the Stage 8 summary block.
 
 ---
 
@@ -125,9 +185,13 @@ After all stages are done, output a summary table:
 | 5 — Plan | ✅ Complete | `plan_story_final.md` |
 | 6 — Implementation | ✅ Complete | _(source files)_ |
 | 7 — Review | ✅ Complete | _(inline report)_ |
+| UAT Gate | ✅ Approved | _(user sign-off)_ |
+| 8 — Deploy | ✅ Complete _or_ ⏭️ Skipped (server-side app) | _(live GitHub Pages URL, or skip reason)_ |
 
 ## Rules
 
 - Never skip a stage unless its artifact already exists in the workspace.
 - Never overwrite an existing artifact — if a `_final.md` already exists for a stage you're resuming from, read it and use it as context rather than regenerating it.
 - If required input is missing at any stage (e.g., no feature description provided), stop and ask the user before proceeding.
+- Stage 8 (deploy) requires `gh` CLI to be installed and authenticated (`gh auth login`). If it is not available, stop and print installation instructions before proceeding.
+- Stage 8 never force-pushes and never deletes branches or commits.
