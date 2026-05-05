@@ -1,0 +1,4 @@
+- role: system
+  content: "file://../../../../.github/prompts/sdlc-pipeline.prompt.md"
+- role: user
+  content: "{{request}}\n\n[Eval context: no workspace tools are available. The workspace artifact state is described in the request above. Use only the stated artifact information — do not attempt to check the filesystem. Respond with what you would do and which stage you would start from, but do not actually execute the stages.]"
