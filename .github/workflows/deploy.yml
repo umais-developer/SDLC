@@ -5,55 +5,59 @@ on:
     branches: ['deploy/**']
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 concurrency:
   group: pages
   cancel-in-progress: true
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: pomodoro-app
+    outputs:
+      app_name: ${{ steps.extract.outputs.app_name }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Extract app name from branch
+        id: extract
+        run: echo "app_name=${GITHUB_REF#refs/heads/deploy/}" >> $GITHUB_OUTPUT
 
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
-          cache-dependency-path: pomodoro-app/package-lock.json
+          cache-dependency-path: ${{ steps.extract.outputs.app_name }}/package-lock.json
 
-      - run: npm ci
-      - run: npm test
-      - run: npm run build
+      - name: Install dependencies
+        run: npm ci
+        working-directory: ${{ steps.extract.outputs.app_name }}
 
-      - uses: actions/upload-pages-artifact@v3
+      - name: Run unit tests
+        run: npm test
+        working-directory: ${{ steps.extract.outputs.app_name }}
+
+      - name: Build
+        run: npm run build -- --base /SDLC/${{ steps.extract.outputs.app_name }}/
+        working-directory: ${{ steps.extract.outputs.app_name }}
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
         with:
-          path: pomodoro-app/dist
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - uses: actions/deploy-pages@v4
-        id: deployment
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ${{ steps.extract.outputs.app_name }}/dist
+          destination_dir: ${{ steps.extract.outputs.app_name }}
+          keep_files: true
 
   verify:
-    needs: deploy
+    needs: build-and-deploy
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: pomodoro-app
     steps:
       - uses: actions/checkout@v4
+
+      - name: Extract app name from branch
+        id: extract
+        run: echo "app_name=${GITHUB_REF#refs/heads/deploy/}" >> $GITHUB_OUTPUT
 
       - uses: actions/setup-node@v4
         with:
@@ -61,21 +65,25 @@ jobs:
 
       - name: Install Playwright
         run: npm install @playwright/test
+        working-directory: ${{ steps.extract.outputs.app_name }}
 
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
+        working-directory: ${{ steps.extract.outputs.app_name }}
 
       - name: Wait for GitHub Pages to propagate
         run: sleep 60
-        working-directory: .
 
       - name: Run smoke tests against live deployment
         run: npx playwright test
+        working-directory: ${{ steps.extract.outputs.app_name }}
+        env:
+          PLAYWRIGHT_BASE_URL: https://umais-developer.github.io/SDLC/${{ steps.extract.outputs.app_name }}/
 
       - name: Upload Playwright report
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: playwright-report
-          path: pomodoro-app/playwright-report/
+          name: playwright-report-${{ steps.extract.outputs.app_name }}
+          path: ${{ steps.extract.outputs.app_name }}/playwright-report/
           retention-days: 7

@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Pomodoro App — smoke tests', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
+    await page.goto('./');
   });
 
   test('page loads without 404', async ({ page }) => {
