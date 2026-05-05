@@ -1,0 +1,30 @@
+# Dependencies — installed by npm ci in the Actions workflow
+node_modules/
+
+# Build output — produced by npm run build in the Actions workflow
+dist/
+build/
+out/
+
+# OS / editor artefacts
+.DS_Store
+Thumbs.db
+*.swp
+
+# Compiled / binary artefacts
+*.dll
+*.exe
+*.pdb
+*.obj
+*.class
+*.jar
+*.war
+
+# Test / coverage output
+coverage/
+.nyc_output/
+
+# Local env files — must never be committed
+.env
+.env.local
+.env.*.local
