@@ -136,6 +136,24 @@ After the review report is displayed, ask the user:
 
 ### Stage 8 — Deploy Application
 
+**Before doing anything else, determine whether the app is static-deployable to GitHub Pages.**
+
+Check `architecture_final.md` (and the implemented source code) for any of the following signals:
+- A Node.js / Express / Fastify / NestJS / any HTTP server process
+- A database (PostgreSQL, MySQL, MongoDB, Redis, SQLite, etc.)
+- Server-side rendering at request time (Next.js SSR, Remix, SvelteKit SSR, etc.)
+- API routes or backend endpoints that run server-side code
+- WebSockets or any persistent server connection
+- Docker / container definitions
+- Environment variables that reference server secrets (DB passwords, API keys used server-side)
+
+**If any of the above are present** → GitHub Pages cannot host this app. Output:
+> "⚠️ Stage 8 skipped — this app requires a server and cannot be deployed to GitHub Pages. To deploy, use a platform that supports server-side workloads (e.g. Vercel, Render, Railway, Fly.io). No deployment has been made."
+
+Then skip to the Completion Summary, marking Stage 8 as ⏭️ Skipped.
+
+**If the app is purely static** (React/Vue/Svelte/Astro/vanilla JS that builds to `dist/` with no server process) → proceed with deployment:
+
 Follow all instructions in the deploy-application prompt:
 
 [deploy-application](.github/prompts/deploy-application.prompt.md)
@@ -168,7 +186,7 @@ After all stages are done, output a summary table:
 | 6 — Implementation | ✅ Complete | _(source files)_ |
 | 7 — Review | ✅ Complete | _(inline report)_ |
 | UAT Gate | ✅ Approved | _(user sign-off)_ |
-| 8 — Deploy | ✅ Complete | _(live GitHub Pages URL)_ |
+| 8 — Deploy | ✅ Complete _or_ ⏭️ Skipped (server-side app) | _(live GitHub Pages URL, or skip reason)_ |
 
 ## Rules
 

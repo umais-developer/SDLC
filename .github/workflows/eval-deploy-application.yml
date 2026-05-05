@@ -1,0 +1,55 @@
+name: Eval — deploy-application skill
+
+on:
+  pull_request:
+    paths:
+      - '.agents/skills/deploy-application/**'
+
+jobs:
+  eval-quality:
+    name: Output quality
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/promptfoo
+          key: promptfoo-quality-${{ hashFiles('.agents/skills/deploy-application/evals/promptfooconfig.yaml') }}
+
+      - uses: promptfoo/promptfoo-action@v1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          config: .agents/skills/deploy-application/evals/promptfooconfig.yaml
+          fail-on-threshold: 80
+          repeat: 3
+          repeat-min-pass: 2
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+  eval-routing:
+    name: Description / skill routing
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/promptfoo
+          key: promptfoo-routing-${{ hashFiles('.agents/skills/deploy-application/evals/promptfooconfig-routing.yaml') }}
+
+      - uses: promptfoo/promptfoo-action@v1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          config: .agents/skills/deploy-application/evals/promptfooconfig-routing.yaml
+          fail-on-threshold: 100    # routing must be correct every time
+          repeat: 3
+          repeat-min-pass: 3
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
