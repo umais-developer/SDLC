@@ -1,6 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
 
-const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? 'https://umais-developer.github.io/SDLC/pomodoro-app/';
+const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? 'https://umais-developer.github.io/SDLC/';
 
 export default defineConfig({
   testDir: './e2e',

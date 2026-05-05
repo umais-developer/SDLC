@@ -5,17 +5,17 @@ on:
     branches: ['deploy/**']
 
 permissions:
-  contents: write
+  contents: read
+  pages: write
+  id-token: write
 
 concurrency:
   group: pages
   cancel-in-progress: true
 
 jobs:
-  build-and-deploy:
+  build:
     runs-on: ubuntu-latest
-    outputs:
-      app_name: ${{ steps.extract.outputs.app_name }}
     steps:
       - uses: actions/checkout@v4
 
@@ -38,19 +38,27 @@ jobs:
         working-directory: ${{ steps.extract.outputs.app_name }}
 
       - name: Build
-        run: npm run build -- --base /SDLC/${{ steps.extract.outputs.app_name }}/
+        run: npm run build -- --base /SDLC/
         working-directory: ${{ steps.extract.outputs.app_name }}
 
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
+      - uses: actions/configure-pages@v4
+
+      - uses: actions/upload-pages-artifact@v3
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ${{ steps.extract.outputs.app_name }}/dist
-          destination_dir: ${{ steps.extract.outputs.app_name }}
-          keep_files: true
+          path: ${{ steps.extract.outputs.app_name }}/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/deploy-pages@v4
+        id: deployment
 
   verify:
-    needs: build-and-deploy
+    needs: deploy
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -72,13 +80,13 @@ jobs:
         working-directory: ${{ steps.extract.outputs.app_name }}
 
       - name: Wait for GitHub Pages to propagate
-        run: sleep 60
+        run: sleep 30
 
       - name: Run smoke tests against live deployment
         run: npx playwright test
         working-directory: ${{ steps.extract.outputs.app_name }}
         env:
-          PLAYWRIGHT_BASE_URL: https://umais-developer.github.io/SDLC/${{ steps.extract.outputs.app_name }}/
+          PLAYWRIGHT_BASE_URL: https://umais-developer.github.io/SDLC/
 
       - name: Upload Playwright report
         uses: actions/upload-artifact@v4
