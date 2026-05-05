@@ -1,0 +1,77 @@
+# .agents/skills/create-epics-stories/evals/cases-routing.yaml
+
+# --- Positive cases: skill SHOULD be invoked ---
+
+- description: "Routing — explicit breakdown request should invoke create_epics_stories"
+  vars:
+    request: "Break down the email notification feature into epics and user stories."
+  assert:
+    - type: javascript
+      value: output.includes('create_epics_stories')
+      metric: skill_invoked
+
+- description: "Routing — backlog creation request should invoke create_epics_stories"
+  vars:
+    request: "Create user stories for the onboarding wizard so the team can start sprint planning."
+  assert:
+    - type: javascript
+      value: output.includes('create_epics_stories')
+      metric: skill_invoked
+
+- description: "Routing — sprint planning request should invoke create_epics_stories"
+  vars:
+    request: "We need to break the rate limiting feature into stories we can put in the backlog."
+  assert:
+    - type: javascript
+      value: output.includes('create_epics_stories')
+      metric: skill_invoked
+
+- description: "Routing — PRD decomposition request should invoke create_epics_stories"
+  vars:
+    request: "Take the dark mode PRD and turn it into epics and stories for the engineering team."
+  assert:
+    - type: javascript
+      value: output.includes('create_epics_stories')
+      metric: skill_invoked
+
+- description: "Routing — feature decomposition request should invoke create_epics_stories"
+  vars:
+    request: "What epics and stories do we need to build a real-time chat feature?"
+  assert:
+    - type: javascript
+      value: output.includes('create_epics_stories')
+      metric: skill_invoked
+
+# --- Negative cases: skill should NOT be invoked ---
+
+- description: "Routing — PRD writing request should NOT invoke create_epics_stories"
+  vars:
+    request: "Write a PRD for the email notification feature."
+  assert:
+    - type: javascript
+      value: "!output.includes('create_epics_stories')"
+      metric: skill_not_invoked
+
+- description: "Routing — architecture request should NOT invoke create_epics_stories"
+  vars:
+    request: "Design the system architecture for the notification service."
+  assert:
+    - type: javascript
+      value: "!output.includes('create_epics_stories')"
+      metric: skill_not_invoked
+
+- description: "Routing — bug report should NOT invoke create_epics_stories"
+  vars:
+    request: "The notifications are not sending after the last deployment."
+  assert:
+    - type: javascript
+      value: "!output.includes('create_epics_stories')"
+      metric: skill_not_invoked
+
+- description: "Routing — general coding question should NOT invoke create_epics_stories"
+  vars:
+    request: "How do I write a webhook handler in Node.js?"
+  assert:
+    - type: javascript
+      value: "!output.includes('create_epics_stories')"
+      metric: skill_not_invoked

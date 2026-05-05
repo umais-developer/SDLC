@@ -1,0 +1,31 @@
+# .agents/skills/plan-story/evals/promptfooconfig-routing.yaml
+description: "Plan Story Skill — Description / Skill Routing Evaluation"
+
+prompts:
+  - "{{request}}"    # bare user turn — no system prompt, just the request
+
+providers:
+  - id: anthropic:messages:claude-sonnet-4-6
+    label: Claude Sonnet 4.6
+    config:
+      temperature: 0        # deterministic for routing decisions
+      tools:
+        - type: function
+          function:
+            name: plan_story
+            # This description must match the description in plan-story.prompt.md front matter.
+            # When you update the description there, update it here to match.
+            description: >
+              Breaks down a user story and acceptance criteria into a concrete
+              implementation plan. Use when the user needs to plan the
+              engineering tasks, dependencies, risks, and definition of done
+              for a specific user story before implementation begins.
+            parameters:
+              type: object
+              properties:
+                request:
+                  type: string
+                  description: The user story and acceptance criteria to produce an implementation plan for.
+              required: [request]
+
+tests: file://cases-routing.yaml

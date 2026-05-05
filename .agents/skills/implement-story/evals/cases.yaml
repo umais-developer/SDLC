@@ -1,0 +1,156 @@
+# .agents/skills/implement-story/evals/cases.yaml
+
+- description: "Well-defined story — check notification opt-out before sending"
+  vars:
+    request: |
+      User story: As a customer, I want to receive an email when my order ships so that I know when to expect delivery.
+
+      Acceptance criteria:
+      - [ ] Email is sent within 5 minutes of the order status changing to "shipped"
+      - [ ] Email includes order number, item summary, and tracking link
+      - [ ] Email is NOT sent if the customer has opted out of notifications
+      - [ ] A record of the sent notification is stored for audit purposes
+
+      Implementation plan:
+      - BE-01: Add a sendShipmentNotification(orderId) function that checks opt-out preference before sending
+      - BE-02: Persist a notification record to the notifications table on send
+      - TEST-01: Unit test sendShipmentNotification with opt-in and opt-out scenarios
+  assert:
+    # Deterministic checks (fast, free)
+    - type: icontains
+      value: "test"
+    - type: icontains
+      value: "opt"
+    - type: icontains
+      value: "acceptance criteria status"
+    - type: icontains
+      value: "files changed"
+    - type: javascript
+      value: output.split(' ').length > 200
+    # LLM-as-judge checks
+    - type: llm-rubric
+      value: >
+        The implementation includes a check for the user's notification
+        opt-out preference before sending the email — the email must NOT
+        be sent if the user has opted out.
+      threshold: 0.9
+    - type: llm-rubric
+      value: >
+        The implementation includes at least one unit test that covers both
+        the opt-in (email sent) and opt-out (email not sent) scenarios.
+      threshold: 0.9
+    - type: llm-rubric
+      value: >
+        The implementation summary table lists the status of each acceptance
+        criterion (Done / Partial / Not Done).
+      threshold: 0.85
+
+- description: "Security-sensitive story — user input validation"
+  vars:
+    request: |
+      User story: As a new user, I want to complete my profile during onboarding so that the product can be personalised for me.
+
+      Acceptance criteria:
+      - [ ] User is shown a form with fields: display name, role, and team size
+      - [ ] All fields are required and validated before submission
+      - [ ] Display name must be 2–50 characters; team size must be a positive integer
+      - [ ] On success, profile is saved and user is redirected to the dashboard
+      - [ ] On failure, inline validation errors are shown per field
+  assert:
+    - type: icontains
+      value: "test"
+    - type: icontains
+      value: "validation"
+    - type: icontains
+      value: "files changed"
+    - type: llm-rubric
+      value: >
+        Input validation is performed on the server side (backend), not only
+        on the client side — the implementation does not rely solely on
+        frontend validation to enforce constraints.
+      threshold: 0.9
+    - type: llm-rubric
+      value: >
+        The implementation validates that display name is 2–50 characters and
+        team size is a positive integer, either through explicit checks or a
+        validation library, and returns appropriate error messages.
+      threshold: 0.85
+    - type: llm-rubric
+      value: >
+        The implementation does not expose raw error details or stack traces
+        in the API response — error messages are user-friendly and safe.
+      threshold: 0.9
+
+- description: "Ambiguous story — missing context should raise questions not guess"
+  vars:
+    request: |
+      User story: As a user, I want to reset my password so that I can regain access to my account.
+
+      Acceptance criteria:
+      - [ ] User can request a password reset from the login page
+      - [ ] User receives a reset link via email
+      - [ ] Reset link expires after a reasonable time
+  assert:
+    - type: icontains
+      value: "assumption"
+    - type: icontains
+      value: "open question"
+    - type: llm-rubric
+      value: >
+        The implementation or summary flags at least one ambiguity — for
+        example, what "reasonable time" means for link expiry — either by
+        making an explicit assumption or raising it as an open question,
+        rather than silently picking an arbitrary value.
+      threshold: 0.85
+    - type: llm-rubric
+      value: >
+        The reset token is generated securely (e.g., using a
+        cryptographically random value) and is not predictable or sequential.
+      threshold: 0.9
+    - type: llm-rubric
+      value: >
+        The reset link expiry is enforced server-side — the backend checks
+        whether the token has expired before allowing the password change.
+      threshold: 0.9
+
+- description: "In-scope constraint — no unrelated files modified"
+  vars:
+    request: |
+      User story: As an API consumer, I want to receive a 429 response with a Retry-After header when I exceed 100 requests per minute so that my client can back off gracefully.
+
+      Acceptance criteria:
+      - [ ] Requests exceeding 100/min per API key receive HTTP 429
+      - [ ] 429 response includes Retry-After header with seconds until window reset
+      - [ ] Requests within the limit pass through with < 5ms added latency
+      - [ ] Rate limit counters reset on a rolling 60-second window
+
+      Implementation plan:
+      - BE-01: Implement RateLimiter middleware that tracks requests per API key
+      - BE-02: Return 429 with Retry-After header when limit exceeded
+      - TEST-01: Unit test RateLimiter with over-limit and under-limit scenarios
+      - TEST-02: Integration test the middleware on a sample endpoint
+  assert:
+    - type: icontains
+      value: "429"
+    - type: icontains
+      value: "retry-after"
+    - type: icontains
+      value: "test"
+    - type: icontains
+      value: "files changed"
+    - type: llm-rubric
+      value: >
+        The implementation returns HTTP 429 and includes a Retry-After header
+        when the rate limit is exceeded.
+      threshold: 0.9
+    - type: llm-rubric
+      value: >
+        The files changed section only lists files directly related to the
+        rate limiting feature — the implementation does not modify unrelated
+        files or refactor out-of-scope code.
+      threshold: 0.8
+    - type: llm-rubric
+      value: >
+        The tests cover both the over-limit case (429 returned) and the
+        under-limit case (request passes through).
+      threshold: 0.85

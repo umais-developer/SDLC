@@ -1,0 +1,19 @@
+# .agents/skills/create-epics-stories/evals/promptfooconfig.yaml
+description: "Epics & Stories Skill — Output Quality Evaluation"
+
+prompts:
+  - file://prompt.yaml    # chat format: system = prompt file, user = {{request}}
+
+providers:
+  - id: anthropic:messages:claude-sonnet-4-6
+    label: Claude Sonnet 4.6
+    config:
+      temperature: 0.3    # lower temp = more consistent structure
+      max_tokens: 8192
+
+# The user turn is constructed from {{request}} in each test case
+defaultTest:
+  options:
+    provider: anthropic:messages:claude-sonnet-4-6   # pin the judge model
+
+tests: file://cases.yaml

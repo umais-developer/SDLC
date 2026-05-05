@@ -1,0 +1,77 @@
+# .agents/skills/create-ux/evals/cases-routing.yaml
+
+# --- Positive cases: skill SHOULD be invoked ---
+
+- description: "Routing — explicit UX design request should invoke create_ux"
+  vars:
+    request: "Design the UX for the email notification feature."
+  assert:
+    - type: javascript
+      value: output.includes('create_ux')
+      metric: skill_invoked
+
+- description: "Routing — user flow request should invoke create_ux"
+  vars:
+    request: "Map out the user flow for the onboarding wizard."
+  assert:
+    - type: javascript
+      value: output.includes('create_ux')
+      metric: skill_invoked
+
+- description: "Routing — interaction design request should invoke create_ux"
+  vars:
+    request: "What interaction patterns should we use for the account deletion flow?"
+  assert:
+    - type: javascript
+      value: output.includes('create_ux')
+      metric: skill_invoked
+
+- description: "Routing — accessibility review request should invoke create_ux"
+  vars:
+    request: "What accessibility considerations do we need for the new settings page?"
+  assert:
+    - type: javascript
+      value: output.includes('create_ux')
+      metric: skill_invoked
+
+- description: "Routing — microcopy request should invoke create_ux"
+  vars:
+    request: "Write the error messages and empty state copy for the dashboard."
+  assert:
+    - type: javascript
+      value: output.includes('create_ux')
+      metric: skill_invoked
+
+# --- Negative cases: skill should NOT be invoked ---
+
+- description: "Routing — PRD request should NOT invoke create_ux"
+  vars:
+    request: "Write a PRD for the email notification feature."
+  assert:
+    - type: javascript
+      value: "!output.includes('create_ux')"
+      metric: skill_not_invoked
+
+- description: "Routing — architecture request should NOT invoke create_ux"
+  vars:
+    request: "Design the backend architecture for the notification service."
+  assert:
+    - type: javascript
+      value: "!output.includes('create_ux')"
+      metric: skill_not_invoked
+
+- description: "Routing — bug report should NOT invoke create_ux"
+  vars:
+    request: "The settings page is throwing a 500 error when users try to save."
+  assert:
+    - type: javascript
+      value: "!output.includes('create_ux')"
+      metric: skill_not_invoked
+
+- description: "Routing — general coding question should NOT invoke create_ux"
+  vars:
+    request: "How do I handle form validation in React?"
+  assert:
+    - type: javascript
+      value: "!output.includes('create_ux')"
+      metric: skill_not_invoked

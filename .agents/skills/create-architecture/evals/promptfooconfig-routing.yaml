@@ -1,0 +1,31 @@
+# .agents/skills/create-architecture/evals/promptfooconfig-routing.yaml
+description: "Architecture Skill — Description / Skill Routing Evaluation"
+
+prompts:
+  - "{{request}}"    # bare user turn — no system prompt, just the request
+
+providers:
+  - id: anthropic:messages:claude-sonnet-4-6
+    label: Claude Sonnet 4.6
+    config:
+      temperature: 0        # deterministic for routing decisions
+      tools:
+        - type: function
+          function:
+            name: create_architecture
+            # This description must match the description in create-architecture.prompt.md front matter.
+            # When you update the description there, update it here to match.
+            description: >
+              Generates a structured system architecture document for a feature
+              or component. Use when the user needs to design or document the
+              technical architecture, components, data flows, or infrastructure
+              for a new or existing system.
+            parameters:
+              type: object
+              properties:
+                request:
+                  type: string
+                  description: The feature, component, or system to produce an architecture document for.
+              required: [request]
+
+tests: file://cases-routing.yaml

@@ -1,0 +1,77 @@
+# .agents/skills/plan-story/evals/cases-routing.yaml
+
+# --- Positive cases: skill SHOULD be invoked ---
+
+- description: "Routing — explicit story planning request should invoke plan_story"
+  vars:
+    request: "Plan the implementation tasks for this story: As a customer, I want to receive an email when my order ships."
+  assert:
+    - type: javascript
+      value: output.includes('plan_story')
+      metric: skill_invoked
+
+- description: "Routing — story breakdown request should invoke plan_story"
+  vars:
+    request: "Break down this user story into engineering tasks with definitions of done."
+  assert:
+    - type: javascript
+      value: output.includes('plan_story')
+      metric: skill_invoked
+
+- description: "Routing — sprint planning request for a story should invoke plan_story"
+  vars:
+    request: "We're about to start the rate limiting story in sprint. What tasks do we need and what are the risks?"
+  assert:
+    - type: javascript
+      value: output.includes('plan_story')
+      metric: skill_invoked
+
+- description: "Routing — implementation plan request should invoke plan_story"
+  vars:
+    request: "Create an implementation plan for the onboarding profile form story."
+  assert:
+    - type: javascript
+      value: output.includes('plan_story')
+      metric: skill_invoked
+
+- description: "Routing — task dependency request should invoke plan_story"
+  vars:
+    request: "What order should we implement the tasks for this user story, and what are the dependencies?"
+  assert:
+    - type: javascript
+      value: output.includes('plan_story')
+      metric: skill_invoked
+
+# --- Negative cases: skill should NOT be invoked ---
+
+- description: "Routing — epics breakdown request should NOT invoke plan_story"
+  vars:
+    request: "Break the email notification feature into epics and stories."
+  assert:
+    - type: javascript
+      value: "!output.includes('plan_story')"
+      metric: skill_not_invoked
+
+- description: "Routing — PRD request should NOT invoke plan_story"
+  vars:
+    request: "Write a PRD for the rate limiting feature."
+  assert:
+    - type: javascript
+      value: "!output.includes('plan_story')"
+      metric: skill_not_invoked
+
+- description: "Routing — architecture request should NOT invoke plan_story"
+  vars:
+    request: "Design the system architecture for the notification service."
+  assert:
+    - type: javascript
+      value: "!output.includes('plan_story')"
+      metric: skill_not_invoked
+
+- description: "Routing — bug report should NOT invoke plan_story"
+  vars:
+    request: "The email notifications are not being sent after the last deployment."
+  assert:
+    - type: javascript
+      value: "!output.includes('plan_story')"
+      metric: skill_not_invoked

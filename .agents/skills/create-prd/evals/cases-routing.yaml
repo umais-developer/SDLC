@@ -1,0 +1,77 @@
+# .agents/skills/create-prd/evals/cases-routing.yaml
+
+# --- Positive cases: skill SHOULD be invoked ---
+
+- description: "Routing — clear feature request should invoke create_prd"
+  vars:
+    request: "We need to add email notifications when a user's order ships."
+  assert:
+    - type: javascript
+      value: output.includes('create_prd')
+      metric: skill_invoked
+
+- description: "Routing — onboarding problem statement should invoke create_prd"
+  vars:
+    request: "Users are dropping off during onboarding. We want to add a guided setup wizard."
+  assert:
+    - type: javascript
+      value: output.includes('create_prd')
+      metric: skill_invoked
+
+- description: "Routing — technical feature request should invoke create_prd"
+  vars:
+    request: "Add rate limiting to our public REST API — 100 requests per minute per API key."
+  assert:
+    - type: javascript
+      value: output.includes('create_prd')
+      metric: skill_invoked
+
+- description: "Routing — new product capability should invoke create_prd"
+  vars:
+    request: "We want to build a dark mode toggle in the user settings page."
+  assert:
+    - type: javascript
+      value: output.includes('create_prd')
+      metric: skill_invoked
+
+- description: "Routing — vague feature initiative should invoke create_prd"
+  vars:
+    request: "Make the dashboard better for power users."
+  assert:
+    - type: javascript
+      value: output.includes('create_prd')
+      metric: skill_invoked
+
+# --- Negative cases: skill should NOT be invoked ---
+
+- description: "Routing — general coding question should NOT invoke create_prd"
+  vars:
+    request: "How do I paginate results in a REST API?"
+  assert:
+    - type: javascript
+      value: "!output.includes('create_prd')"
+      metric: skill_not_invoked
+
+- description: "Routing — status question should NOT invoke create_prd"
+  vars:
+    request: "What's the current sprint velocity for the platform team?"
+  assert:
+    - type: javascript
+      value: "!output.includes('create_prd')"
+      metric: skill_not_invoked
+
+- description: "Routing — bug report should NOT invoke create_prd"
+  vars:
+    request: "The login button is broken on iOS 17. Users get a blank screen after tapping."
+  assert:
+    - type: javascript
+      value: "!output.includes('create_prd')"
+      metric: skill_not_invoked
+
+- description: "Routing — factual lookup should NOT invoke create_prd"
+  vars:
+    request: "What does HTTP 429 status code mean?"
+  assert:
+    - type: javascript
+      value: "!output.includes('create_prd')"
+      metric: skill_not_invoked

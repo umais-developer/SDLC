@@ -1,0 +1,142 @@
+# .agents/skills/plan-story/evals/cases.yaml
+
+- description: "Well-defined story — email notification on order ship"
+  vars:
+    request: |
+      User story: As a customer, I want to receive an email when my order ships so that I know when to expect delivery.
+
+      Acceptance criteria:
+      - [ ] Email is sent within 5 minutes of the order status changing to "shipped"
+      - [ ] Email includes order number, item summary, and tracking link
+      - [ ] Email is not sent if the customer has opted out of notifications
+      - [ ] A record of the sent notification is stored for audit purposes
+  assert:
+    # Deterministic checks (fast, free)
+    - type: icontains
+      value: "frontend"
+    - type: icontains
+      value: "backend"
+    - type: icontains
+      value: "testing"
+    - type: icontains
+      value: "definition of done"
+    - type: icontains
+      value: "risks"
+    - type: javascript
+      value: output.split(' ').length > 200
+    # LLM-as-judge checks
+    - type: llm-rubric
+      value: >
+        Every implementation task has a clear, testable definition of done —
+        not vague statements like "task is complete" or "feature works".
+      threshold: 0.85
+    - type: llm-rubric
+      value: >
+        The plan includes at least one testing task and specifies whether it
+        is a unit, integration, or E2E test.
+      threshold: 0.85
+    - type: llm-rubric
+      value: >
+        The plan respects the opt-out acceptance criterion by including a
+        task to check notification preferences before sending.
+      threshold: 0.8
+
+- description: "Ambiguous story — no acceptance criteria provided"
+  vars:
+    request: |
+      User story: As a power user, I want the dashboard to load faster so that I can work more efficiently.
+  assert:
+    - type: icontains
+      value: "unknown"
+    - type: icontains
+      value: "open questions"
+    - type: icontains
+      value: "testing"
+    - type: javascript
+      value: output.split('\n').length > 20
+    - type: llm-rubric
+      value: >
+        The plan derives reasonable acceptance criteria from the story or
+        marks them as [TBD] and raises open questions rather than silently
+        inventing specific performance targets.
+      threshold: 0.75
+    - type: llm-rubric
+      value: >
+        The risks or unknowns section flags the lack of a defined performance
+        baseline or target metric as an unknown that must be resolved before
+        implementation begins.
+      threshold: 0.8
+
+- description: "Backend-heavy story — API rate limiting"
+  vars:
+    request: |
+      User story: As an API consumer, I want to receive a 429 response with a Retry-After header when I exceed 100 requests per minute so that my client can back off and retry gracefully.
+
+      Acceptance criteria:
+      - [ ] Requests exceeding 100/min per API key receive HTTP 429
+      - [ ] 429 response includes a Retry-After header with seconds until reset
+      - [ ] Requests within the limit are not affected in latency (< 5ms overhead)
+      - [ ] Rate limit counters reset on a rolling 60-second window
+  assert:
+    - type: icontains
+      value: "backend"
+    - type: icontains
+      value: "testing"
+    - type: icontains
+      value: "definition of done"
+    - type: javascript
+      value: output.includes('429')
+    - type: llm-rubric
+      value: >
+        The backend tasks include implementing the rate limit enforcement
+        logic and returning the correct 429 status with a Retry-After header.
+      threshold: 0.85
+    - type: llm-rubric
+      value: >
+        The testing tasks include at least one test that verifies the 429
+        response and Retry-After header are returned when the limit is exceeded.
+      threshold: 0.85
+    - type: llm-rubric
+      value: >
+        The plan does not include frontend tasks unless they are genuinely
+        required — rate limiting is a backend concern.
+      threshold: 0.75
+
+- description: "Full-stack story — onboarding step with form"
+  vars:
+    request: |
+      User story: As a new user, I want to complete my profile during onboarding so that the product can be personalised for me.
+
+      Acceptance criteria:
+      - [ ] User is shown a profile form with fields: display name, role, and team size
+      - [ ] All fields are required and validated before submission
+      - [ ] On success, user is redirected to the dashboard
+      - [ ] On failure, inline validation errors are shown per field
+      - [ ] Form is accessible: all fields have labels and error messages are announced to screen readers
+  assert:
+    - type: icontains
+      value: "frontend"
+    - type: icontains
+      value: "backend"
+    - type: icontains
+      value: "testing"
+    - type: icontains
+      value: "definition of done"
+    - type: javascript
+      value: output.split(' ').length > 250
+    - type: llm-rubric
+      value: >
+        The frontend tasks include implementing both the happy path (success
+        redirect) and the error path (inline validation errors per field).
+      threshold: 0.85
+    - type: llm-rubric
+      value: >
+        The plan includes at least one accessibility-specific task or
+        definition of done that covers labels and screen reader announcements
+        for error messages.
+      threshold: 0.8
+    - type: llm-rubric
+      value: >
+        The dependency order section lists data/backend tasks (e.g., API
+        endpoint) before frontend tasks that depend on them.
+      threshold: 0.75

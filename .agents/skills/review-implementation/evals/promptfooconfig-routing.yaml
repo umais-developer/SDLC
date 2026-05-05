@@ -1,0 +1,32 @@
+# .agents/skills/review-implementation/evals/promptfooconfig-routing.yaml
+description: "Review Implementation Skill — Description / Skill Routing Evaluation"
+
+prompts:
+  - "{{request}}"    # bare user turn — no system prompt, just the request
+
+providers:
+  - id: anthropic:messages:claude-sonnet-4-6
+    label: Claude Sonnet 4.6
+    config:
+      temperature: 0        # deterministic for routing decisions
+      tools:
+        - type: function
+          function:
+            name: review_implementation
+            # This description must match the description in review-implementation.prompt.md front matter.
+            # When you update the description there, update it here to match.
+            description: >
+              Reviews an implementation against its user story and acceptance
+              criteria, identifying correctness issues, security concerns,
+              missing tests, and anything that would block merging. Use when
+              the user wants a code review of a completed or in-progress
+              implementation.
+            parameters:
+              type: object
+              properties:
+                request:
+                  type: string
+                  description: The code, user story, and acceptance criteria to review.
+              required: [request]
+
+tests: file://cases-routing.yaml

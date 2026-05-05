@@ -1,0 +1,77 @@
+# .agents/skills/review-implementation/evals/cases-routing.yaml
+
+# --- Positive cases: skill SHOULD be invoked ---
+
+- description: "Routing — explicit review request should invoke review_implementation"
+  vars:
+    request: "Review this implementation against the acceptance criteria."
+  assert:
+    - type: javascript
+      value: output.includes('review_implementation')
+      metric: skill_invoked
+
+- description: "Routing — code review request should invoke review_implementation"
+  vars:
+    request: "Can you do a code review of the rate limiting implementation?"
+  assert:
+    - type: javascript
+      value: output.includes('review_implementation')
+      metric: skill_invoked
+
+- description: "Routing — PR review request should invoke review_implementation"
+  vars:
+    request: "Review this PR — here's the diff and the story it implements."
+  assert:
+    - type: javascript
+      value: output.includes('review_implementation')
+      metric: skill_invoked
+
+- description: "Routing — check implementation against AC should invoke review_implementation"
+  vars:
+    request: "Does this code satisfy all the acceptance criteria for the onboarding story?"
+  assert:
+    - type: javascript
+      value: output.includes('review_implementation')
+      metric: skill_invoked
+
+- description: "Routing — merge readiness check should invoke review_implementation"
+  vars:
+    request: "Is this implementation ready to merge? Check for issues and missing tests."
+  assert:
+    - type: javascript
+      value: output.includes('review_implementation')
+      metric: skill_invoked
+
+# --- Negative cases: skill should NOT be invoked ---
+
+- description: "Routing — implement story request should NOT invoke review_implementation"
+  vars:
+    request: "Implement the password reset story with tests."
+  assert:
+    - type: javascript
+      value: "!output.includes('review_implementation')"
+      metric: skill_not_invoked
+
+- description: "Routing — story planning request should NOT invoke review_implementation"
+  vars:
+    request: "Plan the implementation tasks for the email notification story."
+  assert:
+    - type: javascript
+      value: "!output.includes('review_implementation')"
+      metric: skill_not_invoked
+
+- description: "Routing — bug report should NOT invoke review_implementation"
+  vars:
+    request: "The login endpoint is returning 500 errors in production."
+  assert:
+    - type: javascript
+      value: "!output.includes('review_implementation')"
+      metric: skill_not_invoked
+
+- description: "Routing — general coding question should NOT invoke review_implementation"
+  vars:
+    request: "What is the difference between authentication and authorisation?"
+  assert:
+    - type: javascript
+      value: "!output.includes('review_implementation')"
+      metric: skill_not_invoked

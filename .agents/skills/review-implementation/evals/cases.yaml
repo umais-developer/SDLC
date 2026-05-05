@@ -1,0 +1,212 @@
+# .agents/skills/review-implementation/evals/cases.yaml
+
+- description: "Good implementation — should approve with no blockers"
+  vars:
+    request: |
+      User story: As a customer, I want to receive an email when my order ships so that I know when to expect delivery.
+
+      Acceptance criteria:
+      - [ ] Email is sent only if the customer has opted in to notifications
+      - [ ] Email includes order number and tracking link
+      - [ ] A notification record is stored after sending
+
+      Implementation:
+      ```python
+      def send_shipment_notification(order_id: str, db: Session) -> None:
+          order = db.query(Order).filter(Order.id == order_id).first()
+          if not order:
+              raise ValueError(f"Order {order_id} not found")
+
+          user = db.query(User).filter(User.id == order.user_id).first()
+          if not user.notifications_opted_in:
+              return
+
+          email_service.send(
+              to=user.email,
+              subject=f"Your order {order.number} has shipped",
+              body=render_template("shipment_email.html", order=order)
+          )
+
+          record = NotificationRecord(
+              user_id=user.id,
+              order_id=order.id,
+              type="shipment",
+              sent_at=datetime.utcnow()
+          )
+          db.add(record)
+          db.commit()
+
+      # Tests
+      def test_send_shipment_notification_opted_in(db):
+          order = create_test_order(db, user_opted_in=True)
+          send_shipment_notification(order.id, db)
+          assert db.query(NotificationRecord).count() == 1
+
+      def test_send_shipment_notification_opted_out(db):
+          order = create_test_order(db, user_opted_in=False)
+          send_shipment_notification(order.id, db)
+          assert db.query(NotificationRecord).count() == 0
+      ```
+  assert:
+    - type: icontains
+      value: "verdict"
+    - type: icontains
+      value: "acceptance criteria coverage"
+    - type: icontains
+      value: "test coverage"
+    - type: icontains
+      value: "security"
+    - type: llm-rubric
+      value: >
+        The review verdict is Approve or Approve with minor changes —
+        the implementation correctly handles the opt-out check, sends the
+        email, and persists the notification record with tests for both paths.
+      threshold: 0.85
+    - type: llm-rubric
+      value: >
+        All three acceptance criteria are marked as covered in the
+        acceptance criteria coverage table.
+      threshold: 0.85
+
+- description: "Security vulnerability — SQL injection risk should be a blocker"
+  vars:
+    request: |
+      User story: As a user, I want to search for products by name so that I can find items quickly.
+
+      Acceptance criteria:
+      - [ ] Search results are returned for matching product names
+      - [ ] An empty result set is returned when no products match
+
+      Implementation:
+      ```python
+      def search_products(query: str, db_conn):
+          sql = f"SELECT * FROM products WHERE name LIKE '%{query}%'"
+          results = db_conn.execute(sql)
+          return results.fetchall()
+      ```
+  assert:
+    - type: icontains
+      value: "blocker"
+    - type: icontains
+      value: "verdict"
+    - type: icontains
+      value: "security"
+    - type: llm-rubric
+      value: >
+        The review identifies the SQL injection vulnerability as a Blocker
+        (🔴) and explains that string interpolation into a SQL query allows
+        an attacker to manipulate the query.
+      threshold: 0.95
+    - type: llm-rubric
+      value: >
+        The review provides a concrete fix using parameterised queries or
+        a query builder/ORM to prevent the SQL injection.
+      threshold: 0.9
+    - type: llm-rubric
+      value: >
+        The review verdict is Request Changes due to the security blocker.
+      threshold: 0.9
+
+- description: "Missing tests — major issue not a blocker"
+  vars:
+    request: |
+      User story: As an API consumer, I want to receive a 429 response when I exceed the rate limit so that my client can back off.
+
+      Acceptance criteria:
+      - [ ] Requests exceeding 100/min receive HTTP 429 with Retry-After header
+      - [ ] Requests within the limit pass through normally
+
+      Implementation:
+      ```python
+      from collections import defaultdict
+      import time
+
+      request_counts = defaultdict(list)
+
+      def rate_limit_middleware(api_key: str):
+          now = time.time()
+          window_start = now - 60
+          request_counts[api_key] = [t for t in request_counts[api_key] if t > window_start]
+
+          if len(request_counts[api_key]) >= 100:
+              reset_in = int(60 - (now - request_counts[api_key][0]))
+              raise RateLimitExceeded(retry_after=reset_in)
+
+          request_counts[api_key].append(now)
+      ```
+  assert:
+    - type: icontains
+      value: "test"
+    - type: icontains
+      value: "verdict"
+    - type: icontains
+      value: "acceptance criteria coverage"
+    - type: llm-rubric
+      value: >
+        The review identifies that no tests are present as at least a
+        Major issue (🟠), since both acceptance criteria require test coverage.
+      threshold: 0.9
+    - type: llm-rubric
+      value: >
+        The review identifies the in-memory dictionary as a risk or major
+        issue — it does not persist across restarts and does not work in a
+        multi-process or distributed deployment.
+      threshold: 0.85
+    - type: llm-rubric
+      value: >
+        The review verdict is Request Changes or Approve with minor changes,
+        not a full Approve, because tests are missing.
+      threshold: 0.85
+
+- description: "Deviation from acceptance criteria — should flag as blocker"
+  vars:
+    request: |
+      User story: As a new user, I want my profile form validated so I cannot submit invalid data.
+
+      Acceptance criteria:
+      - [ ] Display name must be 2–50 characters
+      - [ ] Team size must be a positive integer
+      - [ ] Validation is enforced server-side
+
+      Implementation:
+      ```javascript
+      // Frontend only — no backend validation
+      function validateProfileForm(displayName, teamSize) {
+        if (displayName.length < 2 || displayName.length > 50) {
+          return { error: "Display name must be 2-50 characters" };
+        }
+        if (!Number.isInteger(teamSize) || teamSize < 1) {
+          return { error: "Team size must be a positive integer" };
+        }
+        return null;
+      }
+
+      async function submitProfile(displayName, teamSize) {
+        const error = validateProfileForm(displayName, teamSize);
+        if (error) return error;
+        await api.post("/profile", { displayName, teamSize });
+      }
+      ```
+  assert:
+    - type: icontains
+      value: "blocker"
+    - type: icontains
+      value: "server"
+    - type: icontains
+      value: "verdict"
+    - type: llm-rubric
+      value: >
+        The review identifies as a Blocker that server-side validation is
+        missing — the acceptance criterion explicitly requires server-side
+        enforcement, and client-only validation can be bypassed.
+      threshold: 0.95
+    - type: llm-rubric
+      value: >
+        The review verdict is Request Changes because a blocker exists
+        (missing server-side validation).
+      threshold: 0.9
+    - type: llm-rubric
+      value: >
+        The review provides a concrete suggestion for adding server-side
+        validation (e.g., in the API handler or a validation middleware).
+      threshold: 0.85

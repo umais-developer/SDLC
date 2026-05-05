@@ -1,0 +1,114 @@
+# .agents/skills/create-epics-stories/evals/cases.yaml
+
+- description: "Simple feature — email order notifications"
+  vars:
+    request: "Break down the email notification feature for order shipment alerts into epics and user stories."
+  assert:
+    # Deterministic checks (fast, free)
+    - type: icontains
+      value: "epic"
+    - type: icontains
+      value: "acceptance criteria"
+    - type: icontains
+      value: "as a"
+    - type: icontains
+      value: "so that"
+    - type: icontains
+      value: "i want"
+    - type: javascript
+      value: output.split(' ').length > 200
+    # LLM-as-judge checks
+    - type: llm-rubric
+      value: >
+        Every user story follows the format "As a [persona], I want [action]
+        so that [benefit]." with all three parts present.
+      threshold: 0.85
+    - type: llm-rubric
+      value: >
+        Each story includes an acceptance criteria section with at least two
+        testable, checkable conditions.
+      threshold: 0.8
+    - type: llm-rubric
+      value: >
+        The stories are independently deliverable — no story requires another
+        story to be completed before it can be tested.
+      threshold: 0.75
+
+- description: "Ambiguous request — should still produce a complete breakdown"
+  vars:
+    request: "Make the dashboard better for power users."
+  assert:
+    - type: icontains
+      value: "epic"
+    - type: icontains
+      value: "assumptions"
+    - type: icontains
+      value: "open questions"
+    - type: javascript
+      value: output.split('\n').length > 20
+    - type: llm-rubric
+      value: >
+        Despite the vague input, the breakdown makes explicit assumptions and
+        produces concrete, actionable stories rather than vague tasks like
+        "improve the dashboard".
+      threshold: 0.7
+    - type: llm-rubric
+      value: >
+        The document flags at least one open question or marks at least one
+        section with [TBD] indicating more input is needed.
+      threshold: 0.7
+
+- description: "Technical feature — API rate limiting"
+  vars:
+    request: "Break down the API rate limiting feature (100 requests per minute per API key) into epics and user stories."
+  assert:
+    - type: icontains
+      value: "epic"
+    - type: icontains
+      value: "acceptance criteria"
+    - type: icontains
+      value: "technical tasks"
+    - type: javascript
+      value: output.includes('100')
+    - type: llm-rubric
+      value: >
+        The breakdown separates user-facing stories (e.g., API consumers seeing
+        rate limit errors) from technical tasks (e.g., implementing the
+        enforcement middleware), placing implementation work in the technical
+        tasks section rather than as user stories.
+      threshold: 0.8
+    - type: llm-rubric
+      value: >
+        At least one story's acceptance criteria includes a testable condition
+        about what happens when the rate limit is exceeded (e.g., 429 response,
+        retry-after header).
+      threshold: 0.8
+
+- description: "Multi-epic feature — user onboarding wizard"
+  vars:
+    request: "Break down a guided onboarding wizard for new users into epics and user stories. It should cover web and mobile and walk users through account setup step by step."
+  assert:
+    - type: icontains
+      value: "epic"
+    - type: icontains
+      value: "acceptance criteria"
+    - type: icontains
+      value: "as a"
+    - type: javascript
+      value: output.split(' ').length > 300
+    - type: llm-rubric
+      value: >
+        The breakdown contains at least two distinct epics that group related
+        stories logically (e.g., one for web, one for mobile, or one per
+        onboarding phase).
+      threshold: 0.8
+    - type: llm-rubric
+      value: >
+        Stories account for both web and mobile surfaces — either as separate
+        stories or with explicit acceptance criteria covering both.
+      threshold: 0.75
+    - type: llm-rubric
+      value: >
+        The out of scope section is present and excludes at least one related
+        concern (e.g., password reset, billing setup, or social login).
+      threshold: 0.7

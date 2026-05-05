@@ -1,0 +1,118 @@
+# .agents/skills/create-ux/evals/cases.yaml
+
+- description: "Simple feature — email order notification UX"
+  vars:
+    request: "Design the UX for an email notification feature that alerts users when their order ships."
+  assert:
+    # Deterministic checks (fast, free)
+    - type: icontains
+      value: "user flow"
+    - type: icontains
+      value: "error state"
+    - type: icontains
+      value: "empty state"
+    - type: icontains
+      value: "accessibility"
+    - type: icontains
+      value: "microcopy"
+    - type: javascript
+      value: output.split(' ').length > 200
+    # LLM-as-judge checks
+    - type: llm-rubric
+      value: >
+        The document includes at least one user flow with clearly numbered steps
+        and identifies both a happy path and at least one error or edge case path.
+      threshold: 0.8
+    - type: llm-rubric
+      value: >
+        The accessibility section addresses at least two of: keyboard navigation,
+        focus indicators, color contrast, screen reader support, or error
+        identification without color alone.
+      threshold: 0.8
+    - type: llm-rubric
+      value: >
+        The document includes proposed microcopy for at least a primary CTA,
+        an error message, and an empty or success state.
+      threshold: 0.75
+
+- description: "Ambiguous request — should still produce a complete UX document"
+  vars:
+    request: "Make the dashboard better for power users."
+  assert:
+    - type: icontains
+      value: "user flow"
+    - type: icontains
+      value: "assumptions"
+    - type: icontains
+      value: "open questions"
+    - type: javascript
+      value: output.split('\n').length > 25
+    - type: llm-rubric
+      value: >
+        Despite the vague input, the document makes explicit assumptions about
+        which dashboard interactions are being improved and proposes concrete
+        user flows or interaction patterns rather than generic design advice.
+      threshold: 0.7
+    - type: llm-rubric
+      value: >
+        The document flags at least one open question or marks at least one
+        section with [TBD] indicating more input is needed.
+      threshold: 0.7
+
+- description: "Form-heavy feature — onboarding wizard UX"
+  vars:
+    request: "Design the UX for a guided onboarding wizard that walks new users through account setup step by step on web and mobile."
+  assert:
+    - type: icontains
+      value: "user flow"
+    - type: icontains
+      value: "error state"
+    - type: icontains
+      value: "empty state"
+    - type: icontains
+      value: "accessibility"
+    - type: javascript
+      value: output.split(' ').length > 300
+    - type: llm-rubric
+      value: >
+        The document covers both web and mobile surfaces — either with separate
+        flows or with explicit notes on how the experience differs per platform.
+      threshold: 0.75
+    - type: llm-rubric
+      value: >
+        The edge cases section identifies at least two scenarios where a user
+        might abandon or struggle with the onboarding flow (e.g., interrupted
+        session, validation errors, unclear field requirements).
+      threshold: 0.8
+    - type: llm-rubric
+      value: >
+        The states section documents at least four of: default, loading,
+        empty, error, success, or disabled states for a key screen or component.
+      threshold: 0.75
+
+- description: "Destructive action — account deletion UX"
+  vars:
+    request: "Design the UX for an account deletion flow. Users should be able to permanently delete their account from the settings page."
+  assert:
+    - type: icontains
+      value: "user flow"
+    - type: icontains
+      value: "error state"
+    - type: icontains
+      value: "accessibility"
+    - type: llm-rubric
+      value: >
+        The flow includes a confirmation step or safeguard before the destructive
+        action is executed (e.g., confirmation dialog, typed confirmation, or
+        re-authentication).
+      threshold: 0.9
+    - type: llm-rubric
+      value: >
+        The microcopy section proposes specific, clear warning text that
+        communicates the permanent and irreversible nature of the deletion.
+      threshold: 0.85
+    - type: llm-rubric
+      value: >
+        The edge cases section addresses what happens if deletion fails
+        (e.g., network error, pending subscription) and how the user is informed.
+      threshold: 0.8
