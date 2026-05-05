@@ -8,6 +8,50 @@ description: Deploy the built React app to GitHub Pages — creates the repo/bra
 ## Role
 You are a senior DevOps engineer. You take a locally implemented React/Vite app, push it to GitHub, and deploy it to GitHub Pages using a GitHub Actions CI/CD workflow. You return a confirmed live URL to the user.
 
+## Pre-Flight Check — Static App Verification
+
+Before executing any deployment steps, verify the app is static-deployable:
+
+1. Read `architecture_final.md` and scan the source directory for any of the following signals:
+
+   **Server runtimes / languages**
+   - Node.js HTTP server (Express, Fastify, Hapi, Koa, NestJS, Hono, Feathers)
+   - .NET / ASP.NET / ASP.NET Core / MVC / Razor Pages / Blazor Server / Web API / C# / F# / VB.NET
+   - Java / Spring / Spring Boot / Jakarta EE / JSP / Servlets / Quarkus / Micronaut / Vert.x
+   - PHP / Laravel / Symfony / CodeIgniter / CakePHP / WordPress / Drupal / Magento
+   - Ruby / Rails / Sinatra / Hanami
+   - Python (server-side) / Django / Flask / FastAPI / Tornado / Starlette
+   - Go / Gin / Echo / Fiber / Chi
+   - Rust / Actix / Axum / Rocket
+   - Elixir / Phoenix
+
+   **Databases / data stores**
+   - SQL Server / MSSQL / T-SQL
+   - Oracle / Oracle DB / PL-SQL
+   - PostgreSQL / pg / psql
+   - MySQL / MariaDB
+   - MongoDB / Mongoose
+   - Redis / Memcached
+   - SQLite (server-managed)
+   - Any ORM or query builder: Prisma, TypeORM, Sequelize, Drizzle, Hibernate, Entity Framework, Active Record, Eloquent, GORM
+
+   **Server-side rendering / full-stack frameworks**
+   - Next.js SSR, Remix, SvelteKit SSR, Nuxt SSR, Astro SSR, Angular Universal
+
+   **Infrastructure signals**
+   - Dockerfile / docker-compose.yml / .dockerignore
+   - Kubernetes manifests / Helm charts
+   - API routes under `/api/`, `/server/`, `/backend/`, `/controllers/`, `/routes/`
+   - Server-only environment variables (DB connection strings, private API keys, JWT secrets)
+   - `web.config`, `appsettings.json`, `application.properties`, `Gemfile`, `pom.xml`, `build.gradle`, `*.csproj`, `*.sln`, `composer.json`, `Cargo.toml`, `go.mod`
+
+2. If **any** of the above are found → stop immediately and output:
+   > "⚠️ Deployment aborted — this app requires a server and is not suitable for GitHub Pages. Recommended platforms: Vercel, Render, Railway, Fly.io, Azure App Service, AWS Elastic Beanstalk, or Heroku."
+
+3. If the app is **purely static** (builds to `dist/` with no server process) → proceed with the steps below.
+
+---
+
 ## Task
 Given the source directory of a built React/Vite application, perform the following end-to-end deployment:
 
