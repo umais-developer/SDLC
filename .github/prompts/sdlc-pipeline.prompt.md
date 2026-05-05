@@ -111,23 +111,46 @@ Follow all instructions in the review-implementation prompt:
 
 [review-implementation](.github/prompts/review-implementation.prompt.md)
 
-When complete: output the full review report inline, then **stop and present the UAT gate below — do not proceed to Stage 8 automatically**.
+When complete: output the full review report inline, then proceed to Stage 7.5 (Automated UAT).
 
 ---
 
-### UAT Gate — User Sign-Off Required
+### Stage 7.5 — Automated UAT Testing
 
-After the review report is displayed, ask the user:
+After the review is complete, invoke the automated UAT agent to run comprehensive testing against all user story acceptance criteria:
 
-> **UAT Sign-Off Required**
-> The review report is shown above. Please confirm:
->
-> - Does the implementation meet the acceptance criteria?
-> - Are you satisfied with the review findings?
->
-> **Type `yes` to approve and trigger deployment, or `no` to cancel.**
+Follow all instructions in the uat-automated-testing prompt:
 
-- If the user responds **`yes`** (or any clear affirmative) → proceed to Stage 8.
+[uat-automated-testing](.github/prompts/uat-automated-testing.prompt.md)
+
+This stage:
+1. Tests all 23+ user story acceptance criteria from `epics_stories_final.md`
+2. Runs browser-based tests covering all 5 epics
+3. Automatically fixes any issues found (code bugs, missing validations, etc.)
+4. Re-tests after each fix to verify correctness
+5. Generates a comprehensive UAT report with pass/fail results
+6. Gates deployment based on test results
+
+**Deployment Criteria:**
+- ✅ **Approved if:** All mandatory tests pass OR all issues auto-fixed and re-tested successfully
+- ❌ **Blocked if:** Any critical tests fail and cannot be auto-fixed
+
+If UAT **passes**: proceed to Stage 8 (Deploy).
+
+If UAT **fails with blockers**: 
+1. Output the UAT report with blocking issues
+2. Stop and ask developer to review
+3. Developer fixes issues manually
+4. Invoke UAT agent again to verify fixes
+
+---
+
+### UAT Gate — Automated Verification Complete
+
+After the UAT report is displayed:
+- If all tests pass: output "✅ UAT Approved — Deployment Cleared"
+- If issues were auto-fixed: output "✅ UAT Approved (X issues fixed) — Deployment Cleared"
+- If blockers remain: output "❌ UAT Blocked — Manual fixes required" and stop
 - If the user responds **`no`** (or any clear negative) → stop the pipeline and output:
   > "Deployment cancelled. Address the review findings and re-run the pipeline to deploy."
 - Do **not** proceed to Stage 8 for any ambiguous or non-committal response — re-prompt once, then stop if still unclear.
@@ -185,7 +208,7 @@ After all stages are done, output a summary table:
 | 5 — Plan | ✅ Complete | `plan_story_final.md` |
 | 6 — Implementation | ✅ Complete | _(source files)_ |
 | 7 — Review | ✅ Complete | _(inline report)_ |
-| UAT Gate | ✅ Approved | _(user sign-off)_ |
+| 7.5 — Automated UAT | ✅ Approved _or_ ❌ Blocked | _(UAT report with test results)_ |
 | 8 — Deploy | ✅ Complete _or_ ⏭️ Skipped (server-side app) | _(live GitHub Pages URL, or skip reason)_ |
 
 ## Rules
