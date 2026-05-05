@@ -1,0 +1,18 @@
+# .agents/skills/deploy-application/evals/promptfooconfig.yaml
+description: "Deploy Application Skill — Output Quality Evaluation"
+
+prompts:
+  - file://prompt.yaml    # chat format: system = prompt file, user = {{request}}
+
+providers:
+  - id: anthropic:messages:claude-sonnet-4-6
+    label: Claude Sonnet 4.6
+    config:
+      temperature: 0.2
+      max_tokens: 4096
+
+defaultTest:
+  options:
+    provider: anthropic:messages:claude-sonnet-4-6
+
+tests: file://cases.yaml
