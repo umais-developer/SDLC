@@ -41,8 +41,6 @@ jobs:
         run: npm run build -- --base /SDLC/
         working-directory: ${{ steps.extract.outputs.app_name }}
 
-      - uses: actions/configure-pages@v4
-
       - uses: actions/upload-pages-artifact@v3
         with:
           path: ${{ steps.extract.outputs.app_name }}/dist
