@@ -1,5 +1,5 @@
 ---
-mode: agent
+agent: agent
 description: Generate UX design guidance including user flows, interaction patterns, and design considerations for a feature, and save the output as ux_final.md.
 ---
 

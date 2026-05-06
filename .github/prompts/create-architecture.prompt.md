@@ -1,5 +1,5 @@
 ---
-mode: agent
+agent: agent
 description: Generate a structured system architecture document for a feature or component and save it as architecture_final.md.
 ---
 

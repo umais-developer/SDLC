@@ -1,5 +1,5 @@
 ---
-mode: agent
+agent: agent
 description: Generate a structured Product Requirements Document (PRD) for a feature or initiative and save it as prd_final.md.
 ---
 

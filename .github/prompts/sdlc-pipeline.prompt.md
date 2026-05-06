@@ -1,5 +1,5 @@
 ---
-mode: agent
+agent: agent
 description: Run the full SDLC pipeline (PRD → Architecture → UX → Epics/Stories → Plan → Implement → Review), automatically detecting completed stages and resuming from the correct point.
 ---
 
