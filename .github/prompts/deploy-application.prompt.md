@@ -1,5 +1,5 @@
 ---
-mode: agent
+agent: agent
 description: Deploy the built static web app to GitHub Pages — creates the repo/branch if needed, commits source files, sets up the GitHub Actions workflow, and returns the live URL.
 ---
 

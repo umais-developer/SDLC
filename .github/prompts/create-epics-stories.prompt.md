@@ -1,5 +1,5 @@
 ---
-mode: agent
+agent: agent
 description: Break down a feature or PRD into epics and user stories and save the output as epics_stories_final.md.
 ---
 

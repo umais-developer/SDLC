@@ -1,5 +1,5 @@
 ---
-mode: agent
+agent: agent
 description: Review an implementation against its user story and acceptance criteria, identifying correctness issues, security concerns, missing tests, and anything that would block merging.
 ---
 

@@ -1,5 +1,5 @@
 ---
-mode: agent
+agent: agent
 description: Break down a user story and acceptance criteria into a concrete implementation plan and save the output as plan_story_final.md.
 ---
 

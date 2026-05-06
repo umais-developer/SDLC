@@ -1,5 +1,5 @@
 ---
-mode: agent
+agent: agent
 description: Implement a user story by writing working, tested code that satisfies the acceptance criteria, guided by the implementation plan.
 ---
 

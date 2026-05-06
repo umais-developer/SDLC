@@ -1,5 +1,5 @@
 ---
-mode: agent
+agent: agent
 description: Clean up all SDLC pipeline artifacts and source code to reset the repository for a fresh pipeline run. Useful for iterating on requirements or restarting development.
 ---
 

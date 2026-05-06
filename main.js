@@ -238,8 +238,8 @@ class GameController {
             return;
         }
 
-        // Human move
-        const moveSuccess = GameLogic.makeMove(this.gameState, cellIndex, 'X');
+        // Player move (uses current player's mark: X or O)
+        const moveSuccess = GameLogic.makeMove(this.gameState, cellIndex, this.gameState.currentPlayer);
         if (!moveSuccess) return;
 
         this.uiManager.updateBoard(this.gameState.board);

@@ -1,5 +1,5 @@
 ---
-mode: agent
+agent: agent
 playwright_headless: false
 description: Automated User Acceptance Testing (UAT) agent that verifies the application against all user stories and acceptance criteria, automatically fixes issues found, and gates deployment until all requirements pass.
 ---
