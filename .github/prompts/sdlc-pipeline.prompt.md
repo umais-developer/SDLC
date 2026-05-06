@@ -39,9 +39,73 @@ After detecting the resume point, clearly announce:
 
 Then proceed immediately — do not wait for user confirmation unless input is needed.
 
+### Optional Deterministic Intent Expansion (Pre-Stage)
+
+Before Stage 1 (or when requirements are ambiguous), you may run deterministic intent expansion to normalize input:
+
+```bash
+python3 .agents/scripts/intent_expansion.py --input Requirements.md --output .agents/tmp/intent_expanded.json
+```
+
+Use the generated JSON as supporting context for PRD/architecture/UX decisions. This is advisory and does not replace required artifacts.
+
 ## Step 2 — Execute Each Stage
 
 Run every stage from the resume point through Stage 7 sequentially. Complete each stage fully and confirm the artifact is saved before moving to the next.
+
+## Stage Verification Rules
+
+After each stage, perform a verification check before proceeding:
+
+1. **Artifact existence:** required output file exists in workspace root.
+2. **Artifact integrity:** file is non-empty and contains expected top-level headings for that stage.
+3. **Dependency coverage:** output reflects required upstream artifacts for that stage (when applicable).
+4. **Decision logging:** if assumptions were required, they are explicitly documented.
+
+Minimum verification targets by stage:
+- Stage 1 (`prd_final.md`): includes Problem Statement, Goals & Success Metrics, Scope, Functional Requirements.
+- Stage 2 (`architecture_final.md`): includes Component Design, Data Flow, Security & Privacy, Scalability.
+- Stage 3 (`ux_final.md`): includes User Flows, States & Variations, Accessibility Considerations.
+- Stage 4 (`epics_stories_final.md`): includes at least one epic, user stories with acceptance criteria, and Traceability Matrix mapping stories to PRD/Architecture/UX.
+- Stage 5 (`plan_story_final.md`): includes acceptance criteria, actionable tasks, dependency order, testing tasks.
+- Stage 6 (implementation): code compiles/runs where applicable and tests are present for implemented behavior.
+- Stage 7 (review): includes severity-classified findings and explicit verdict.
+- Stage 7.5 (UAT): includes pass/fail counts, fixed issues, unresolved blockers, and deployment gate decision.
+
+### Deterministic Verification Commands
+
+Use these non-LLM checks before advancing stages:
+
+```bash
+# Stage 1
+python3 .agents/scripts/deterministic_checks.py --stage stage1 --artifact prd_final.md
+
+# Stage 2
+python3 .agents/scripts/deterministic_checks.py --stage stage2 --artifact architecture_final.md
+
+# Stage 3
+python3 .agents/scripts/deterministic_checks.py --stage stage3 --artifact ux_final.md
+
+# Stage 4
+python3 .agents/scripts/deterministic_checks.py --stage stage4 --artifact epics_stories_final.md
+
+# Stage 5
+python3 .agents/scripts/deterministic_checks.py --stage stage5 --artifact plan_story_final.md
+```
+
+If deterministic checks fail, stop advancement and fix the artifact before continuing.
+
+## Parallelization Policy
+
+Use parallel execution only for **independent checks** inside a stage. Do not parallelize stages that produce required downstream artifacts.
+
+- Keep stages **1 → 5** strictly sequential (each stage depends on prior artifacts).
+- In implementation/review phases, parallelize only where outputs do not overwrite each other.
+- Safe examples:
+  - Run `lint` and `unit tests` in parallel after dependencies are installed.
+  - Run static analysis and UI/manual test preparation in parallel, then merge findings into one report.
+  - In deploy stage, run read-only preflight checks (static-host compatibility, `gh auth status`, workflow-file existence) in parallel.
+- Never run write-heavy steps in parallel (file generation, code modification, branch/commit operations).
 
 ---
 
@@ -80,6 +144,13 @@ When complete: confirm `ux_final.md` is saved, then proceed to Stage 4.
 Follow all instructions in the create-epics-stories prompt:
 
 [create-epics-stories](.github/prompts/create-epics-stories.prompt.md)
+
+Before generating stories, ensure Stage 4 reads and synthesizes all available upstream artifacts:
+- `prd_final.md` (product requirements and scope)
+- `architecture_final.md` (technical constraints and non-functional requirements)
+- `ux_final.md` (user flows, interactions, states, and accessibility expectations)
+
+If any required upstream artifact is missing for Stage 4, stop and ask the user before proceeding.
 
 When complete: confirm `epics_stories_final.md` is saved, then proceed to Stage 5.
 
