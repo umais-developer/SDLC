@@ -1,310 +1,246 @@
-# Architecture: Snake with Replay System
+# Architecture: B3 Tic-Tac-Toe with Unbeatable AI
 
-**Status:** Draft  
-**Author:** SDLC Pipeline  
-**Date:** May 6, 2026  
+**Status:** Final  
+**Author:** Architecture Team  
+**Date:** 2026-05-06  
 **Version:** 1.0  
 **Related PRD:** [prd_final.md](prd_final.md)
 
 ---
 
 ## 1. Overview
-A browser-based Snake game implemented in vanilla JavaScript with HTML5 Canvas rendering. The system records all game states during play, enabling bit-exact replay playback at variable speeds. The architecture separates game logic, state management, replay recording/playback, rendering, and input handling into distinct modules to ensure deterministic behavior, accurate replay fidelity, and clean separation of concerns.
+A single-page, static web application implementing a Tic-Tac-Toe game with three play modes: Player vs. Player, Easy AI, and Impossible AI (using minimax algorithm). The application runs entirely in the browser with no backend server, making it deployable as a static site to GitHub Pages. The AI decision visualization displays minimax scores for each legal move before the AI takes its turn.
 
 ---
 
 ## 2. Goals & Non-Goals
 
 ### Goals
-- Enable **deterministic replay:** Same input sequence must always produce identical game states
-- Support **simultaneous live and replay gameplay:** Ghost snake (replay) and live snake coexist on one grid without interference
-- Achieve **clean architecture:** Game logic independent of rendering and I/O for testability
-- Provide **variable replay speeds:** Playback at 0.5×, 1×, 2×, 4× without losing frame accuracy
-- Ensure **input safety:** Rapid directional input cannot cause snake to reverse direction mid-move
+- **Completely client-side:** No backend server required; all logic runs in the browser.
+- **Unbeatable Impossible AI:** Minimax algorithm guarantees AI never loses.
+- **Score visualization:** Display evaluation score for each legal move before AI moves.
+- **Correct game logic:** Accurate win/draw/ongoing detection; no moves after terminal state.
+- **Static deployment:** Deploy directly to GitHub Pages with no build pipeline complexity.
 
 ### Non-Goals
-- Server-side persistence or multiplayer
-- Optimization for very large grids (20×20 is target)
-- AI or advanced pathfinding
-- Audio/visual effects beyond basic rendering
+- **Persistent storage:** No game history, replay, or cloud sync.
+- **Multiplayer online:** Single-device play only.
+- **Backend services:** No API server, database, or authentication.
+- **Mobile app:** Web-only (responsive web design satisfies mobile needs).
 
 ---
 
 ## 3. System Context
 
-The application runs entirely in the browser. Users interact via keyboard (arrow keys), the canvas displays the game state, and all state is retained in memory during the session.
-
 ```mermaid
-graph TD
-    User[User/Player]
-    Browser[Web Browser]
-    Canvas[HTML5 Canvas]
-    LocalMemory[In-Memory Session Storage]
-    
-    User -->|Arrow Keys| Browser
-    Browser -->|Game Rendering| Canvas
-    Browser -->|State Storage| LocalMemory
-    Canvas -->|Visual Feedback| User
-    LocalMemory -->|Replay Data| Browser
+graph LR
+    User["Player/Browser"] -->|interacts| Game["Tic-Tac-Toe App<br/>(Static HTML/CSS/JS)"]
+    Game -->|renders| DOM["DOM / Browser Canvas"]
+    DOM -->|display| User
+    Game -->|game state| Memory["Browser Memory"]
+    Memory -->|state| Game
 ```
+
+**System Boundary:** The entire application is a single-page web application (SPA) running in a modern browser. No network calls after initial page load.
+
+**External Actor:** Human player(s) interacting via mouse/touch on the rendered board.
 
 ---
 
 ## 4. Component Design
 
-| Component | Responsibility | Technology / Layer |
-|-----------|---------------|-------------------|
-| **InputManager** | Capture arrow key presses, buffer rapid inputs, prevent direction reversal | Event listeners, input queue |
-| **GameEngine** | Game loop, move snake, grow snake, detect collisions, manage food | Core logic |
-| **StateManager** | Maintain current game state, serialize/deserialize for replay, record all frames | In-memory state object |
-| **ReplayRecorder** | Capture each frame's state and input sequence during live play | Extends StateManager |
-| **ReplayPlayer** | Playback recorded states at variable speeds, manage ghost snake rendering | Playback mode controller |
-| **Renderer** | Draw game grid, snake (live and ghost), food, score, UI | Canvas 2D context |
-| **GameController** | Orchestrate all components, manage game lifecycle (play/pause/end) | Main coordinator |
-| **ReplayList** | Maintain list of completed games, allow selection for playback | Session-level registry |
+| Component | Responsibility | Technology |
+|-----------|----------------|-----------|
+| **UI Renderer** | Render board, mode selector, scores, game status messages | HTML5 Canvas or DOM (divs/buttons) |
+| **Game State Manager** | Maintain current board state, turn tracking, win/draw detection | JavaScript object / class |
+| **Minimax Engine** | Evaluate board positions; compute optimal AI move; alpha-beta pruning (optional) | Pure JavaScript recursive function |
+| **Easy AI** | Random legal move selection | JavaScript utility |
+| **Move Executor** | Apply human or AI move to board; trigger state updates | JavaScript function |
+| **Event Handler** | Listen for clicks; route to appropriate handler (mode selection, cell click, rematch) | DOM event listeners |
+| **Score Visualizer** | Display minimax scores for open cells before AI moves; clear after move | UI overlay or board annotation |
 
 ---
 
 ## 5. Data Flow
 
-### Live Game Flow
-
-```mermaid
-sequenceDiagram
-    participant User
-    participant InputManager
-    participant GameEngine
-    participant StateManager
-    participant ReplayRecorder
-    participant Renderer
-    
-    loop Game Loop (e.g., 60 FPS)
-        User->>InputManager: Arrow key press
-        InputManager->>InputManager: Check for reversal; buffer input
-        InputManager->>GameEngine: Valid direction
-        GameEngine->>StateManager: Update snake position
-        GameEngine->>StateManager: Check collision
-        GameEngine->>StateManager: Spawn food if eaten
-        StateManager->>ReplayRecorder: Record current frame state
-        StateManager->>Renderer: Current state
-        Renderer->>Renderer: Draw grid, snake, food, score
-    end
-    
-    GameEngine->>GameEngine: Collision detected
-    GameEngine->>GameController: Game over
-    ReplayRecorder->>ReplayList: Save completed game
+### Game Initialization Flow
+```
+User loads page 
+  → Render mode selection screen
+  → User clicks mode (PvP / Easy / Impossible)
+  → Initialize board state [empty 3×3 grid]
+  → Render board
+  → If AI opponent, AI takes first turn (optional game design choice)
 ```
 
-### Replay Playback Flow
-
-```mermaid
-sequenceDiagram
-    participant User
-    participant ReplayList
-    participant ReplayPlayer
-    participant StateManager
-    participant Renderer
-    
-    User->>ReplayList: Select a prior game
-    ReplayPlayer->>StateManager: Load recorded state history
-    
-    loop Replay Loop (at selected speed)
-        ReplayPlayer->>StateManager: Retrieve next frame state
-        StateManager->>Renderer: Current + Ghost state
-        Renderer->>Renderer: Draw live grid with ghost snake overlay
-    end
-    
-    ReplayPlayer->>ReplayPlayer: Replay completed
+### Move Execution Flow (Human Turn)
+```
+User clicks cell
+  → Validate cell is empty and game not terminal
+  → Place human mark (X) on board
+  → Update game state
+  → Check for human win/draw
+  → If terminal, display result and disable moves
+  → If ongoing and AI opponent, trigger AI turn
 ```
 
-### Simultaneous Play & Replay Flow
+### AI Move Flow (Impossible AI)
+```
+AI turn triggered
+  → Run minimax(board, depth=0, isMaximizing=true, alpha=-inf, beta=+inf)
+  → Minimax returns { score, move } for each legal cell
+  → Visualize scores on UI
+  → User sees scores momentarily (2 second display)
+  → Execute best move (highest score)
+  → Place AI mark (O) on board
+  → Check for AI win/draw
+  → If terminal, display result and disable moves
+  → If ongoing, return to human turn
+```
 
-```mermaid
-sequenceDiagram
-    participant User
-    participant ReplayPlayer
-    participant LiveGame
-    participant Renderer
-    
-    User->>ReplayPlayer: Start replay while live game running
-    
-    loop Each frame
-        ReplayPlayer->>ReplayPlayer: Advance ghost snake frame
-        LiveGame->>LiveGame: Advance live snake frame
-        ReplayPlayer->>Renderer: Ghost state
-        LiveGame->>Renderer: Live state
-        Renderer->>Renderer: Draw both; live collision logic ignores ghost
-    end
+### Minimax Algorithm Detail
+```
+minimax(board, depth, isMaximizing, alpha, beta):
+  if board is terminal (win/loss/draw):
+    return { score: scoreTerminal(board), move: null }
+  
+  if isMaximizing (AI turn):
+    maxScore = -infinity
+    bestMove = null
+    for each legal move in board:
+      apply move, recurse, undo move
+      if score > maxScore:
+        maxScore = score
+        bestMove = move
+      beta = min(beta, maxScore)
+      if beta <= alpha: prune
+    return { score: maxScore, move: bestMove }
+  
+  else (Minimizing — human turn):
+    minScore = +infinity
+    bestMove = null
+    for each legal move in board:
+      apply move, recurse, undo move
+      if score < minScore:
+        minScore = score
+        bestMove = move
+      alpha = max(alpha, minScore)
+      if beta <= alpha: prune
+    return { score: minScore, move: bestMove }
 ```
 
 ---
 
 ## 6. Data Model
 
-### Game State Object (Serializable)
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `gridWidth` | number | Game grid width (20) |
-| `gridHeight` | number | Game grid height (20) |
-| `snakeBody` | array of `{x, y}` | Snake segments from head to tail |
-| `foodPos` | `{x, y}` | Current food position |
-| `score` | number | Points earned |
-| `speed` | number | Current movement speed (pixels/frame or ticks/frame) |
-| `direction` | enum | Current direction (UP, DOWN, LEFT, RIGHT) |
-| `nextDirection` | enum | Buffered next direction |
-| `gameOver` | boolean | Whether game has ended |
-| `frameCount` | number | Total frames elapsed in game |
-
-### Recorded Game (Replay) Structure
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `id` | string | Unique identifier (timestamp or UUID) |
-| `timestamp` | number | Unix timestamp when game started |
-| `gridWidth`, `gridHeight` | number | Grid dimensions at start |
-| `frameHistory` | array of state objects | Complete state snapshot for each frame |
-| `inputHistory` | array of inputs | Sequence of directional inputs (for audit) |
-| `finalScore` | number | Score when game ended |
-| `totalFrames` | number | Total frames in recorded game |
-
-### Ghost Snake (Replay Overlay) Representation
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `currentFrameIndex` | number | Which frame in frameHistory is currently displayed |
-| `playbackSpeed` | number | Multiplier (0.5, 1, 2, 4) |
-| `isPlaying` | boolean | Whether replay is actively running |
-| `snakeBody` | array of `{x, y}` | Ghost snake body for current frame |
+| Entity | Key Fields | Description |
+|--------|-----------|-------------|
+| **Board** | cells[0-8] (flattened 3×3) | 3×3 Tic-Tac-Toe grid; values: empty, X, O. Index layout: `0 1 2 / 3 4 5 / 6 7 8` |
+| **GameState** | board, currentTurn, gameStatus, mode | Encapsulates active game; currentTurn: 'human' \| 'ai'; gameStatus: 'ongoing' \| 'human_win' \| 'ai_win' \| 'draw' |
+| **Move** | cellIndex, mark | cellIndex: 0-8; mark: 'X' (human) or 'O' (AI) |
+| **MinimaxResult** | score, move | score: 1 (AI win), 0 (draw), -1 (human win); move: cell index (0-8) |
 
 ---
 
 ## 7. API / Interface Design
 
-### GameEngine Public Methods
+### Public Functions
 
-| Method | Description | Parameters | Returns |
-|--------|-------------|-----------|---------|
-| `start()` | Initialize new game | None | void |
-| `tick()` | Execute one game frame | None | void |
-| `setDirection(dir)` | Queue a direction change | `dir: "UP"/"DOWN"/"LEFT"/"RIGHT"` | void |
-| `getState()` | Return current game state | None | GameState object |
-| `isGameOver()` | Check if collision occurred | None | boolean |
+| Function | Signature | Description | Returns |
+|----------|-----------|-------------|---------|
+| `initializeGame(mode)` | (mode: 'pvp' \| 'easy' \| 'impossible') → void | Set up new game with selected mode. | – |
+| `getBoard()` | () → number[] | Return current board state (flattened array). | 9-element array |
+| `makeMove(cellIndex)` | (cellIndex: 0-8) → boolean | Place human mark; return success. | true if valid, false if invalid |
+| `getGameStatus()` | () → string | Return current status. | 'ongoing' \| 'human_win' \| 'ai_win' \| 'draw' |
+| `getMinimaxScores()` | () → Map\<number, number\> | Return score for each legal move. | Map of cellIndex → score (-1/0/1) |
+| `aiMove()` | () → void | Execute AI move (Easy or Impossible based on mode). | – |
+| `resetGame()` | () → void | Clear board and return to mode selection. | – |
 
-### ReplayRecorder Public Methods
+### UI Events (Event-Driven Interface)
 
-| Method | Description | Parameters | Returns |
-|--------|-------------|-----------|---------|
-| `startRecording()` | Begin capture (called at game start) | None | void |
-| `recordFrame()` | Save current state snapshot | gameState: GameState | void |
-| `stopRecording()` | End capture and finalize | None | ReplayData object |
-
-### ReplayPlayer Public Methods
-
-| Method | Description | Parameters | Returns |
-|--------|-------------|-----------|---------|
-| `loadReplay(replayData)` | Load a recorded game | replayData: ReplayData | void |
-| `play()` | Start playback | None | void |
-| `pause()` | Pause playback | None | void |
-| `setSpeed(multiplier)` | Set playback speed | multiplier: 0.5 / 1 / 2 / 4 | void |
-| `getCurrentFrameState()` | Get ghost snake state for rendering | None | GameState object |
-
-### InputManager Public Methods
-
-| Method | Description | Parameters | Returns |
-|--------|-------------|-----------|---------|
-| `onKeyDown(keyCode)` | Handle key press event | keyCode: number | void |
-| `getBufferedDirection()` | Peek at next queued direction | None | direction string or null |
-
-### Renderer Public Methods
-
-| Method | Description | Parameters | Returns |
-|--------|-------------|-----------|---------|
-| `drawFrame(liveState, ghostState?)` | Render one frame | liveState: GameState, ghostState?: GameState | void |
-| `setCanvas(canvasElement)` | Bind rendering target | canvasElement: HTMLCanvasElement | void |
+| Event | Payload | Handler Action |
+|-------|---------|--------------|
+| `modeSelected` | { mode: string } | Initialize game with selected mode |
+| `cellClicked` | { cellIndex: number } | Attempt human move; trigger AI if applicable |
+| `rematchClicked` | {} | Reset game state; show mode selector |
+| `scoresDisplayRequested` | {} | Show minimax scores for 2 seconds, then clear |
 
 ---
 
 ## 8. Infrastructure & Deployment
 
-### Environment
-- **Client-side only:** No backend server required.
-- **Runtime:** Modern web browsers (Chrome 90+, Firefox 88+, Safari 14+, Edge 90+).
-- **Hosting:** Static file hosting (GitHub Pages, Netlify, Vercel, or equivalent).
+**Technology Stack:**
+- **Frontend:** HTML5, CSS3, JavaScript (ES6+)
+- **Rendering:** DOM manipulation (or Canvas for performance if needed)
+- **Deployment:** GitHub Pages (static site)
+- **No backend, no database, no CI/CD pipeline required for MVP.**
 
-### Build & Bundling
-- **No build step required for MVP:** All code in vanilla JavaScript; served as static files.
-- **Optional:** Minification for production (can use `esbuild` or equivalent if needed later).
-- **Files:** 
-  - `index.html` (main entry point)
-  - `styles.css` (game styling)
-  - `js/game-engine.js` (core game logic)
-  - `js/input-manager.js` (keyboard input)
-  - `js/state-manager.js` (state and serialization)
-  - `js/replay-recorder.js` (recording)
-  - `js/replay-player.js` (playback)
-  - `js/renderer.js` (canvas rendering)
-  - `js/game-controller.js` (orchestration)
-  - `js/main.js` (initialization)
+**Deployment Architecture:**
+```
+Source Code (JS, HTML, CSS)
+  ↓
+  Git commit to deploy/<app-name> branch
+  ↓
+  GitHub Actions workflow triggers (optional; can also use GitHub Pages direct push)
+  ↓
+  Static files copied to gh-pages branch
+  ↓
+  GitHub Pages serves at https://<username>.github.io/SDLC/
+```
 
 ---
 
 ## 9. Security & Privacy Considerations
 
-### Authentication/Authorization
-- **Not applicable:** Single-player, client-side only; no user accounts or auth required.
-
-### Data at Rest
-- **Session only:** All replay data is stored in-memory during session; no persistent storage.
-- **No sensitive data:** Game states contain only positions, scores, and directional inputs; no PII.
-
-### Data in Transit
-- **Not applicable:** No network requests; all computation local to browser.
-
-### PII / Sensitive Data Handling
-- None. Game does not collect, store, or transmit any personal information.
+- **No PII collected:** Game does not store, transmit, or collect any personal information.
+- **No authentication required:** Single-device play; no user accounts.
+- **Client-side only:** No network calls after initial page load; no CORS or server trust required.
+- **XSS prevention:** Ensure all dynamic content (scores, status messages) is escaped if inserted into DOM.
+- **No external dependencies on untrusted CDNs:** Use inline scripts or verify subresource integrity (SRI) for any external libraries.
 
 ---
 
 ## 10. Scalability & Performance
 
-### Expected Load
-- Single-player, single-browser session; no concurrent users or multi-user scenarios.
-- Grid size: 20×20 cells (400 cells max).
-- Snake max length: ~300 segments (reasonable snake on 20×20 grid).
-- Replays: Up to 10,000 frames per game is reasonable for a 5–10 minute session.
+**Expected Load:**
+- Single player on single device; no concurrent sessions or network bottlenecks.
+- Minimax evaluation on 3×3 board: worst case ~549,946 nodes (full game tree), but alpha-beta pruning reduces to ~~50,000 in typical cases.
 
-### Scaling Strategy
-- **Not applicable:** Client-side only; no server resources to scale.
-- If persistence is added later, consider caching frequently replayed games in localStorage.
+**Performance Targets:**
+- **AI move latency:** ≤ 2 seconds (acceptable human perception).
+- **Score visualization:** Instant (no re-render lag).
+- **Board responsiveness:** ≤ 100ms from click to visual feedback.
 
-### Caching
-- **Game state:** Current state kept in memory; no caching layer needed for single game.
-- **Replay data:** Loaded fully into memory; no lazy-loading required for MVP.
+**Scaling Strategy:**
+- No scaling needed for MVP (single-player, client-side).
+- If extending to multiplayer: would require backend + WebSockets (out of scope).
 
-### Known Bottlenecks
-- **Canvas rendering:** 60 FPS at 20×20 grid is well within browser capabilities.
-- **Memory:** 10,000-frame replay ≈ ~100 KB (state snapshots are small); negligible memory footprint.
-- **No identified bottlenecks for MVP.**
+**Caching:**
+- Board state cached in JavaScript memory during active game.
+- No persistent cache or localStorage needed for MVP.
+
+**Bottlenecks:**
+- Minimax recursion depth: On 3×3, max depth ~9 (manageable).
+- Browser event loop: Not a concern for single player.
+- If moving to 4×4 or 5×5: minimax tree grows exponentially; alpha-beta pruning becomes critical.
 
 ---
 
 ## 11. Observability
 
-### Logging
-- **Browser console:** Log game start, pause, resume, end, and replay events (can be toggled via debug flag).
-- **Example:** `console.log("Game Over - Final Score:", score)`
+**Logging:**
+- Log AI move evaluation results (score, chosen move) to browser console (for debugging/learning).
+- Optional: log game outcome (win/loss/draw) for player statistics (not required for MVP).
 
-### Metrics
-- **Track:** Game duration, final score, replay plays, speeds selected.
-- **Storage:** Track locally in session (optional console output for debugging).
+**Metrics:**
+- Game completion rate, win/loss/draw counts (optional; use localStorage if desired).
+- AI move time (measure in JavaScript with `performance.now()`).
 
-### Alerts
-- Not applicable (client-side only).
+**Alerts:**
+- None required (no backend).
 
-### Tracing
-- **Input to output latency:** Measure time from key press to on-screen movement (target: <50ms).
-- **Frame time:** Log rendering time to detect stuttering.
+**Tracing:**
+- Stack traces for unhandled errors logged to console.
 
 ---
 
@@ -312,23 +248,21 @@ sequenceDiagram
 
 | Item | Type | Owner | Mitigation |
 |------|------|-------|------------|
-| Browser Canvas API | Dependency | Dev | Verify on target browsers; fallback not needed for MVP |
-| Deterministic replay | Risk | Dev | Frozen random seed for food; unit test bit-exact accuracy |
-| Input buffering correctness | Risk | Dev | Unit test 100+ two-key sequences; verify no reversals |
-| Ghost/live collision isolation | Risk | Dev | Collision logic checks `isGhost` flag; tests verify no interference |
-| Memory leaks on replay list | Risk | Dev | Limit replay list to last 50 games; implement cleanup |
-| Canvas performance on low-end devices | Risk | Dev | Profile on Pixel 3a / iPhone SE; optimize draw calls if needed |
+| Minimax correctness | Dependency | Engineering | Comprehensive unit tests; exhaustive game tree validation; manual play testing. |
+| Browser compatibility | Risk | Engineering | Test on Chrome, Firefox, Safari, Edge. Use ES6+ with polyfills if needed. |
+| Minimax performance | Risk | Engineering | Alpha-beta pruning; optimize recursion; measure move time. Acceptable if ≤ 2s. |
+| Score display UX | Risk | Design | Iterate on placement; avoid clutter; use clear color contrast. |
+| GitHub Pages deployment | Risk | DevOps | Ensure `.github/workflows` directory exists; GitHub Actions enabled; `gh` CLI available. |
 
 ---
 
 ## 13. Open Questions & Assumptions
 
-- **Assumption:** 20×20 grid is adequate for gameplay. Can increase post-MVP if desired.
-- **Assumption:** 60 FPS game loop is sufficient; no need for adaptive frame rate.
-- **Assumption:** In-memory replay storage is acceptable; no need for localStorage persistence in MVP.
-- **Assumption:** No multiplayer or cross-device replay sharing in MVP.
-- **Open question:** Should grid size be configurable? (Answer: No, fixed for MVP)
-- **Open question:** Should we support URL-encoded replay sharing? (Answer: No, out of MVP scope)
+- **Assumption:** Browser environment is modern (ES6, DOM API, Canvas optional). IE11 not required.
+- **Assumption:** 3×3 board minimax is fast enough without heavy optimization; alpha-beta pruning is optional for MVP.
+- **Assumption:** No replay or game history needed; game state is ephemeral (lost on page reload).
+- **Open question:** Should scores remain visible after AI moves, or only before? _(Recommend: clear after move for cleaner UI.)_
+- **Open question:** If extending to 4×4 or 5×5, should minimax be refactored for iterative deepening or memoization? _(Answer: Yes, memoization highly recommended to avoid exponential growth.)_
 
 ---
 
@@ -336,30 +270,36 @@ sequenceDiagram
 
 | Option | Pros | Cons | Decision |
 |--------|------|------|----------|
-| **Vanilla JS + Canvas** | Full control, minimal dependencies, small bundle | More manual state management | ✅ **Selected** |
-| **Phaser.js / Babylon.js** | Built-in replay/recording features, physics | Overkill for Snake; larger bundle; less educational | ❌ Rejected |
-| **Electron / NW.js** | Desktop app, file system access | Over-engineered; deployment complexity | ❌ Rejected |
-| **Server-side state + WebSockets** | Real-time multiplayer capable | Unnecessary latency; complex infrastructure | ❌ Rejected |
-| **State snapshots every 10 frames** | Reduced memory footprint | Lower replay fidelity; interpolation complexity | ❌ Rejected (full snapshots preferred) |
-| **IndexedDB for persistence** | Persistent replays across sessions | Adds complexity; not needed for MVP | ❌ Rejected (in-memory only) |
+| **Client-side minimax (chosen)** | No backend needed; instant deployment; all logic transparent | Slower for 5×5+ boards without memoization | ✅ Selected for MVP |
+| **Backend minimax (REST API)** | Could offload computation; enable multiplayer | Adds complexity; requires server; delays deploy | ❌ Out of scope for static site |
+| **Hardcoded game tree** | Fastest lookup | Inflexible; huge code size even for 3×3 | ❌ Rejected |
+| **Monte Carlo tree search** | Good for larger boards | Overkill for 3×3; less deterministic | ❌ Rejected |
 
 ---
 
 ## 15. Appendix
 
-### Related Documents
-- **PRD:** [prd_final.md](prd_final.md) — Product requirements and success metrics
-- **Requirements:** [Requirements 1.md](Requirements%201.md) — Technical requirements and challenge areas
-- **Expected Outcomes:** [Expected-Outcomes 1.md](Expected-Outcomes%201.md) — Acceptance criteria and correctness bar
+**Related Documents:**
+- [prd_final.md](prd_final.md) — Product requirements and success metrics.
+- Minimax Algorithm: https://en.wikipedia.org/wiki/Minimax (reference)
+- Alpha-Beta Pruning: https://en.wikipedia.org/wiki/Alpha%E2%80%93beta_pruning (reference)
 
-### Technology Stack
-- **Frontend:** HTML5, CSS3, Vanilla JavaScript (ES6+)
-- **Rendering:** HTML5 Canvas 2D API
-- **Hosting:** Static file host (GitHub Pages)
-- **Development:** VS Code, browser DevTools
+**Code Structure (Suggested):**
+```
+index.html
+  ├─ GameState class
+  ├─ MinimaxEngine class (with alpha-beta pruning)
+  ├─ UIRenderer class (board, scores, messages)
+  ├─ EventHandler class (click handlers, mode selection)
+  ├─ AIModeEasy class (random move selection)
+  ├─ Utils (terminal detection, move validation, score display)
+  └─ main() entry point
+styles.css
+  └─ board, cells, score overlays, mode selector styles
+```
 
-### Key Concepts
-- **Game Loop:** Fixed-tick game engine; deterministic updates independent of render frame rate.
-- **Input Buffering:** Queue directional inputs to handle rapid keypresses without reversals.
-- **Deterministic Replay:** Record full state snapshots (not just inputs) to guarantee bit-exact playback.
-- **Ghost Overlay:** Replay drawn as semi-transparent, read-only overlay; no collision logic interaction with live snake.
+**Testing Strategy:**
+- Unit tests for minimax (validate scores for known positions).
+- Integration tests for game flow (move sequence, win detection, AI behavior).
+- Manual play testing to verify AI never loses.
+- UI responsiveness testing on multiple browsers.

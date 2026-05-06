@@ -1,0 +1,23 @@
+{
+  "name": "tic-tac-toe-ai",
+  "version": "1.0.0",
+  "description": "Tic-Tac-Toe game with Player vs. Player, Easy AI, and Impossible AI (minimax) modes",
+  "main": "main.js",
+  "scripts": {
+    "test": "node tests.js",
+    "build": "mkdir -p dist && cp index.html styles.css main.js dist/",
+    "start": "echo 'Open index.html in a browser to play'"
+  },
+  "keywords": [
+    "tic-tac-toe",
+    "game",
+    "ai",
+    "minimax",
+    "algorithm"
+  ],
+  "author": "Tic-Tac-Toe Development Team",
+  "license": "MIT",
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}

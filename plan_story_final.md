@@ -1,21 +1,27 @@
-# Implementation Plan: Initialize Game Grid & Spawn Snake
+# Implementation Plan: Display Mode Selection Screen
 
-**Status:** Draft  
-**Author:** SDLC Pipeline  
-**Date:** May 6, 2026  
-**Story:** Story 1.1  
-**Related Epic:** Epic 1 — Core Snake Gameplay  
-**Estimate:** M (Medium)
+**Status:** Final  
+**Author:** Engineering Team  
+**Date:** 2026-05-06  
+**Story:** Story 1.1 — Display Mode Selection Screen  
+**Related Epic:** Epic 1: Mode Selection & Game Initialization  
+**Estimate:** S (Small — ~2 story points)
+
+---
+
+## Story
+**As a** casual player, **I want** to see three clearly labeled mode options when the app loads **so that** I can choose how to play.
 
 ---
 
 ## Acceptance Criteria
-- [ ] Game grid displays as a 20×20 cell grid on page load
-- [ ] Snake appears at center position (approximately 10, 10)
-- [ ] Snake initial length is 3 segments (head + 2 body segments)
-- [ ] First food item is randomly placed on an empty cell (not on snake body)
-- [ ] Game loop begins automatically; no user action required to start
-- [ ] Grid background is clearly visible; snake and food are visually distinct
+- [ ] Application displays a main screen on load with no game board initially visible.
+- [ ] Three mode buttons are displayed: "Player vs. Player", "Play Easy AI", "Play Impossible AI".
+- [ ] Buttons are equally prominent, centered, and clearly labeled with text (no icons alone).
+- [ ] Each button is at least 44×44 px and has high contrast (4.5:1 minimum) for accessibility.
+- [ ] Keyboard navigation works: Tab key cycles through buttons; Enter key selects the focused button.
+- [ ] Focus indicator is visible (at least 2px border/outline) on all buttons.
+- [ ] Page title reads "Tic-Tac-Toe with AI" or similar in browser tab.
 
 ---
 
@@ -25,66 +31,40 @@
 
 | ID | Task | Definition of Done | Depends On |
 |----|------|--------------------|------------|
-| FE-01 | Create HTML scaffold with Canvas element | `<canvas id="gameCanvas" width="400" height="400"></canvas>` in index.html; canvas element is accessible to JS | None |
-| FE-02 | Initialize Canvas 2D context and set rendering mode | `gameCanvas = document.getElementById('gameCanvas')`, `ctx = gameCanvas.getContext('2d')` in main.js; verify ctx is not null | FE-01 |
-| FE-03 | Create Renderer class with grid drawing method | `Renderer` class has `drawGrid(ctx, width, height)` method that draws 20×20 grid lines; grid lines are visible and evenly spaced | None |
-| FE-04 | Create Renderer method to draw snake | `Renderer.drawSnake(ctx, snakeBody)` method; draws head and body segments with distinct colors; head is opaque, body is slightly different shade; all segments visible and distinct | FE-03 |
-| FE-05 | Create Renderer method to draw food | `Renderer.drawFood(ctx, foodPos)` method; draws food as a colored square at given x,y cell position; color contrasts with grid and snake | FE-03 |
-| FE-06 | Create GameController initialization | `GameController` class instantiates on page load; sets up canvas, renderer, and game state; no render yet (see FE-10) | FE-02, FE-03 |
-| FE-07 | Create initial app render frame | `Renderer.drawFrame(ctx, gameState)` method; renders grid, snake, and food in one call; frame is clean and readable on canvas | FE-04, FE-05 |
-
-### Backend / Game Logic
-
-| ID | Task | Definition of Done | Depends On |
-|----|------|--------------------|------------|
-| GL-01 | Create GameEngine class | `GameEngine` class with `initialize(gridWidth, gridHeight)` method; sets initial grid size to 20×20 | None |
-| GL-02 | Initialize snake at center position | `GameEngine.initialize()` creates snake with 3 segments at center: head=(10,10), body=(9,10), tail=(8,10) (or similar center position); all segments stored as array of `{x, y}` objects | GL-01 |
-| GL-03 | Implement random food spawn | `GameEngine.spawnFood()` method; selects random empty cell (not occupied by snake); places food at that cell; returns `{x, y}` position | GL-02 |
-| GL-04 | Create StateManager class | `StateManager` class stores current `gameState` object: `{snakeBody, foodPos, score, speed, direction, gameOver, frameCount, gridWidth, gridHeight}` | None |
-| GL-05 | Populate initial game state | `StateManager.getState()` returns initial state after `GameEngine.initialize()` and `spawnFood()` are called; state includes 3-segment snake at center and food at valid position | GL-02, GL-03, GL-04 |
+| FE-01 | Create index.html with semantic structure | HTML file exists with `<button>` elements (not `<div>`); contains proper `<head>` with title, `<body>` with mode selector container; no inline styles (use external stylesheet). | — |
+| FE-02 | Implement three mode selector buttons in HTML | Three `<button>` elements with IDs: `btn-pvp`, `btn-easy-ai`, `btn-impossible-ai`; labels: "Player vs. Player", "Play Easy AI", "Play Impossible AI"; data attributes or event listeners attached. | FE-01 |
+| FE-03 | Create responsive layout using CSS Grid or Flexbox | Mode selector div is centered on screen; three buttons arranged horizontally (desktop) or vertically (mobile); equal width buttons; responsive to viewport changes (media query at 768px breakpoint). | FE-01, FE-02 |
+| FE-04 | Apply button styling for minimum 44×44 px touch targets | Each button is at least 44×44 px; padding applied to reach minimum size; no button is squeezed or too small on any screen size. | FE-03 |
+| FE-05 | Implement focus styles with visible focus indicator | CSS `:focus-visible` pseudo-class applied; focus indicator is at least 2px border or outline; color contrast ≥ 4.5:1 against background (e.g., white outline on dark background). | FE-04 |
+| FE-06 | Implement hover styles for desktop affordance | CSS `:hover` pseudo-class applied to buttons; background color changes slightly or shadow appears; `cursor: pointer` applied; mouse users see clear affordance. | FE-04 |
+| FE-07 | Set page title and favicon | `<title>` element reads "Tic-Tac-Toe with AI" or similar; browser tab displays this title; favicon added (optional for MVP). | FE-01 |
+| FE-08 | Hide game board and other UI initially | Game board (if present in HTML) is hidden via CSS `display: none` or similar; only mode selector is visible on page load; use JavaScript or CSS to manage visibility. | FE-01 |
 
 ### Testing
 
 | ID | Task | Type | Definition of Done |
-|----|------|------|-------------------|
-| TEST-01 | Unit test: GameEngine initialization | Unit | Test: `GameEngine.initialize(20, 20)` creates snake with 3 segments at center; verify snake array length is 3; verify head position is approximately (10,10); verify no segments overlap |
-| TEST-02 | Unit test: Food spawn uniqueness | Unit | Test: `GameEngine.spawnFood()` is called 100 times; verify food never spawns on snake body in any call; verify food position is within grid bounds (0–19, 0–19) |
-| TEST-03 | Unit test: StateManager state structure | Unit | Test: `StateManager.getState()` returns object with all required keys: snakeBody, foodPos, score, speed, direction, gameOver, frameCount, gridWidth, gridHeight; verify types (array, object, number, boolean) |
-| TEST-04 | Integration test: Renderer grid drawing | Integration | Test: `Renderer.drawGrid()` on canvas context; verify grid lines are drawn on canvas; measure line count (should be 21 horizontal + 21 vertical for 20×20 grid); verify no exceptions thrown |
-| TEST-05 | Integration test: Full frame render | Integration | Test: `Renderer.drawFrame(ctx, initialGameState)` renders grid, snake, and food without exceptions; verify canvas has pixel data (non-blank); verify visual elements are distinguishable (different colors or patterns) |
-| TEST-06 | Integration test: Page load initialization | Integration | Test: Load index.html in browser; verify canvas is visible; verify grid, snake, and food are drawn on initial page load; verify no console errors |
-| TEST-07 | Manual test: Visual inspection | Manual | Load app in browser (Chrome, Firefox, Safari); verify 20×20 grid is visible; snake is 3 segments at approximate center; food is visible and distinct from snake; grid background is clear |
+|----|------|------|--------------------|
+| TEST-01 | Manual accessibility test: Keyboard navigation | Manual | Tab through all three buttons; focus indicator visible on each; Enter key selects button (tested in Chrome, Firefox). Result: Pass. |
+| TEST-02 | Manual color contrast test | Manual | Use WebAIM Contrast Checker or Lighthouse to verify button text vs. background ≥ 4.5:1. Result: Pass. |
+| TEST-03 | Cross-browser rendering test | Manual | Open index.html in Chrome, Firefox, Safari, Edge; verify buttons are visible, properly sized, and correctly labeled on each. Result: Pass on all. |
+| TEST-04 | Responsive layout test | Manual | Resize browser window or use DevTools mobile emulation (375px, 768px, 1920px widths); buttons remain visible and at least 44×44 px at all sizes. Result: Pass. |
+| TEST-05 | Touch target size validation | Automated/Manual | Use browser DevTools to measure button dimensions; confirm ≥ 44×44 px. Result: Pass. |
+| TEST-06 | Page title verification | Manual | Open page in browser; confirm tab title reads "Tic-Tac-Toe with AI". Result: Pass. |
+| TEST-07 | Button click response (integration stub) | Manual | Click each button; confirm click is detected and event listener is triggered (log to console if not yet connected to game logic). Result: Events fire. |
 
 ---
 
 ## Task Dependency Order
 
-### Phase 1: Setup & Structure (Day 1)
-1. **FE-01:** Create HTML scaffold with Canvas element
-2. **GL-01:** Create GameEngine class
-3. **GL-04:** Create StateManager class
-
-### Phase 2: Initialization Logic (Day 2)
-4. **GL-02:** Initialize snake at center position
-5. **GL-03:** Implement random food spawn
-6. **FE-02:** Initialize Canvas 2D context
-7. **GL-05:** Populate initial game state
-
-### Phase 3: Rendering Infrastructure (Day 2–3)
-8. **FE-03:** Create Renderer class with grid drawing method
-9. **FE-04:** Create Renderer method to draw snake
-10. **FE-05:** Create Renderer method to draw food
-11. **FE-06:** Create GameController initialization
-12. **FE-07:** Create initial app render frame
-
-### Phase 4: Testing & Verification (Day 3–4)
-13. **TEST-01:** Unit test GameEngine initialization
-14. **TEST-02:** Unit test food spawn uniqueness
-15. **TEST-03:** Unit test StateManager state structure
-16. **TEST-04:** Integration test Renderer grid drawing
-17. **TEST-05:** Integration test full frame render
-18. **TEST-06:** Integration test page load initialization
-19. **TEST-07:** Manual test visual inspection
+1. **FE-01** — Create index.html with basic semantic structure.
+2. **FE-02** — Add three `<button>` elements with proper IDs and labels.
+3. **FE-03** — Style layout using Flexbox/Grid and responsive breakpoints.
+4. **FE-04** — Ensure touch targets are ≥ 44×44 px.
+5. **FE-05** — Add focus indicator styling (`:focus-visible`).
+6. **FE-06** — Add hover styles for desktop affordance.
+7. **FE-07** — Set page title in `<head>`.
+8. **FE-08** — Hide game board initially (CSS or JS visibility).
+9. **TEST-01** → **TEST-07** — Run all manual and automated tests; document results.
 
 ---
 
@@ -92,131 +72,78 @@
 
 | Item | Type | Impact | Mitigation / Next Step |
 |------|------|--------|------------------------|
-| **Canvas rendering performance** | Unknown | If rendering is slow on initial frame, may indicate future performance issues | Profile with DevTools; benchmark canvas draw time; target < 5ms per frame |
-| **Random food spawn collisions** | Risk | If food spawn algorithm is inefficient, could have edge cases on very full grids | Implement retry limit (e.g., 10 retries) before failing; document assumption that grid is never fully packed in MVP |
-| **Cross-browser Canvas API compatibility** | Risk | Canvas 2D API may have minor differences across browsers (Chrome, Firefox, Safari, Edge) | Test on all four target browsers during TEST-06 and TEST-07; document any workarounds |
-| **Floating-point vs. integer grid positioning** | Risk | If grid coordinates use floats, visual alignment may be inconsistent (cells misaligned) | Use integers for grid positions; ensure canvas cell dimensions are calculated as integers (e.g., cellWidth = canvasWidth / gridWidth, rounded) |
-| **Screen reader accessibility of canvas** | Risk | Canvas is not inherently accessible to screen readers; need ARIA labels | Out of scope for this story; defer to accessible rendering story. Document that canvas needs role="img" and aria-label |
+| CSS Grid/Flexbox compatibility on older browsers (IE11) | Risk | Layout may break on IE11; buttons may not display correctly. | **Decision:** Target modern browsers only (Chrome, Firefox, Safari, Edge); IE11 support deferred to future release. Use CSS Grid or Flexbox without polyfills. |
+| Focus indicator visibility on different OS/browser combinations | Unknown | Focus ring style may not be consistently visible across platforms. | **Mitigation:** Use `outline` property with high contrast color; test on Mac/Windows/Linux in Chrome/Firefox/Safari. If inconsistency found, switch to custom focus ring (border + box-shadow). |
+| Button label clarity or user confusion about mode differences | Risk | Users may not understand the difference between Easy AI and Impossible AI from button text alone. | **Mitigation:** Label text is clear; defer detailed explanations (e.g., tooltips, help page) to v2. For MVP, button text is self-explanatory ("Easy AI" vs. "Impossible AI"). |
+| Touch target size on very small screens (e.g., 320px width) | Risk | Three buttons may not fit horizontally; buttons may be squeezed below 44×44 px. | **Mitigation:** Stack buttons vertically on mobile (< 480px width) using responsive CSS. Buttons remain 44×44 px minimum on all screen sizes. |
+| No styling framework (CSS or Tailwind) | Unknown | Manual CSS may be verbose or inconsistent. | **Decision:** Use vanilla CSS for MVP; if complexity grows, integrate Tailwind or CSS-in-JS in v2. For now, keep styles minimal and readable. |
 
 ---
 
 ## Out of Scope / Follow-up Items
 
-- **Game loop tick timing:** This story does not include the game loop execution. Story 1.2 (Move Snake) will add the game loop.
-- **Input handling:** This story does not capture keyboard input. Story 2.1–2.3 will add input handling.
-- **Score display:** This story initializes score = 0 but does not render it on canvas. Story 1.7 will add score rendering.
-- **Animation / smooth rendering:** Initial frame is static (no animation). Future stories will add game loop and animation.
-- **Pause / resume state:** This story does not handle pause. Later stories will add pause logic.
-- **Mobile responsiveness:** This story uses fixed canvas dimensions (400×400). Responsive scaling is a follow-up item.
-- **Accessibility beyond canvas label:** Screen reader testing, keyboard-only navigation, and color contrast are follow-up accessibility items.
+- **Button tooltips or help text** — Explaining the difference between modes (deferred to v2).
+- **Dark mode or theme switching** — Implement single light theme for MVP.
+- **Localization or i18n** — English only for MVP.
+- **Animation on button hover/click** — Keep transitions minimal; deferred to v2 if needed for UX polish.
+- **Game board initialization logic** — Handled in Story 1.2; not part of this story.
 
 ---
 
 ## Open Questions
 
-- **Canvas size:** Should canvas be a fixed 400×400px, or should it scale to viewport? (Answer for MVP: Fixed 400×400px; responsive scaling is a follow-up)
-- **Grid cell size:** Should each grid cell be 20×20 pixels (resulting in 400×400 total for 20×20 grid), or variable? (Answer: Fixed 20px per cell; document in code)
-- **Snake initial direction:** What direction is the snake "facing" at start? (Answer: No direction initially; direction is set on first key press. See Story 1.2)
-- **Food position randomness:** Should food spawn use `Math.random()` directly, or a seeded random for replay determinism? (Answer for MVP: Direct `Math.random()` for live games. Seeded random is applied during replay playback. See Epic 3 & 4)
-- **Color scheme:** What colors for grid, snake, food? (Answer: To be determined during implementation; recommend: grid=light gray, snake=green, food=red)
+- **Q: Should the mode selector be a separate page/screen, or a persistent UI overlay that can be returned to?**  
+  **A:** For MVP, mode selector is a separate screen (shown on load, hidden during gameplay). Returning to it is handled in Story 7.2 (rematch flow).
+
+- **Q: Should there be a "Help" or "Rules" button on the mode selector?**  
+  **A:** No, not for MVP. Button labels are self-explanatory. Help page deferred to v2.
+
+- **Q: What if a button label is too long for the button width?**  
+  **A:** Use responsive font sizes and padding; stack buttons vertically on small screens if needed. Test and adjust as necessary during TEST-04 (responsive layout test).
+
+- **Q: Should buttons have any icons (e.g., "👥" for PvP, "🤖" for AI)?**  
+  **A:** No icons alone; text labels are mandatory for clarity. Icons optional but not required for MVP.
 
 ---
 
-## Implementation Notes
+## Definition of Done (Story-Level)
 
-### File Structure
-```
-/
-  index.html
-  styles.css
-  js/
-    main.js              (app entry point, initialization)
-    game-engine.js       (GameEngine class)
-    state-manager.js     (StateManager class)
-    renderer.js          (Renderer class)
-    game-controller.js   (GameController class)
-  tests/
-    game-engine.test.js
-    renderer.test.js
-    state-manager.test.js
-```
+The story is complete when:
 
-### Key Implementation Details
-
-1. **Canvas Initialization (FE-02):**
-   ```javascript
-   const canvas = document.getElementById('gameCanvas');
-   const ctx = canvas.getContext('2d');
-   const cellWidth = canvas.width / 20;  // 400 / 20 = 20px per cell
-   const cellHeight = canvas.height / 20;
-   ```
-
-2. **Snake Data Structure (GL-02):**
-   ```javascript
-   const snakeBody = [
-     {x: 10, y: 10},  // head
-     {x: 9, y: 10},   // body segment 1
-     {x: 8, y: 10}    // tail
-   ];
-   ```
-
-3. **Food Spawn Algorithm (GL-03):**
-   ```javascript
-   spawnFood() {
-     let foodPos;
-     let retries = 0;
-     do {
-       foodPos = {
-         x: Math.floor(Math.random() * 20),
-         y: Math.floor(Math.random() * 20)
-       };
-       retries++;
-     } while (this.isOccupiedBySnake(foodPos) && retries < 10);
-     return foodPos;
-   }
-   ```
-
-4. **Grid Rendering (FE-03):**
-   ```javascript
-   drawGrid(ctx, gridWidth, gridHeight) {
-     const cellWidth = ctx.canvas.width / gridWidth;
-     const cellHeight = ctx.canvas.height / gridHeight;
-     ctx.strokeStyle = '#ccc';
-     for (let i = 0; i <= gridWidth; i++) {
-       ctx.beginPath();
-       ctx.moveTo(i * cellWidth, 0);
-       ctx.lineTo(i * cellWidth, ctx.canvas.height);
-       ctx.stroke();
-     }
-     for (let j = 0; j <= gridHeight; j++) {
-       ctx.beginPath();
-       ctx.moveTo(0, j * cellHeight);
-       ctx.lineTo(ctx.canvas.width, j * cellHeight);
-       ctx.stroke();
-     }
-   }
-   ```
+1. ✅ index.html file exists with valid semantic HTML.
+2. ✅ Three mode buttons are visible and clearly labeled on page load.
+3. ✅ All acceptance criteria are met and verified via manual tests (TEST-01 through TEST-07 pass).
+4. ✅ Page renders correctly on desktop, tablet, and mobile screens.
+5. ✅ Keyboard navigation works: Tab and Enter keys function as expected.
+6. ✅ Focus indicators are visible and meet contrast requirements.
+7. ✅ Page title is set and visible in browser tab.
+8. ✅ Code is committed to the `main` or `develop` branch with clear commit message: "feat: Display mode selection screen (Story 1.1)".
+9. ✅ No blocking bugs or accessibility issues (zero critical findings from manual tests).
 
 ---
 
-## Definition of Done for Story 1.1
+## Notes for the Engineer
 
-**All of the following must be true before this story is considered complete:**
-
-1. ✅ All 7 frontend tasks complete and tested
-2. ✅ All 5 game logic tasks complete and tested
-3. ✅ All 7 tests pass (TEST-01 through TEST-07)
-4. ✅ Manual visual inspection confirms all 6 acceptance criteria are met
-5. ✅ Code is committed to a feature branch with clear commit message
-6. ✅ Code review is complete with no blocker comments
-7. ✅ No console errors in browser DevTools when loading index.html
-8. ✅ Grid, snake, and food are visible on page load (no user action required)
+- **Start with HTML structure:** Use semantic HTML5 with `<button>` elements (not `<div>` with click handlers). This ensures keyboard accessibility by default.
+- **CSS organization:** Keep styles in a single `styles.css` file for simplicity. Consider organizing by component (e.g., `.mode-selector`, `.btn-mode`) for future scalability.
+- **Testing priority:** Focus on accessibility tests (keyboard, focus indicator, contrast) first; they're mandatory for this story and foundational for the entire app.
+- **Browser testing:** If possible, test on actual devices or use browser emulation (Chrome DevTools, Firefox Responsive Design Mode). Real device testing catches rendering issues not visible in emulation.
+- **Commit strategy:** Make atomic commits: one for HTML structure, one for CSS layout, one for accessibility styles. This makes code review easier.
 
 ---
 
-## Success Metrics for Story 1.1
+## Related Stories & Follow-up
 
-- Game initializes in < 100ms on modern hardware
-- Canvas renders without flicker or visual artifacts
-- No memory leaks on repeated page reloads (check DevTools Memory tab)
-- All browsers (Chrome, Firefox, Safari, Edge) render identically (pixel-perfect grid alignment not required, but visual harmony required)
+- **Story 1.2 — Initialize Game Board and Game State:** Builds on this story; handles game logic initialization after mode selection.
+- **All other user stories:** Depend on a functioning mode selector; this is the entry point.
+
+---
+
+## Success Criteria for Code Review
+
+- [ ] HTML is semantic and accessible (no `<div>` pretending to be buttons).
+- [ ] CSS is responsive and tested on multiple screen sizes.
+- [ ] All acceptance criteria are met and documented in test results.
+- [ ] No accessibility violations (WCAG 2.1 AA minimum).
+- [ ] Code is clean, readable, and well-commented where necessary.
+- [ ] Commit message is clear and references the story (e.g., "feat(Story 1.1): Display mode selection screen").

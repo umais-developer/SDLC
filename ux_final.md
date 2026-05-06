@@ -1,8 +1,8 @@
-# UX Design: Snake with Replay System
+# UX Design: B3 Tic-Tac-Toe with Unbeatable AI
 
-**Status:** Draft  
-**Author:** SDLC Pipeline  
-**Date:** May 6, 2026  
+**Status:** Final  
+**Author:** UX Design Team  
+**Date:** 2026-05-06  
 **Version:** 1.0  
 **Related PRD:** [prd_final.md](prd_final.md)  
 **Related Architecture:** [architecture_final.md](architecture_final.md)
@@ -10,17 +10,17 @@
 ---
 
 ## 1. Overview
-The Snake with Replay System provides a single-player arcade experience where users play Snake with arrow key controls, track their score, and watch replays of prior games at variable speeds. The UX prioritizes responsive gameplay, clear visual feedback, and intuitive access to replay history. Users must be able to instantly switch between live play and replay viewing, with ghost snakes rendered distinctly from live snakes to avoid confusion.
+The Tic-Tac-Toe game provides three play modes to accommodate different user needs: casual two-player matches, easy single-player gameplay, and an impossible AI challenge with transparent move evaluation. The UX prioritizes clarity, immediate feedback, and the learning opportunity to see why the AI makes its choices through minimax score visualization. The flow is streamlined to minimize decision points and get users to gameplay quickly.
 
 ---
 
 ## 2. User Goals
 
-- **Primary goal:** Play Snake and improve score through repeated attempts.
+- **Primary goal:** Play a quick, engaging Tic-Tac-Toe game against a human opponent or AI.
 - **Secondary goals:**
-  - Review past gameplay via replay to learn from mistakes.
-  - Compare live play against a ghost replay to practice specific strategies.
-  - Understand current game state at a glance (score, snake length, food location).
+  - Understand how the minimax algorithm works by observing AI decision-making.
+  - Challenge oneself against an unbeatable AI and achieve a draw.
+  - Teach others about game theory and AI decision-making.
 
 ---
 
@@ -28,231 +28,164 @@ The Snake with Replay System provides a single-player arcade experience where us
 
 | Persona | Description | Key Need |
 |---------|-------------|----------|
-| **Casual Gamer** | Seeks quick, engaging arcade play; plays in short bursts | Fast feedback; simple controls; visible score |
-| **Practice Player** | Plays repeatedly to improve; analyzes replays | Access to replay history; easy replay navigation; speed controls |
-| **Competitive Player** | Tracks personal bests; compares performances | Clear scoring; replay comparison (live vs. ghost) |
+| **Casual Player** | Wants quick entertainment; plays solo or with friend. Plays 1–3 games per session. | Fast mode selection; clear win/loss messaging; rematch button. |
+| **Learner / Algorithm Enthusiast** | Interested in AI and game theory; studies the minimax scores. Plays 5+ games per session. | Score visualization; multiple plays against Impossible AI to observe patterns. |
+| **Educator** | Uses game to teach algorithms or strategy to students. | Clear score display; stable gameplay; ability to explain decisions. |
 
 ---
 
 ## 4. User Flows
 
-### Flow 1: Initial App Load & Game Selection
-
-_The user opens the application and must choose to start a new game or select a replay._
+### Flow 1: Happy Path — Game Initialization and Mode Selection
 
 ```mermaid
 flowchart TD
-    A([App Loads]) --> B[Show Home Screen]
-    B --> C{User Choice}
-    C -->|New Game| D[Start Live Game]
-    C -->|View Replays| E[Show Replay List]
-    E --> F{Replays Available?}
-    F -->|Yes| G[Display Replay List]
-    F -->|No| H[Show Empty State]
-    H --> I{Try Again?}
-    I -->|New Game| D
-    I -->|Exit| J([End])
-    G --> K[User Selects Replay]
-    K --> L[Show Replay Controls]
+    A([User lands on page]) --> B["Display main screen:<br/>Title, three mode buttons<br/>PvP / Easy AI / Impossible AI"]
+    B --> C{"User clicks<br/>mode button?"}
+    C -- "Yes (PvP)" --> D["Initialize PvP game<br/>Show empty board<br/>Set turn indicator to Player 1"]
+    C -- "Yes (Easy)" --> E["Initialize Easy AI game<br/>Show empty board<br/>Set turn indicator to Human"]
+    C -- "Yes (Impossible)" --> F["Initialize Impossible AI game<br/>Show empty board<br/>Set turn indicator to Human"]
+    D --> G["Ready to play"]
+    E --> G
+    F --> G
+    G --> H([Begin Gameplay Flow])
 ```
 
 **Steps:**
-1. User opens `index.html` in browser
-2. App initializes and displays home screen with two options: "Play" and "View Replays"
-3. If user clicks "Play," live game begins immediately
-4. If user clicks "View Replays," app shows list of available replays (or empty state if none exist yet)
-5. User selects a replay and is presented with replay playback controls (Play, Pause, Speed selector)
+1. Application loads; display full-screen mode selector with three equally prominent buttons.
+2. User clicks one of three mode buttons.
+3. Board initializes as empty 3×3 grid.
+4. Turn indicator displays whose turn it is (or if AI is playing).
 
-**Entry points:** App load  
-**Exit points:** Game start (live), replay playback, or exit
+**Entry points:** App load; after game reset.
+**Exit points:** User enters gameplay (Flow 2).
 
 ---
 
-### Flow 2: Live Game — Happy Path
-
-_User plays a complete game from start to end._
+### Flow 2: Happy Path — Gameplay (Human Move)
 
 ```mermaid
 flowchart TD
-    A([Live Game Starts]) --> B[Display Grid, Snake, Food, Score]
-    B --> C[Game Loop Running]
-    C --> D[User Presses Arrow Key]
-    D --> E{Valid Direction?}
-    E -->|No Reversal| F[Queue Direction]
-    E -->|Reversal Attempt| G[Ignore Direction]
-    F --> H[Snake Moves]
-    G --> H
-    H --> I{Collision?}
-    I -->|No| J{Food Eaten?}
-    I -->|Yes - Wall/Self| K[Game Over]
-    J -->|Yes| L[Grow Snake, Increase Score, Spawn Food]
-    J -->|No| M[Continue]
-    L --> M
-    M --> C
-    K --> N[Show End Screen]
-    N --> O[Save Replay]
-    O --> P{User Action}
-    P -->|Play Again| Q([New Game])
-    P -->|View Replays| R([Replay List])
-    P -->|Exit| S([End])
+    A["Human's turn<br/>Board displayed<br/>Turn indicator shows 'Your turn'"] --> B["User clicks empty cell"]
+    B --> C{"Cell valid<br/>and empty?"}
+    C -- "No" --> D["Cell already occupied<br/>or invalid click"]
+    D --> C
+    C -- "Yes" --> E["Mark placed on board<br/>Visual feedback: cell highlights"]
+    E --> F{"Game terminal?<br/>Win/Draw/Ongoing?"}
+    F -- "Win (Human)" --> G["Display 'You win!'<br/>Show rematch button"]
+    F -- "Draw" --> H["Display 'Draw!'<br/>Show rematch button"]
+    F -- "Ongoing" --> I["Disable board (no more moves)<br/>Display 'AI thinking...'<br/>Trigger AI turn"]
+    G --> J["Game Over State"]
+    H --> J
+    I --> K([AI Move Flow])
 ```
 
 **Steps:**
-1. Game grid initializes with snake at center, food at random location
-2. Game loop runs at fixed tick rate; snake moves based on buffered direction
-3. User presses arrow keys; each valid input queues a direction change
-4. Directional reversal logic prevents two-key sequence from reversing snake
-5. Snake moves; collision detection runs
-6. If food eaten: snake grows, score increases, new food spawns, speed increases slightly
-7. If collision: game ends, replay is saved automatically
-8. End screen shows final score and options to play again, view replays, or exit
+1. Human player sees empty board with clear turn indicator: "Your turn."
+2. Player clicks an empty cell (visual hover state shows this cell is clickable).
+3. Board validates the move; if cell is occupied, no change (no error message needed—click simply has no effect).
+4. Valid move is placed on board; cell highlights briefly as visual feedback.
+5. Game state updates; check for win or draw.
+6. If game ongoing, board temporarily disables (visual fade or overlay), and "AI thinking..." message displays.
+7. AI move is executed (see Flow 3).
 
-**Entry points:** User clicks "Play" on home screen  
-**Exit points:** Game over → user chooses next action
+**Entry points:** After mode selection; after rematch.
+**Exit points:** Game end (Flow 4) or AI turn (Flow 3).
 
 ---
 
-### Flow 3: Live Game — Input Edge Case (Rapid Key Press)
-
-_User presses two arrow keys in rapid succession. The second key must not reverse the snake's current direction._
+### Flow 3: AI Move — Impossible Mode with Score Visualization
 
 ```mermaid
 flowchart TD
-    A([Snake Moving Right]) --> B[User Presses Up Arrow]
-    B --> C[Direction Queued: UP]
-    C --> D[Milliseconds Pass]
-    D --> E[User Presses Left Arrow]
-    E --> F[Left = Reversal?]
-    F -->|Yes| G[Ignore Left Input]
-    F -->|No| H[Queue Left]
-    G --> I[Continue with UP]
-    H --> I
-    I --> J[Next Tick: Snake Moves Up]
-    J --> K{Another Frame}
-    K -->|UP Processed| L[Next Frame: Snake Moves Left]
+    A["AI turn triggered<br/>Human move just completed"] --> B["Compute minimax scores<br/>for all legal moves"]
+    B --> C["Display scores on board<br/>Each open cell shows<br/>+1, 0, or -1"]
+    C --> D["User observes scores<br/>2-second display window<br/>with prompt: 'AI evaluates...'"]
+    D --> E["2 seconds elapsed<br/>or user clicks next"]
+    E --> F["Clear score overlay<br/>Board shows best move highlighted"]
+    F --> G["Execute AI move<br/>Mark O on best cell"]
+    G --> H{"Game terminal?<br/>Win/Draw/Ongoing?"}
+    H -- "Win (AI)" --> I["Display 'AI wins!'<br/>Show rematch button"]
+    H -- "Draw" --> J["Display 'Draw!'<br/>Show rematch button"]
+    H -- "Ongoing" --> K["Re-enable board<br/>Display 'Your turn'<br/>Return to Flow 2"]
+    I --> L["Game Over State"]
+    J --> L
+    K --> M([Continue Gameplay])
 ```
 
 **Steps:**
-1. Snake is moving right
-2. User presses up arrow; direction is buffered
-3. User immediately presses left arrow
-4. Input handler detects left is a reversal of current direction (right)
-5. Left input is discarded; up direction executes on next game tick
-6. If user intended to move left, they can press left again after the up move completes
+1. After human move, AI enters decision phase.
+2. Minimax algorithm computes scores for all 9 cells (max ~549,946 evaluations, pruned by alpha-beta).
+3. Score overlay is drawn on the board:
+   - Each empty cell displays its score: **+1** (AI win), **0** (draw), **−1** (human win).
+   - Colors: Green for +1, Yellow for 0, Red for −1 (accessible colors chosen for deuteranopia/protanopia).
+4. Display remains for 2 seconds with label "AI is thinking..." to allow player observation.
+5. After 2 seconds, overlay clears and best move is executed (no option to interrupt).
+6. AI mark (O) is placed on board.
+7. Game state updated; check for AI win or draw.
+8. If game ongoing, return to human turn; if terminal, show game-over message.
 
-**Key assumption:** Reversal prevention checks current snake direction, not the queued direction.
+**Entry points:** After human move in ongoing game.
+**Exit points:** Game end or return to human turn.
 
 ---
 
-### Flow 4: Live Game with Simultaneous Replay
-
-_User starts a new live game while a replay is playing._
+### Flow 4: Game Over — End State and Rematch
 
 ```mermaid
 flowchart TD
-    A([Replay Playing]) --> B[Ghost Snake Visible]
-    B --> C{User Starts New Game?}
-    C -->|Yes| D[Live Game Begins]
-    D --> E[Both Ghost + Live Snake on Grid]
-    E --> F[Live Snake Moves per User Input]
-    F --> G[Ghost Snake Moves per Replay]
-    G --> H{Live Snake Collision?}
-    H -->|Yes| I[Live Game Ends]
-    I --> J[Ghost Replay Continues]
-    J --> K{Replay Ends?}
-    K -->|Yes| L([Replay + Live Game Both Done])
-    H -->|No| M[Continue Both]
-    M --> F
+    A["Game terminal<br/>Win/Draw detected"] --> B{"Outcome?"}
+    B -- "Human wins" --> C["Display message:<br/>'You win!'<br/>Celebratory emoji or highlight"]
+    B -- "AI wins" --> D["Display message:<br/>'AI wins!'<br/>Show best play message"]
+    B -- "Draw" --> E["Display message:<br/>'Draw!<br/>Perfect play!'"]
+    C --> F["Show rematch button:<br/>'Play Again'"]
+    D --> F
+    E --> F
+    F --> G{"User clicks<br/>rematch?"}
+    G -- "Yes" --> H["Show mode selector<br/>(return to Flow 1)"]
+    G -- "No / Idle" --> I["Remain on end state<br/>OR show return-home option"]
+    H --> J([Reset])
+    I --> K([End Session])
 ```
 
 **Steps:**
-1. Replay is running; ghost snake is visible on grid as semi-transparent overlay
-2. User presses play/starts new game; live game begins on same grid
-3. Both snakes are rendered; live snake is opaque, ghost is semi-transparent
-4. Live snake moves based on user input; ghost snake follows replay sequence
-5. If live snake collides, live game ends; ghost replay continues unaffected
-6. If replay ends first, only live game remains
-7. When both are complete, user sees end screen for live game only
+1. Game logic detects win, loss, or draw.
+2. Game board is disabled (no further moves allowed).
+3. Clear message displayed at bottom or center of board (e.g., "You win!", "AI wins!", "Draw!").
+4. Rematch button appears below board with label "Play Again" or "New Game".
+5. Optional: Show "Return to Mode Select" button if user wants to switch modes.
+6. If user clicks rematch, reset board and mode selector; return to Flow 1.
+7. If user closes/leaves page or goes idle, session ends.
 
-**Key interaction:** Ghost snake has no collision logic with live snake; it is purely visual.
+**Entry points:** Winning move made by human or AI; board full with no winner.
+**Exit points:** New game (Flow 1) or session end.
 
 ---
 
-### Flow 5: Replay Selection & Playback
-
-_User selects a completed game from the replay list and plays it back._
+### Flow 5: Error State — Invalid Interaction
 
 ```mermaid
 flowchart TD
-    A([User Clicks View Replays]) --> B[Show Replay List]
-    B --> C{Replays Exist?}
-    C -->|No| D[Show Empty State]
-    D --> E{New Game?}
-    E -->|Yes| F([New Live Game])
-    E -->|No| G([Exit])
-    C -->|Yes| H[List Completed Games]
-    H --> I[User Selects Replay]
-    I --> J[Show Replay Controls]
-    J --> K[Play Button]
-    K --> L[Replay Plays at 1x Speed]
-    L --> M{User Action?}
-    M -->|Change Speed| N[Set Speed 0.5x/1x/2x/4x]
-    M -->|Pause| O[Pause Replay]
-    M -->|Resume| L
-    O --> P{User Action?}
-    P -->|Resume| L
-    P -->|New Game| Q([New Live Game])
-    L --> R{Replay Ends?}
-    R -->|Yes| S[Show End of Replay]
-    S --> T([Return to Replay List])
+    A["User attempts invalid action<br/>e.g., click occupied cell"] --> B{"What is<br/>the error?"}
+    B -- "Click occupied cell" --> C["No visual feedback<br/>Click is ignored"]
+    B -- "Click during AI turn" --> D["Board is disabled<br/>No clicks register<br/>'Thinking' overlay visible"]
+    B -- "Click after game over" --> E["Board is disabled<br/>No clicks register<br/>Rematch button only interactive element"]
+    C --> F["User tries again"]
+    D --> F
+    E --> F
+    F --> G([Continue])
 ```
 
 **Steps:**
-1. User clicks "View Replays" button
-2. If replay list is empty, show empty state with encouragement to play
-3. If replays exist, display list with game metadata (score, date/time, duration)
-4. User clicks a replay; replay loads and controls appear (Play, Pause, Speed selector)
-5. User clicks Play; ghost snake retraces the recorded game
-6. User can change speed during playback; speed change is instant (no re-buffering needed)
-7. User can pause at any time; pausing freezes ghost snake on grid
-8. When replay ends, show a summary and offer to play again or start new game
-9. User can exit replay and return to list at any time
+1. User attempts an invalid action (click occupied cell, click during AI turn, click after game end).
+2. **No error message is shown** — interactions are silently ignored or board is disabled with visual feedback.
+3. User retries by clicking a valid cell.
+4. Valid move is processed.
 
-**Entry points:** Home screen "View Replays" button  
-**Exit points:** Start new game, return to home, or exit app
+**Rationale:** Tic-Tac-Toe is simple enough that a silent ignore (instead of error dialog) keeps UX clean. Visual affordances (disabled board state) prevent confusion.
 
----
-
-### Flow 6: Game Over with Error (Rare — Session Storage Full)
-
-_In an unlikely scenario where the browser's in-memory storage is full, the replay cannot be saved._
-
-```mermaid
-flowchart TD
-    A([Game Ends]) --> B[Attempt to Save Replay]
-    B --> C{Memory Full?}
-    C -->|No| D[Replay Saved]
-    D --> E[Show Game Over Screen]
-    E --> F([User Chooses Next Action])
-    C -->|Yes| G[Show Warning]
-    G --> H[Message: Unable to Save Replay]
-    H --> I[Offer Options]
-    I --> J{Delete Old Replays?}
-    J -->|Yes| K[Delete Oldest Replay]
-    K --> L[Retry Save Current Replay]
-    J -->|No| M[Skip Save, Play Again]
-    L --> E
-    M --> N([New Live Game])
-```
-
-**Steps:**
-1. Game ends normally
-2. Replay is serialized and stored in memory
-3. If memory limit reached (unlikely), show non-blocking warning
-4. Offer user option to delete oldest replays to make room
-5. If user agrees, delete oldest replay and retry
-6. If user declines, allow game to proceed without saving this replay
-7. Show game over screen with score and options
+**Entry points:** User mistake.
+**Exit points:** Valid action or navigation away.
 
 ---
 
@@ -260,62 +193,54 @@ flowchart TD
 
 | Interaction | Pattern | Notes |
 |-------------|---------|-------|
-| Arrow key input | Real-time queue buffering; directional change on next tick | Prevents reversals; smooth for rapid input |
-| Replay speed control | Dropdown or buttons (0.5×, 1×, 2×, 4×) | Instant change; no frame re-buffering |
-| Pause/resume | Spacebar or button toggle | Freezes game/replay at current frame |
-| Replay list selection | Click to select; highlights selected row | Visual feedback on selection |
-| Start new game | Button on home screen or end screen | Instant initialization |
-| View replays | Button on home screen or after game end | Shows replay list |
-| Ghost overlay | Rendered at reduced opacity; distinct color | Visually separates from live snake |
+| Mode selection | Radio-button-like mutually exclusive buttons | Three buttons; click selects one; board initializes. |
+| Cell click | Direct manipulation; visual feedback (highlight/press) | Click empty cell to place mark. Click has no effect on occupied cells. |
+| Score display | Temporary overlay on board | Scores appear for 2 seconds before AI moves in Impossible mode; non-interactive. |
+| Turn indicator | Text label at top or side of board | E.g., "Your turn" or "AI thinking..." Changes with each turn. |
+| Rematch / Reset | Single clear button at bottom | Large, high-contrast button that resets board and shows mode selector. |
+| Responsive feedback | Cell highlight on hover (desktop) or on click (mobile) | Visual confirmation that cell is selectable before commit. |
 
 ---
 
 ## 6. States & Variations
 
-### Main Screen
-
-- **Home State:** Menu with "Play" and "View Replays" buttons, app title, instructions
-- **Loading State:** N/A (no async operations in MVP)
-- **Empty State:** (See "Replay List — Empty State")
-- **Error State:** (See Flow 6 for rare memory error)
+### Main Screen (Mode Selector)
+- **Default state:** Three mode buttons displayed; large, equal-width, clearly labeled.
+- **Hover state (desktop):** Button background changes slightly; cursor shows "pointer."
+- **Active state:** Button is pressed; mode initializes immediately.
+- **Disabled state:** (Not applicable—all modes always available.)
 
 ### Game Board
+- **Empty state:** All 9 cells empty; turn indicator shows "Your turn" (or AI intro message).
+- **In-play state:** Some cells filled with X or O; turn indicator updates; hovered cells show visual affordance.
+- **Score overlay state (Impossible AI only):** Scores (+1, 0, −1) displayed on empty cells; board is disabled for interaction; label says "AI thinking...".
+- **End state:** Board is full or winning condition met; message displayed (e.g., "You win!"); all cells disabled; rematch button shown.
 
-- **Default State (Playing):** Grid visible, snake in motion, food present, score displayed, snake color opaque
-- **Paused State:** Grid frozen; snake in current position; "PAUSED" label overlaid; input disabled except pause toggle
-- **Game Over State:** Grid grayed out or frozen; "GAME OVER" label; final score; options for replay/play again
-- **Empty State:** N/A (grid always has snake and food)
-- **Loading State:** N/A (no server calls)
-- **Replay Overlay (Ghost Snake):** Semi-transparent snake with distinct color (e.g., light gray or dotted outline) renders on same grid as live snake
+### Turn Indicator
+- **Text display:** "Your turn" (human), "AI thinking..." (AI processing), "AI's turn" (Easy AI making random move).
+- **Visual clarity:** Large, readable font; positioned at top or bottom; high contrast to background.
 
-### Replay List
-
-- **Default State:** Table/list of completed games with columns: Score, Date, Duration, Action (Play)
-- **Empty State:** Message: "No replays yet. Play a game to create one!" with "Play Now" button
-- **Loading State:** N/A (replays loaded from memory)
-- **Selected State:** Selected replay row highlighted; controls appear below (Play, Pause, Speed)
-
-### Replay Playback Controls
-
-- **Default State (Before Play):** Buttons: Play, Speed Selector (1×), Back to List
-- **Playing State:** Buttons: Pause, Speed Selector (current speed), Back to List
-- **Paused State:** Buttons: Resume, Speed Selector (current speed), Back to List
-- **Ended State:** Message "Replay ended"; buttons: Restart, Back to List
+### Individual Cell
+- **Empty state:** Light background; clickable.
+- **Hover state:** Darker background or slight elevation (desktop).
+- **Filled state (X or O):** Mark displayed clearly; not clickable.
+- **Score state:** Shows score (−1, 0, +1) with icon or number; temporary (Impossible AI only).
 
 ---
 
 ## 7. Accessibility Considerations (WCAG 2.1 AA)
 
-| Element | Requirement | Notes |
-|---------|------------|-------|
-| **Keyboard Navigation** | All controls reachable via Tab; no keyboard traps | Arrow keys control snake; Tab/Enter/Space for buttons |
-| **Focus Indicators** | Visible focus ring on all buttons, replay list items, speed selector | Use browser default or custom visible indicator (min 2px) |
-| **Color Contrast** | Text on background: 4.5:1; UI elements: 3:1 minimum | Avoid relying on color alone for snake vs. ghost distinction |
-| **Screen Reader (ARIA)** | List items have role; button labels clear; game state announced | "Game Over: Final Score 42"; "Replay paused at 30 seconds" |
-| **Ghost/Live Distinction** | Use color + pattern/opacity; not color alone | Live: solid green; Ghost: dashed gray or light blue |
-| **Error Messages** | Text-based error alerts; not color-coded only | "Error: Unable to save replay. Try deleting old ones." |
-| **Dynamic Content** | Live score updates announced via aria-live region | `<div aria-live="polite" aria-label="Score">Score: 42</div>` |
-| **Canvas Fallback** | Alt text for canvas; native button controls outside canvas | `<canvas role="img" aria-label="..."></canvas>` |
+| Element | Requirement | Implementation |
+|---------|------------|-----------------|
+| **Keyboard navigation** | All interactive elements (mode buttons, cells, rematch button) reachable via Tab key. | Tabindex management; buttons are native HTML `<button>` elements. |
+| **Focus indicators** | Visible focus ring on all buttons and clickable cells; minimum 2px outline. | CSS `:focus-visible` with high-contrast color (e.g., white or bright border). |
+| **Color contrast** | Minimum 4.5:1 for normal text; 3:1 for large text. Score colors accessible to color-blind users. | Test with WebAIM contrast checker; use accessible palette (no pure red/green). |
+| **Score colors** | Scores indicated by color *and* symbol/number, not color alone. | +1 = Green + "+" symbol; 0 = Yellow + "0"; −1 = Red + "−" symbol. |
+| **Screen reader** | Meaningful alt text for interactive elements; ARIA labels for status messages. | `aria-label` on cells: "Row 1, Column 1, empty"; status messages in live region (`aria-live="polite"`). |
+| **Error messages** | Errors identified in text, not by visual style alone. | Errors silently ignored; board disables with overlay label. No error dialog. |
+| **Responsive text** | Text is readable at 200% zoom; no text overflow. | Font-relative units (rem/em); viewport settings for mobile. |
+| **Touch targets** | Minimum 44×44 px for interactive elements. | Cells sized appropriately; buttons at least 44×44 px. |
+| **Semantic HTML** | Use native `<button>`, `<div role="grid">`, etc. | Avoid generic `<div>` with click handlers; use semantic elements. |
 
 ---
 
@@ -323,20 +248,20 @@ flowchart TD
 
 | Element | Proposed Copy | Notes |
 |---------|--------------|-------|
-| **App Title** | "Snake with Replay System" | Clear, descriptive |
-| **Play Button** | "Play" | Single word; action-oriented |
-| **View Replays Button** | "View Replays" | Clear intent |
-| **Pause Button** | "Pause" or icon (⏸) | Toggle verb |
-| **Resume Button** | "Resume" or icon (▶) | Clear action |
-| **Speed Selector Label** | "Speed" | Followed by options 0.5×, 1×, 2×, 4× |
-| **Game Over Modal** | "Game Over" heading; "Final Score: [X]" | Clear end state |
-| **Play Again Button** | "Play Again" | Action-oriented; obvious next step |
-| **Back to List Button** | "Back to Replays" | Clear navigation |
-| **Empty Replay State** | Heading: "No Replays Yet"; Subtext: "Play a game to create one!" | Encouraging; actionable |
-| **Error: Memory Full** | "Replays storage full. Delete old replays?" | Conversational; clear options |
-| **Replay Ended** | "Replay ended" | Simple confirmation |
-| **Score Label** | "Score: [X]" | Always visible during play |
-| **Food Indicator** (if needed) | Visual only (colored square on grid) | No label needed; learned through play |
+| **Page title** | "Tic-Tac-Toe with AI" | Clear, descriptive; helps with browser tab. |
+| **Mode selector heading** | "Choose a mode to start" | Friendly, action-oriented. |
+| **PvP button** | "Player vs. Player" | Clear two-player mode. |
+| **Easy AI button** | "Play Easy AI" | Friendly; signals beatable opponent. |
+| **Impossible AI button** | "Play Impossible AI" | Clear challenge signal; implies AI will not lose. |
+| **Turn indicator (human)** | "Your turn" | Simple, direct. |
+| **Turn indicator (AI thinking)** | "AI is thinking..." | Reassuring; explains why board is inactive. |
+| **Turn indicator (PvP)** | "Player 1's turn" or "Player 2's turn" | Clear alternation. |
+| **Win message (human)** | "You win! 🎉" | Celebratory; emoji optional but enhances friendliness. |
+| **Win message (AI)** | "AI wins! Well played." | Graceful; acknowledges player effort. |
+| **Draw message** | "Draw! Perfect play." | Encouraging; suggests both sides played optimally. |
+| **Rematch button** | "Play Again" | Clear next action. |
+| **Home button** | "Choose Mode" or "Main Menu" | Returns to mode selector. |
+| **Score label (during AI thinking)** | "AI evaluates:" | Explains score display; educates. |
 
 ---
 
@@ -344,62 +269,55 @@ flowchart TD
 
 | Scenario | Risk | Recommended Handling |
 |----------|------|----------------------|
-| **User presses two opposing keys simultaneously (e.g., Left + Right)** | Confusion; unintended direction | Only queue last key pressed; ignore simultaneous presses. Prev direction wins. |
-| **User mashes keys while snake moving slowly** | Input queue overflows; missed inputs | Buffer only next 1–2 inputs; discard older buffered inputs beyond 2 deep |
-| **User pauses game, then closes app tab** | Replay not saved? | Replay saved only on natural game over, not on pause. Clear in UI. |
-| **Replay finishes while user is still in live game** | Unclear what happened | Show "Replay ended" label near ghost snake; allow live game to continue |
-| **User tries to start two replays simultaneously** | Unclear which one plays | Disable "Play" button once replay is active; show "Stop Replay" button instead |
-| **User plays extremely slowly; replay takes 10 minutes** | Memory strain; frame drops | Optimized rendering; test with max-size replays. Likely not an issue at 0.5× speed. |
-| **User starts new game while replay at 4× speed** | Tempo mismatch; confusing | Live game always runs at normal 1× game speed; replay overlays at selected speed independently |
-| **Food spawns on ghost snake in early frames** | Visual confusion | Food spawns only in empty cells; check against live snake only, not ghost. Ghost is overlay only. |
-| **User forgets arrow keys; tries WASD or mouse** | No feedback; frustration | Display on-screen arrow key hints; consider WASD as stretch goal (out of MVP) |
+| **User clicks cell during AI move** | Confusion if click registers unexpectedly. | Board disabled with visual overlay during AI thinking; click has no effect. Cursor changes to "not-allowed" to signal disabled state. |
+| **AI takes >2 seconds to move** | User perceives game as frozen. | Display "Calculating..." spinner; accept 2–5 second latency as normal. |
+| **User spams rematch button** | Multiple games initialized at once. | Button disabled after first click until game resets. |
+| **Mobile touch interaction** | Accidental double-tap or mis-touch. | Implement touch debounce; highlight cell on touch with 200ms feedback before commit. |
+| **Score display overlaps with marks** | Scores hard to read if cells already have marks (shouldn't happen, but visual clutter risk). | Scores only display on *empty* cells; never on cells with X or O. |
+| **Color-blind user cannot distinguish scores** | Scores shown by color alone (failure). | Scores use number *and* color; test with color-blind simulator. |
+| **User navigates away mid-game** | Game state lost; user loses progress. | No persistent storage needed for MVP; session loss is acceptable. |
+| **Screen too small for board** | Board doesn't fit; cells unclickable. | Responsive design; cells scale down but remain ≥44×44 px; board may scroll on very small screens. |
 
 ---
 
 ## 10. Open Questions & Assumptions
 
-- **Assumption:** Users are familiar with classic Snake rules (eat food, grow, avoid collision).
-- **Assumption:** Arrow keys are the primary input method; alternative input (WASD, mouse) is stretch goal.
-- **Assumption:** Replay list persists only for the current session; no localStorage in MVP.
-- **Assumption:** Grid is always 20×20; user cannot adjust.
-- **Assumption:** Speed progression is automatic; user cannot adjust snake speed during live play.
-- **Open question:** Should the app have a fullscreen mode? (Answer: Not in MVP; can add later)
-- **Open question:** Should we display estimated game duration in replay list? (Answer: Optional for MVP; can add if time permits)
-- **Open question:** Should failed collision due to simultaneous key press show a message? (Answer: No; just silently ignore; users learn quickly)
+- **Assumption:** Users are familiar with Tic-Tac-Toe rules and do not need a tutorial.
+- **Assumption:** Minimax scores are educational; users appreciate seeing +1/0/−1 values.
+- **Assumption:** 2-second score display is adequate observation time; user can replay game if needed.
+- **Open question:** Should there be a help or rules link? _(Recommend: No for MVP; defer to v2 if needed.)_
+- **Open question:** Should scores remain visible after AI move, or clear immediately? _(Recommend: Clear immediately for clean board.)_
+- **Open question:** Should Easy AI have a slight delay before moving, or move instantly? _(Recommend: 500ms delay to feel like a thinking opponent.)_
+- **Open question:** Should PvP mode require explicit player switching (e.g., "Player 1, press OK to pass to Player 2") or just show turn indicator? _(Recommend: Turn indicator only; players know to pass device.)_
 
 ---
 
 ## 11. Out of Scope
 
-- Sound effects or music
-- Mobile touch controls (keyboard only)
-- Multiplayer or social features
-- Leaderboards or score sharing
-- Custom grid sizes
-- Difficulty levels or settings
-- AI autopilot mode
-- Persistent storage across sessions (localStorage, server)
-- Replay URL sharing or encoding
+- **Game history or replay:** Games are single-session; no persistent data.
+- **Tutorial or rules explanation:** Assume users know Tic-Tac-Toe; defer educational content to v2.
+- **Settings or difficulty knobs:** All modes fixed (Easy AI is always random; Impossible AI always minimax).
+- **Multiplayer online:** Single-device play only.
+- **Sound effects or animations (beyond visual feedback):** Minimize audio for accessibility; defer animation details to design phase.
+- **Mobile-specific gestures:** Support standard touch; no swipe gestures or custom interactions.
 
 ---
 
 ## 12. Appendix
 
-### Related Documents
-- **PRD:** [prd_final.md](prd_final.md)
-- **Architecture:** [architecture_final.md](architecture_final.md)
-- **Requirements:** [Requirements 1.md](Requirements%201.md)
-- **Expected Outcomes:** [Expected-Outcomes 1.md](Expected-Outcomes%201.md)
+**Related Documentation:**
+- [prd_final.md](prd_final.md) — Product requirements and success criteria.
+- [architecture_final.md](architecture_final.md) — Technical component design and minimax algorithm detail.
 
-### Design Principles
-1. **Clarity:** Game state is always immediately obvious (score, ghost vs. live, pause status)
-2. **Responsiveness:** Input feedback is instant; no lag between key press and on-screen movement
-3. **Simplicity:** Minimal UI chrome; focus on the game board
-4. **Accessibility:** Keyboard-first; no hover-dependent interactions; screen reader friendly
+**Accessibility Resources:**
+- [WCAG 2.1 Guidelines](https://www.w3.org/WAI/WCAG21/quickref/) — Reference for accessibility standards.
+- [WebAIM Contrast Checker](https://webaim.org/resources/contrastchecker/) — Test color contrast ratios.
+- [Accessible Colors for Color Blind](https://colourblindawareness.org/) — Palette guidance.
 
-### Interaction Guidelines for Developers
-- All buttons should have a visible focus indicator (outline or background change)
-- Arrow key input should be captured and buffered; no default browser scroll behavior
-- Ghost snake rendering should use canvas composite modes (opacity ~0.5) for clarity
-- Live game and replay timing are independent; replay runs in separate game loop with speed multiplier
-- End screen should appear 500ms after collision (brief pause for visual clarity)
+**UX Best Practices:**
+- Norman, D. (2013). *The Design of Everyday Things.* — Error prevention and clear feedback.
+- Nielsen, J. (1993). *Usability Engineering.* — User testing and iterative design.
+
+**Prior Art:**
+- [lichess.org Tic-Tac-Toe example](https://lichess.org) — Inspiration for clean board UI (for chess, but transferable).
+- [Classic online Tic-Tac-Toe games](https://www.google.com/search?q=online+tic+tac+toe) — Reference implementations.

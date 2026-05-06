@@ -3,100 +3,59 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Snake with Replay System</title>
+    <title>Tic-Tac-Toe with AI</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div id="app">
-        <!-- Home Screen -->
-        <div id="homeScreen" class="screen active">
-            <div class="container">
-                <h1>Snake with Replay System</h1>
-                <div class="button-group">
-                    <button id="playBtn" class="btn btn-primary">Play</button>
-                    <button id="replayBtn" class="btn btn-secondary">View Replays</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Game Screen -->
-        <div id="gameScreen" class="screen">
-            <div class="container">
-                <h2>Snake Game</h2>
-                <div class="game-info">
-                    <span id="score">Score: 0</span>
-                </div>
-                <canvas id="gameCanvas" width="400" height="400"></canvas>
-                <p id="gameStatus"></p>
-            </div>
-        </div>
-
-        <!-- Game Over Screen -->
-        <div id="gameOverScreen" class="screen">
-            <div class="modal-backdrop">
-                <div class="modal">
-                    <h2>Game Over</h2>
-                    <p id="finalScore">Final Score: 0</p>
-                    <div class="button-group">
-                        <button id="playAgainBtn" class="btn btn-primary">Play Again</button>
-                        <button id="viewReplaysBtn" class="btn btn-secondary">View Replays</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Replay List Screen -->
-        <div id="replayListScreen" class="screen">
-            <div class="container">
-                <h2>Replays</h2>
-                <div id="replayListContainer">
-                    <p id="emptyReplayMessage">No replays yet. Play a game to create one!</p>
-                    <table id="replayTable" style="display: none;">
-                        <thead>
-                            <tr>
-                                <th>Score</th>
-                                <th>Date/Time</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody id="replayTableBody">
-                        </tbody>
-                    </table>
-                </div>
-                <button id="backToHomeBtn" class="btn btn-secondary">Back to Home</button>
-            </div>
-        </div>
-
-        <!-- Replay Playback Screen -->
-        <div id="replayScreen" class="screen">
-            <div class="container">
-                <h2>Replay</h2>
-                <div class="replay-controls">
-                    <button id="playReplayBtn" class="btn btn-small">Play</button>
-                    <button id="pauseReplayBtn" class="btn btn-small" style="display: none;">Pause</button>
-                    <label for="speedSelector">Speed:</label>
-                    <select id="speedSelector">
-                        <option value="0.5">0.5x</option>
-                        <option value="1" selected>1x</option>
-                        <option value="2">2x</option>
-                        <option value="4">4x</option>
-                    </select>
-                </div>
-                <canvas id="replayCanvas" width="400" height="400"></canvas>
-                <p id="replayStatus"></p>
-                <button id="backToReplaysBtn" class="btn btn-secondary">Back to Replays</button>
+    <!-- Mode Selection Screen -->
+    <div id="mode-selector" class="mode-selector">
+        <div class="mode-selector-container">
+            <h1 class="mode-selector-title">Tic-Tac-Toe with AI</h1>
+            <p class="mode-selector-subtitle">Choose a mode to start</p>
+            
+            <div class="button-group">
+                <button id="btn-pvp" class="btn btn-mode btn-pvp-style">
+                    Player vs. Player
+                </button>
+                <button id="btn-easy-ai" class="btn btn-mode btn-easy-ai-style">
+                    Play Easy AI
+                </button>
+                <button id="btn-impossible-ai" class="btn btn-mode btn-impossible-ai-style">
+                    Play Impossible AI
+                </button>
             </div>
         </div>
     </div>
 
-    <script src="js/game-engine.js"></script>
-    <script src="js/state-manager.js"></script>
-    <script src="js/renderer.js"></script>
-    <script src="js/input-manager.js"></script>
-    <script src="js/replay-recorder.js"></script>
-    <script src="js/replay-player.js"></script>
-    <script src="js/game-controller.js"></script>
-    <script src="js/main.js"></script>
-    <script src="tests/game-engine.test.js"></script>
+    <!-- Game Screen (initially hidden) -->
+    <div id="game-screen" class="game-screen hidden">
+        <div class="game-container">
+            <div class="game-header">
+                <h2 id="game-title" class="game-title">Tic-Tac-Toe</h2>
+                <div id="turn-indicator" class="turn-indicator" aria-live="polite">Your turn</div>
+            </div>
+
+            <div id="board" class="board" role="grid">
+                <div class="cell" data-index="0" role="button" tabindex="0"></div>
+                <div class="cell" data-index="1" role="button" tabindex="0"></div>
+                <div class="cell" data-index="2" role="button" tabindex="0"></div>
+                <div class="cell" data-index="3" role="button" tabindex="0"></div>
+                <div class="cell" data-index="4" role="button" tabindex="0"></div>
+                <div class="cell" data-index="5" role="button" tabindex="0"></div>
+                <div class="cell" data-index="6" role="button" tabindex="0"></div>
+                <div class="cell" data-index="7" role="button" tabindex="0"></div>
+                <div class="cell" data-index="8" role="button" tabindex="0"></div>
+            </div>
+
+            <div id="scores-overlay" class="scores-overlay hidden"></div>
+
+            <div id="game-status" class="game-status hidden" aria-live="assertive">
+                <div class="status-message"></div>
+                <button id="btn-rematch" class="btn btn-rematch">Play Again</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="main.js"></script>
 </body>
 </html>

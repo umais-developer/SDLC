@@ -1,8 +1,8 @@
-# Epics & Stories: Snake with Replay System
+# Epics & Stories: B3 Tic-Tac-Toe with Unbeatable AI
 
-**Status:** Draft  
-**Author:** SDLC Pipeline  
-**Date:** May 6, 2026  
+**Status:** Final  
+**Author:** Product & Engineering Team  
+**Date:** 2026-05-06  
 **Version:** 1.0  
 **Related PRD:** [prd_final.md](prd_final.md)  
 **Related Architecture:** [architecture_final.md](architecture_final.md)  
@@ -12,570 +12,505 @@
 
 ## Summary
 
-The Snake with Replay System is implemented across five major epics that deliver a complete arcade game experience with replay functionality. **Epic 1 (Core Gameplay)** provides the live snake game with all standard mechanics. **Epic 2 (Input & Safety)** ensures responsive, reversal-proof keyboard input. **Epic 3 (State Recording)** captures every frame for deterministic replay. **Epic 4 (Replay Playback)** enables viewing and controlling recorded games at variable speeds. **Epic 5 (Ghost Snake & Simultaneous Play)** allows users to compare live play against prior attempts with visual distinction and collision isolation. All epics are P0 (critical path); all stories are independently testable.
+The Tic-Tac-Toe application is organized into seven epics covering core game mechanics, AI implementations, and UI/UX. Each epic maps to a functional area (mode selection, game rules, AI logic, visualization, state management, and responsive design). Stories are organized from foundation (mode selection, basic UI) through core gameplay (PvP, AI modes) to advanced features (minimax visualization). All stories are independently deliverable and testable against acceptance criteria traceable to PRD functional requirements, architecture constraints, and UX flows.
 
 ---
 
-## Epic 1: Core Snake Gameplay
+## Epic 1: Mode Selection & Game Initialization
 
-**Goal:** Deliver a fully playable Snake game with score tracking, snake growth, speed progression, collision detection, and food mechanics.  
-**Priority:** P0  
-**Estimated Size:** L
-
-### Stories
-
-#### Story 1.1 — Initialize Game Grid & Spawn Snake
-
-**As a** player, **I want** the game to initialize with a snake at the center of a 20×20 grid **so that** I can immediately start playing when the app loads.
-
-**Acceptance Criteria:**
-- [ ] Game grid displays as a 20×20 cell grid on page load
-- [ ] Snake appears at center position (approximately 10, 10)
-- [ ] Snake initial length is 3 segments (head + 2 body segments)
-- [ ] First food item is randomly placed on an empty cell (not on snake body)
-- [ ] Game loop begins automatically; no user action required to start
-- [ ] Grid background is clearly visible; snake and food are visually distinct
-
-**Size:** S  
-**Notes:** This story establishes the baseline rendering and initialization; does not include movement yet (see Story 1.2).
-
----
-
-#### Story 1.2 — Move Snake in Response to Directional Input
-
-**As a** player, **I want** the snake to move in the direction indicated by my arrow key press **so that** I can navigate and control the game.
-
-**Acceptance Criteria:**
-- [ ] Pressing ↑ moves snake up by one cell on the next game tick
-- [ ] Pressing ↓ moves snake down by one cell on the next game tick
-- [ ] Pressing ← moves snake left by one cell on the next game tick
-- [ ] Pressing → moves snake right by one cell on the next game tick
-- [ ] Snake head moves; body segments follow (classic Snake behavior)
-- [ ] Game loop runs at a consistent tick rate (e.g., 10 ticks per second initially)
-- [ ] Movement is smooth and responsive; no lag between input and visible motion
-
-**Size:** S  
-**Notes:** See Story 2.1 for directional reversal prevention. This story focuses on basic directional movement.
-
----
-
-#### Story 1.3 — Detect Wall Collisions & End Game
-
-**As a** player, **I want** the game to end when my snake hits the grid boundary **so that** I understand when I've failed and can start over.
-
-**Acceptance Criteria:**
-- [ ] Game detects collision when snake head reaches or exceeds grid boundaries (x < 0, x >= 20, y < 0, y >= 20)
-- [ ] Game ends immediately upon wall collision; snake ceases movement
-- [ ] Game Over state is displayed to user (e.g., modal, end screen)
-- [ ] Final score is shown on end screen
-- [ ] User can choose to play again or view replays after game over
-- [ ] Collision detection works on all four walls (top, bottom, left, right)
-
-**Size:** S  
-**Notes:** Collision logic is isolated per Story 1.4 (self-collision) and Story 1.3 (wall collision). Both must be tested independently.
-
----
-
-#### Story 1.4 — Detect Self-Collision & End Game
-
-**As a** player, **I want** the game to end when my snake's head touches its own body **so that** I understand when I've failed through poor control.
-
-**Acceptance Criteria:**
-- [ ] Game detects collision when snake head position equals any body segment position
-- [ ] Collision only triggers after the snake has grown to at least 4 segments (no instant self-collision at start)
-- [ ] Game ends immediately upon self-collision
-- [ ] Tail is safe to occupy until the snake moves (no collision with tail at its current position immediately after movement)
-- [ ] Final score is shown; user can replay or try again
-
-**Size:** S  
-**Notes:** Tail safety is critical: the new head position must be checked only against body segments excluding the tail's current frame (before it moves).
-
----
-
-#### Story 1.5 — Eat Food & Grow Snake
-
-**As a** player, **I want** the snake to grow by one segment when it eats food **so that** I can see my progress and increase my score.
-
-**Acceptance Criteria:**
-- [ ] When snake head moves to the same cell as food, food is consumed
-- [ ] Snake grows by one segment; new segment is added at the tail end (extends snake body)
-- [ ] Score increases by 1 point for each food consumed
-- [ ] New food immediately spawns at a random empty cell on the grid
-- [ ] Food never spawns on the snake body (live snake only; ghost snakes do not affect food spawn)
-- [ ] Visual feedback: food disappears, snake body extends, score updates on screen
-
-**Size:** M  
-**Notes:** Food spawn logic must guarantee an empty cell. Consider implementing a retry or cell-finding algorithm.
-
----
-
-#### Story 1.6 — Increase Speed as Snake Grows
-
-**As a** player, **I want** the snake to move faster as it grows **so that** the game becomes more challenging and engaging.
-
-**Acceptance Criteria:**
-- [ ] Each time snake eats food and grows, movement speed increases
-- [ ] Speed progression is smooth and measurable (e.g., 10% increase per segment, or fixed tick-rate increase)
-- [ ] Speed increase is visible to player: faster movement is perceptible
-- [ ] Speed progression has a practical upper limit (e.g., max speed at 20 segments or after 50 food items) to prevent unplayable speeds
-- [ ] Speed progression is consistent across all games (same formula applies to all players)
-
-**Size:** M  
-**Notes:** Speed progression formula should be deterministic for replay accuracy. Document formula in code comments.
-
----
-
-#### Story 1.7 — Display Score During Gameplay
-
-**As a** player, **I want** to see my current score displayed at all times during the game **so that** I can track my progress.
-
-**Acceptance Criteria:**
-- [ ] Score is visible on screen during gameplay (e.g., top-left corner, HUD)
-- [ ] Score updates immediately when food is consumed
-- [ ] Score displays as "Score: [number]"
-- [ ] Score is large enough to read comfortably
-- [ ] Score persists in same location when snake moves around grid
-
-**Size:** XS  
-**Notes:** Score is a simple UI element; included with Story 1.5 (Eat Food) but separated here for clarity.
-
----
-
-#### Story 1.8 — Handle Game Over & Show End Screen
-
-**As a** player, **I want** to see a clear end screen with my final score and options to play again or review replays **so that** I know the game has ended and can decide my next action.
-
-**Acceptance Criteria:**
-- [ ] Game Over modal/screen appears when game ends (wall collision or self-collision)
-- [ ] Modal displays: "Game Over" heading, "Final Score: [X]" message, buttons for "Play Again" and "View Replays"
-- [ ] Modal is non-dismissible (cannot click outside to close); user must choose an action
-- [ ] "Play Again" button immediately starts a new game
-- [ ] "View Replays" button opens the replay list
-- [ ] Modal is centered, readable, and accessible
-
-**Size:** S  
-**Notes:** Replay saving happens automatically (see Epic 3); this story focuses on the end-of-game UX flow.
-
----
-
-## Epic 2: Input Handling & Directional Safety
-
-**Goal:** Ensure responsive keyboard input with directional reversal prevention so rapid key presses cannot cause the snake to collide with itself.  
+**Goal:** Players can select one of three game modes and begin a fresh game with an empty board and clear game state.  
 **Priority:** P0  
 **Estimated Size:** M
 
 ### Stories
 
-#### Story 2.1 — Buffer Arrow Key Input
-
-**As a** player, **I want** my arrow key presses to be queued so that rapid key presses are not lost **so that** I can control the snake smoothly even when I press keys quickly.
+#### Story 1.1 — Display Mode Selection Screen
+**As a** casual player, **I want** to see three clearly labeled mode options when the app loads **so that** I can choose how to play.
 
 **Acceptance Criteria:**
-- [ ] Arrow key presses are captured and queued
-- [ ] Queue holds at least 2 directional inputs to prevent loss of input
-- [ ] Each game tick, the next queued direction is applied (if available)
-- [ ] Older queued directions are discarded after being applied
-- [ ] Rapid repeated presses (e.g., mashing the same key) do not overflow the queue; only latest is queued
-- [ ] Input buffering works for all four directions equally
+- [ ] Application displays a main screen on load with no game board initially visible.
+- [ ] Three mode buttons are displayed: "Player vs. Player", "Play Easy AI", "Play Impossible AI".
+- [ ] Buttons are equally prominent, centered, and clearly labeled with text (no icons alone).
+- [ ] Each button is at least 44×44 px and has high contrast (4.5:1 minimum) for accessibility.
+- [ ] Keyboard navigation works: Tab key cycles through buttons; Enter key selects the focused button.
+- [ ] Focus indicator is visible (at least 2px border/outline) on all buttons.
+- [ ] Page title reads "Tic-Tac-Toe with AI" or similar in browser tab.
 
 **Size:** S  
-**Notes:** Buffering prevents input loss during fast gameplay. Reversal prevention logic (Story 2.2) checks the buffered direction before applying.
+**Notes:** No styling complexity; buttons are functional and accessible. This story establishes the UI entry point.
 
 ---
 
-#### Story 2.2 — Prevent Directional Reversal
-
-**As a** player, **I want** the snake to never reverse direction in a single move when I press two opposing keys in rapid succession **so that** I cannot accidentally cause the snake to collide with itself.
-
-**Acceptance Criteria:**
-- [ ] If snake is moving RIGHT, pressing LEFT is ignored (not queued)
-- [ ] If snake is moving LEFT, pressing RIGHT is ignored
-- [ ] If snake is moving UP, pressing DOWN is ignored
-- [ ] If snake is moving DOWN, pressing UP is ignored
-- [ ] Non-reversing key combinations (e.g., RIGHT then UP) are queued normally
-- [ ] Test case: pressing RIGHT then LEFT in rapid succession results in snake moving RIGHT on next tick, then UP on following tick (not LEFT on next tick)
-- [ ] Directional reversal prevention applies during live gameplay but NOT during replay (replay is deterministic)
-
-**Size:** M  
-**Notes:** Reversal check happens at the InputManager level before direction reaches GameEngine. Must test with sub-millisecond key timing.
-
----
-
-#### Story 2.3 — Capture & Handle Arrow Key Events
-
-**As a** player, **I want** arrow keys to control my snake and prevent browser default scroll behavior **so that** the game responds to my input and does not interfere with page scrolling.
+#### Story 1.2 — Initialize Game Board and Game State
+**As a** player, **I want** the board to initialize to an empty state after I select a mode **so that** I can start playing immediately.
 
 **Acceptance Criteria:**
-- [ ] Pressing arrow keys triggers game movement (does not scroll page)
-- [ ] Arrow key events are captured with `keydown` or `keyup` listeners (to be determined during implementation)
-- [ ] Browser default scroll behavior is prevented for arrow keys
-- [ ] All four arrow keys (↑↓←→) are captured
-- [ ] Non-arrow keys do not affect the game (no accidental movement from other keypresses)
-- [ ] Input listeners are attached on app load and remain active during game
-- [ ] Input listeners are detached (or ignored) when game ends or app unloads
+- [ ] After clicking a mode button, the mode selector screen disappears.
+- [ ] A 3×3 empty game board is displayed (9 cells arranged in 3 rows × 3 columns).
+- [ ] Each cell is labeled or indexed (e.g., positions 0–8 or row/column labels) for reference.
+- [ ] Game state is initialized: board is empty, current player is set (human for AI modes; Player 1 for PvP).
+- [ ] No mode button is clickable while a game is active (mode selector is hidden).
+- [ ] A turn indicator displays whose turn it is (e.g., "Your turn", "Player 1's turn").
+- [ ] Rematch button is hidden initially (only shown after game ends).
 
 **Size:** S  
-**Notes:** Use `event.preventDefault()` to block default scroll behavior. Consider WASD keys as a future stretch goal (not in MVP).
+**Notes:** Covers state initialization for all three modes; mode-specific logic (PvP vs. AI) is deferred to later stories.
 
 ---
 
-## Epic 3: Game State Recording & Serialization
+## Epic 2: Player vs. Player Mode
 
-**Goal:** Record every game state frame-by-frame so that replays can be played back with 100% accuracy.  
+**Goal:** Two human players can alternate turns on a shared device and play a complete game of Tic-Tac-Toe.  
 **Priority:** P0  
 **Estimated Size:** M
 
 ### Stories
 
-#### Story 3.1 — Record Game State Each Frame
-
-**As a** developer, **I want** every game state to be recorded each tick **so that** I can replay the game deterministically.
+#### Story 2.1 — Enable Cell Clicks and Mark Placement (Human Move)
+**As a** player, **I want** to click an empty cell to place my mark **so that** I can make a move.
 
 **Acceptance Criteria:**
-- [ ] Each frame's state (snake position, food position, score, speed, direction) is captured and stored
-- [ ] State is captured after collision detection but before rendering
-- [ ] Recording begins at game start and continues until game end (no user action required)
-- [ ] States are stored in a sequential array or list in memory
-- [ ] State snapshots are compact (do not store redundant data)
-- [ ] Recording does not significantly impact game performance (recording overhead < 5% frame time)
+- [ ] Each empty cell is clickable (hover state shows affordance, e.g., cursor: pointer).
+- [ ] Clicking an empty cell places the current player's mark (X for Player 1, O for Player 2 in PvP).
+- [ ] Visual feedback is provided on click (cell highlights or briefly inverts color).
+- [ ] Clicking an already-filled cell has no effect (click is ignored).
+- [ ] After a valid move, the turn indicator updates to the other player's name (e.g., "Player 1's turn" → "Player 2's turn").
+- [ ] Board state in memory is updated correctly to reflect the move.
+- [ ] Keyboard accessibility: All cells are reachable via Tab key; Enter or Space key places the mark on a focused cell.
 
 **Size:** M  
-**Notes:** State recording is automatic and transparent to player. Recording is not pauseable (even if pause feature added, state still recorded).
+**Notes:** Foundation for all gameplay modes. Handles mark placement logic independent of mode-specific AI logic.
 
 ---
 
-#### Story 3.2 — Serialize Recorded Game for Storage
-
-**As a** developer, **I want** completed games to be serializable into a compact format **so that** they can be stored and replayed later.
-
-**Acceptance Criteria:**
-- [ ] When game ends, all recorded states are serialized into a ReplayData object
-- [ ] ReplayData includes: game ID, timestamp, final score, total frames, grid dimensions, frame history
-- [ ] Frame history is a compact array of state snapshots (no redundant nesting)
-- [ ] Serialization is synchronous; does not block the UI
-- [ ] Serialized data can be deserialized without loss of information
-- [ ] Serialization format is JSON-serializable (for future localStorage or server storage)
-
-**Size:** M  
-**Notes:** Serialization format should be documented for future compatibility (e.g., version field for format upgrades).
-
----
-
-#### Story 3.3 — Store Completed Replays in Session Memory
-
-**As a** player, **I want** my completed games to be saved so that I can replay them later in the same session **so that** I can review my performance.
+#### Story 2.2 — Track Turn Alternation in PvP Mode
+**As a** player in a Player vs. Player game, **I want** the game to alternate turns correctly between players **so that** each player takes exactly one turn per cycle.
 
 **Acceptance Criteria:**
-- [ ] When game ends, the completed replay is automatically added to a replay list (no user confirmation needed)
-- [ ] Replay list persists in memory for the duration of the session (or until 50 replays; oldest purged on overflow)
-- [ ] Each replay in the list is identifiable by ID, score, and timestamp
-- [ ] Replays are stored in order (newest first or oldest first; document choice)
-- [ ] Replay list is accessible from the replay list UI (Story 4.1)
-- [ ] Replays are cleared when the page is reloaded (in-memory storage; not persistent)
+- [ ] After Player 1 makes a move, Player 2 is the current player (turn indicator updates).
+- [ ] After Player 2 makes a move, Player 1 becomes the current player.
+- [ ] Turn indicator is always visible and correct.
+- [ ] After 9 moves (or game ends), turn tracking stops (no further moves allowed).
+- [ ] On rematch, turn resets to Player 1.
 
 **Size:** S  
-**Notes:** No localStorage or backend storage in MVP. In-memory only. Overflow limit (50) prevents memory bloat.
+**Notes:** Straightforward turn logic; no AI complexity. Testable in pure PvP flow.
 
 ---
 
-## Epic 4: Replay Playback & Speed Control
+## Epic 3: Easy AI Mode
 
-**Goal:** Enable users to view recorded games at variable speeds with full visual accuracy.  
+**Goal:** The AI plays random legal moves, allowing the human player to win some games.  
+**Priority:** P0  
+**Estimated Size:** M
+
+### Stories
+
+#### Story 3.1 — Implement Random Legal Move Selection
+**As a** casual player, **I want** to play against an AI that makes random moves **so that** I can sometimes win and have fun.
+
+**Acceptance Criteria:**
+- [ ] When it is the AI's turn, the AI selects from all empty cells uniformly at random.
+- [ ] The AI move is applied to the board within 500ms–1s (perceived as a thinking delay, not instant).
+- [ ] Each cell has an equal probability of being selected (random uniform distribution).
+- [ ] The AI never selects an already-filled cell.
+- [ ] After the AI move, the turn indicator updates to "Your turn".
+- [ ] Board state is updated correctly after AI move.
+- [ ] Unit tests confirm random selection across 1000+ moves produces expected distribution (each cell selected ~111 times).
+
+**Size:** M  
+**Notes:** Straightforward random selection. Detached from minimax logic (deferred to Epic 4).
+
+---
+
+#### Story 3.2 — Trigger AI Move After Human Move in Easy Mode
+**As a** player in Easy AI mode, **I want** the AI to automatically move after I move **so that** gameplay feels natural.
+
+**Acceptance Criteria:**
+- [ ] After a human move is validated (and not terminal), the game state switches to AI turn.
+- [ ] Board is disabled (no cells clickable) during AI thinking phase.
+- [ ] "AI thinking..." message or overlay is displayed.
+- [ ] AI move is executed after thinking delay (500ms–1s).
+- [ ] After AI move, board is re-enabled and turn returns to human player.
+- [ ] If AI move results in win/draw, game terminal flow is triggered (see Epic 6).
+
+**Size:** S  
+**Notes:** Handles AI turn orchestration; deferred to other stories to define what the AI move itself is (random vs. minimax).
+
+---
+
+## Epic 4: Impossible AI Mode & Minimax Algorithm
+
+**Goal:** The AI uses minimax with alpha-beta pruning to play optimally and never lose.  
 **Priority:** P0  
 **Estimated Size:** L
 
 ### Stories
 
-#### Story 4.1 — Display Replay List
-
-**As a** player, **I want** to see a list of my completed games **so that** I can select one to replay.
-
-**Acceptance Criteria:**
-- [ ] Replay list screen displays all available replays from the session
-- [ ] Each replay shows: score, date/time, and "Play" button
-- [ ] List is sorted by most recent first (or oldest first; document choice)
-- [ ] If no replays exist, empty state displays: "No Replays Yet. Play a game to create one!"
-- [ ] Clicking a replay row or its "Play" button loads the replay and shows playback controls
-- [ ] "Back" button returns to home screen
-- [ ] Replay list is accessible from home screen and from game over screen
-
-**Size:** M  
-**Notes:** Replay list is a read-only view; does not modify replays. Delete functionality not in MVP.
-
----
-
-#### Story 4.2 — Load Replay & Prepare Playback
-
-**As a** player, **I want** to select a replay and see playback controls **so that** I can start watching it.
+#### Story 4.1 — Implement Minimax Algorithm
+**As a** algorithm enthusiast, **I want** the AI to use the minimax algorithm **so that** it plays optimally and never loses.
 
 **Acceptance Criteria:**
-- [ ] Clicking "Play" on a replay list item loads the replay into memory
-- [ ] Playback controls appear: Play button, Pause button, Speed selector (0.5×, 1×, 2×, 4×), Back button
-- [ ] Speed selector defaults to 1× (normal speed)
-- [ ] Grid is visible but replay has not yet started (ghost snake not visible until Play is pressed)
-- [ ] All controls are accessible and clickable
-- [ ] Loading a replay does not affect the current live game state (if one is in progress)
-
-**Size:** S  
-**Notes:** Loading prepares the replay in memory but does not start playback. Game grid displays but with no ghost snake yet.
-
----
-
-#### Story 4.3 — Play Replay at Selected Speed
-
-**As a** player, **I want** to play a replay at my chosen speed **so that** I can watch my game at my own pace.
-
-**Acceptance Criteria:**
-- [ ] Clicking "Play" button starts replay playback at selected speed (default 1×)
-- [ ] Ghost snake appears on grid and retraces the original game path
-- [ ] Replay progresses through all recorded frames in sequence
-- [ ] Replay runs at chosen speed multiplier: 0.5× is half-speed, 2× is double-speed, 4× is quadruple-speed
-- [ ] Frame timing is accurate: replay duration ÷ speed multiplier = original game duration ÷ 1
-- [ ] Replay playback is smooth and does not stutter
-- [ ] Score and snake length are visible during replay (showing state progression)
-- [ ] When replay finishes, "Replay Ended" message appears
-- [ ] When replay finishes, "Restart" and "Back to Replays" buttons appear
+- [ ] Minimax function is implemented with the signature: `minimax(board, depth, isMaximizing, alpha, beta) → { score, move }`.
+- [ ] Terminal state detection correctly identifies: AI win (+1), human win (−1), draw (0), ongoing (null).
+- [ ] Base case: terminal states return immediate score without further recursion.
+- [ ] Recursive case: For each legal move, the function applies the move, recurses, and undoes the move.
+- [ ] Maximizing player (AI) selects the move with the highest score.
+- [ ] Minimizing player (human) selects the move with the lowest score (via recursion, not direct call).
+- [ ] Alpha-beta pruning is implemented: if `beta <= alpha`, the branch is pruned.
+- [ ] Scores returned are always correct for known end-game positions (e.g., immediate three-in-a-row → +1).
+- [ ] Unit tests validate minimax scores for a suite of board states (at least 50 test cases covering win/draw/ongoing scenarios).
+- [ ] Minimax move completes within 2 seconds for any 3×3 board state (performance target met).
 
 **Size:** L  
-**Notes:** Speed change does not re-buffer frames; it adjusts the playback rate in the replay game loop.
+**Notes:** Core algorithm. Complexity is algorithmic, not UI. Requires comprehensive unit tests. Alpha-beta pruning is essential for performance.
 
 ---
 
-#### Story 4.4 — Pause & Resume Replay
-
-**As a** player, **I want** to pause and resume a replay **so that** I can study specific moments without distraction.
-
-**Acceptance Criteria:**
-- [ ] Clicking "Pause" button during replay playback freezes the ghost snake at the current frame
-- [ ] Pause button changes to "Resume" button
-- [ ] While paused, ghost snake position does not change; score does not increment (frozen in time)
-- [ ] Clicking "Resume" resumes playback from where it was paused
-- [ ] Pausing does not lose progress; resuming continues from the paused frame
-- [ ] Player can pause and resume multiple times in one replay
-
-**Size:** S  
-**Notes:** Pausing is independent of speed control; you can pause at any speed then resume at a different speed.
-
----
-
-#### Story 4.5 — Change Replay Speed During Playback
-
-**As a** player, **I want** to adjust the replay speed while it's playing **so that** I can slow down to watch closely or speed up to save time.
+#### Story 4.2 — Select and Execute Impossible AI Move
+**As a** competitive player, **I want** the Impossible AI to choose the move that minimax evaluates as best **so that** it never loses.
 
 **Acceptance Criteria:**
-- [ ] Clicking speed buttons (0.5×, 1×, 2×, 4×) during replay changes the playback speed instantly
-- [ ] Speed change is smooth; no frame skipping or stuttering
-- [ ] Speed change does not reset the replay; playback continues from the current frame
-- [ ] Current speed is visually indicated (e.g., button highlight or label update)
-- [ ] Speed can be changed multiple times during one replay
-- [ ] Speed can be changed while paused (speeds list updates but playback remains paused)
+- [ ] When it is the Impossible AI's turn, minimax is called on the current board state.
+- [ ] The move with the highest minimax score is selected.
+- [ ] If multiple moves have the same highest score, one is selected (deterministically, e.g., smallest cell index or random among ties).
+- [ ] The selected move is applied to the board.
+- [ ] The move is applied within 2 seconds of the human's prior move.
+- [ ] Over exhaustive play testing (all possible games), the AI wins or draws in 100% of games (never loses).
+- [ ] Integration test: Play 100+ random games against Impossible AI; verify AI never loses (win rate: 50%+, draw rate: 50%−, loss rate: 0%).
 
 **Size:** M  
-**Notes:** Speed adjustment is a multiplier on the frame interval; does not require re-buffering.
+**Notes:** Depends on Story 4.1 (minimax implementation). Requires integration testing and exhaustive game tree validation.
 
 ---
 
-## Epic 5: Ghost Snake & Simultaneous Live + Replay Gameplay
+## Epic 5: Move Score Visualization
 
-**Goal:** Allow users to play a new live game while watching a replay, with ghost snake visually distinct and collision-isolated from the live snake.  
+**Goal:** Players can see minimax evaluation scores for each possible move in Impossible AI mode.  
+**Priority:** P0  
+**Estimated Size:** M
+
+### Stories
+
+#### Story 5.1 — Compute Minimax Scores for All Legal Moves
+**As a** AI learner, **I want** the game to compute minimax scores for every possible move **so that** I can see the evaluation.
+
+**Acceptance Criteria:**
+- [ ] Before the Impossible AI makes a move, minimax is run on the board to evaluate all legal moves.
+- [ ] Minimax returns a score for each empty cell: +1 (AI win), 0 (draw), −1 (human win).
+- [ ] Scores are computed without applying the final move yet (display-only computation).
+- [ ] Scores are stored in a data structure (e.g., `Map<cellIndex, score>`) for rendering.
+- [ ] Score computation completes before UI overlay is displayed (within 2 seconds).
+- [ ] Filled cells are not included in score computation (only empty cells have scores).
+- [ ] Unit tests verify scores match expected minimax values for known board states (e.g., one move away from win = +1).
+
+**Size:** M  
+**Notes:** Builds on Story 4.1; focuses on data collection, not rendering.
+
+---
+
+#### Story 5.2 — Display Scores on Board with Color & Symbol
+**As a** AI learner, **I want** to see the score for each move visually on the board **so that** I can understand the AI's reasoning.
+
+**Acceptance Criteria:**
+- [ ] Before the AI moves, the board displays a score overlay on each empty cell.
+- [ ] Scores are shown as symbols + colors:
+  - **+1 = Green + "+" symbol** (AI wins from this move)
+  - **0 = Yellow + "0" symbol** (Draw with optimal play)
+  - **−1 = Red + "−" symbol** (Human wins from this move; AI avoids)
+- [ ] Color choices are accessible to color-blind users (deuteranopia/protanopia safe; tested with simulator).
+- [ ] Scores are overlaid on cells but do not obscure cell positions or make UI unreadable.
+- [ ] Filled cells (X or O) do not display scores (scores only on empty cells).
+- [ ] Score display remains for 2 seconds with label "AI is thinking..." above the board.
+- [ ] After 2 seconds, score overlay clears and best move is highlighted (briefly) before AI places mark.
+- [ ] CSS is responsive: scores display correctly on desktop, tablet, and mobile screens (minimum 44×44 px cells).
+
+**Size:** M  
+**Notes:** Rendering and UX logic; requires color contrast validation and responsive testing.
+
+---
+
+#### Story 5.3 — Clear Score Display After AI Move
+**As a** player, **I want** the score display to disappear after the AI moves **so that** the board is clean for my next turn.
+
+**Acceptance Criteria:**
+- [ ] After the 2-second score display window closes, the score overlay is removed.
+- [ ] The board shows only X's and O's (no scores, no labels).
+- [ ] Turn indicator updates to "Your turn".
+- [ ] Board is re-enabled for clicks.
+- [ ] No score remnants or artifacts remain on the board.
+
+**Size:** S  
+**Notes:** Simple state transition; depends on Stories 5.1 and 5.2.
+
+---
+
+## Epic 6: Game State & Terminal Detection
+
+**Goal:** The game correctly detects win, draw, and ongoing states; prevents moves after terminal states.  
 **Priority:** P0  
 **Estimated Size:** L
 
 ### Stories
 
-#### Story 5.1 — Render Ghost Snake Visually Distinct from Live Snake
-
-**As a** player, **I want** the ghost snake (replay) to be clearly distinguishable from my live snake **so that** I understand which is which during simultaneous gameplay.
+#### Story 6.1 — Detect Win State (Three-in-a-Row)
+**As a** player, **I want** the game to recognize when three marks are in a row **so that** the game ends and the winner is announced.
 
 **Acceptance Criteria:**
-- [ ] Ghost snake is rendered in a different color or style than the live snake (e.g., light gray, dashed outline, or semi-transparent)
-- [ ] Visual distinction is based on at least two attributes (color + opacity, or color + pattern), not color alone (accessibility)
-- [ ] Ghost snake is readable (sufficient contrast against grid background)
-- [ ] Both snakes are visible simultaneously on the same grid without overlap confusion
-- [ ] Ghost snake opacity is approximately 0.5 (50% transparent) or similar
-- [ ] Live snake is fully opaque (alpha 1.0)
+- [ ] The game checks for three-in-a-row after every move (human or AI).
+- [ ] Win is detected in all directions: horizontal (rows 0, 1, 2), vertical (columns 0, 1, 2), diagonal (main: 0,4,8; anti: 2,4,6).
+- [ ] If three X's are in a row, human wins.
+- [ ] If three O's are in a row, AI wins.
+- [ ] Win is detected as soon as the winning move is placed (same turn, not delayed).
+- [ ] Unit tests cover all 8 winning lines + all winning move positions (at least 72 test cases).
+- [ ] Game state is updated to "terminal" (e.g., `gameStatus = 'human_win'` or `gameStatus = 'ai_win'`).
 
 **Size:** M  
-**Notes:** Two-attribute distinction ensures screen-reader users and color-blind users can distinguish the snakes.
+**Notes:** Core logic; deterministic. Exhaustive unit test coverage required.
 
 ---
 
-#### Story 5.2 — Start New Live Game While Replay is Playing
-
-**As a** player, **I want** to start a new live game while watching a replay **so that** I can practice alongside the ghost snake.
+#### Story 6.2 — Detect Draw State (Board Full)
+**As a** player, **I want** the game to recognize when the board is full with no winner **so that** the game ends in a draw.
 
 **Acceptance Criteria:**
-- [ ] During replay playback, user can click "New Game" button (or equivalent)
-- [ ] New live game initializes on the same grid as the running replay
-- [ ] Both the live game and replay continue running simultaneously
-- [ ] Live snake and ghost snake are both visible
-- [ ] User can control live snake with arrow keys; ghost snake is unaffected
-- [ ] Live game score, food, and collision detection work independently of the replay
-- [ ] Replay speed is independent of live game speed
+- [ ] The game checks for a draw after every move.
+- [ ] A draw is detected when: all 9 cells are filled AND no player has three-in-a-row.
+- [ ] Draw is detected on the 9th move (when the last empty cell is filled).
+- [ ] Game state is updated to "terminal" (e.g., `gameStatus = 'draw'`).
+- [ ] Unit tests cover all full-board scenarios: standard draws, near-wins, various move orders (at least 50 test cases).
 
 **Size:** M  
-**Notes:** This requires two separate game loops (live + replay) running concurrently. Rendering merges both onto one canvas.
+**Notes:** Straightforward logic; depends on Story 6.1 (win detection already implemented).
 
 ---
 
-#### Story 5.3 — Isolate Live & Ghost Collision Logic
-
-**As a** developer, **I want** ghost snake collisions to not affect live game outcomes **so that** the ghost is purely a visual overlay.
+#### Story 6.3 — Prevent Moves After Game Terminal
+**As a** player, **I want** the board to be locked after the game ends **so that** I cannot make invalid moves.
 
 **Acceptance Criteria:**
-- [ ] Live snake collision detection ignores ghost snake entirely (ghost is not a valid collision target)
-- [ ] Ghost snake collision detection does not run during simultaneous play (read-only overlay)
-- [ ] If live snake head occupies same cell as ghost snake, no collision occurs; live game continues
-- [ ] If live snake body overlaps ghost snake, no collision occurs
-- [ ] If ghost snake food spawn coincides with ghost body, no conflict (food spawns only on empty cells relative to live snake)
-- [ ] Test: live snake can pass through ghost snake without triggering game over
+- [ ] Once game state is "terminal" (win or draw), all cells become unclickable.
+- [ ] Board is visually disabled (e.g., opacity reduced, cursor: not-allowed, or overlay).
+- [ ] Any click on the board after terminal state is ignored (no side effects).
+- [ ] Turn indicator displays the outcome (e.g., "You win!", "AI wins!", "Draw!").
+- [ ] Rematch button is enabled and visible.
+- [ ] Manual test: Click cells after win/draw → no effect.
 
-**Size:** M  
-**Notes:** Collision checks for live snake must include a condition: `if (!isGhost)` before applying collision logic.
+**Size:** S  
+**Notes:** Prevents user error; UI + state logic combined.
 
 ---
 
-#### Story 5.4 — Handle Simultaneous Play End States
-
-**As a** player, **I want** to understand when each snake ends so I can proceed to the next action **so that** I know when my live game or the replay is complete.
+#### Story 6.4 — Display Game Outcome Message
+**As a** player, **I want** to see a clear message about the game outcome **so that** I know who won or if it was a draw.
 
 **Acceptance Criteria:**
-- [ ] If live snake collides first, live game ends; replay continues (if still running)
-- [ ] If replay ends first, replay stops; live game continues (if still running)
-- [ ] When live game ends, end screen appears with live game score (only the live score, not replay score)
-- [ ] When replay ends while live game is active, ghost snake disappears; live game continues uninterrupted
-- [ ] Messages appear to indicate which snake ended (e.g., "Replay ended", "Game Over")
-- [ ] User can start another live game, view replays, or exit
+- [ ] Upon terminal state, a message is displayed:
+  - Win: "You win! 🎉" (human) or "AI wins! Well played." (AI)
+  - Draw: "Draw! Perfect play."
+- [ ] Message is large, centered, high-contrast (4.5:1 minimum) and positioned prominently on the screen.
+- [ ] Message appears within 500ms of the terminal move.
+- [ ] Emoji (optional) is included for celebratory tone but does not replace text (accessibility).
+- [ ] Message remains on screen until rematch or page navigation.
+- [ ] Screen reader users hear the message via ARIA live region (`aria-live="polite"`).
 
-**Size:** M  
-**Notes:** End screen should show live game score only, not replay score (to avoid confusion).
+**Size:** S  
+**Notes:** UX messaging; depends on terminal state detection (Stories 6.1 & 6.2).
 
 ---
 
-#### Story 5.5 — Ensure Deterministic Replay Accuracy During Simultaneous Play
+## Epic 7: Rematch & Session Reset
 
-**As a** developer, **I want** the ghost snake to replay identically whether playing solo or alongside a live game **so that** replay integrity is maintained.
+**Goal:** Players can quickly start a new game after one ends, returning to mode selection or the same mode.  
+**Priority:** P1  
+**Estimated Size:** S
+
+### Stories
+
+#### Story 7.1 — Display Rematch Button After Game Ends
+**As a** player, **I want** to see a "Play Again" button after the game ends **so that** I can start a new game quickly.
 
 **Acceptance Criteria:**
-- [ ] Ghost snake playback is deterministic: replaying the same game always produces the same sequence of frames
-- [ ] Simultaneous live game does not affect ghost snake state or timing
-- [ ] Ghost snake uses recorded frame history; does not regenerate or recalculate
-- [ ] Replay frame advancement is based on a separate replay timer (independent of live game tick)
-- [ ] Random food spawn for live game does not affect ghost snake food positions (ghost uses recorded food from original game)
-- [ ] Test: replay game A solo at 1× speed, then replay game A alongside live game B; ghost snake moves identically in both scenarios
+- [ ] When the game reaches a terminal state (win or draw), a "Play Again" button is displayed.
+- [ ] Button is prominently positioned below the board or in the message area.
+- [ ] Button is at least 44×44 px and has high contrast (4.5:1 minimum).
+- [ ] Button is accessible via Tab key and activated with Enter or Space.
+- [ ] Button text is clear: "Play Again" or "New Game".
+- [ ] Button is disabled until game is terminal (not shown during active gameplay).
 
-**Size:** L  
-**Notes:** This is critical for correctness. Requires careful separation of state and timing between live and replay loops.
+**Size:** S  
+**Notes:** UI element; depends on terminal state detection (Epic 6).
+
+---
+
+#### Story 7.2 — Reset Board and Return to Mode Selection on Rematch
+**As a** player, **I want** clicking "Play Again" to reset the board and show the mode selector **so that** I can choose a mode again.
+
+**Acceptance Criteria:**
+- [ ] Clicking the rematch button clears the game board (all cells empty).
+- [ ] Game state is reset (all flags cleared, counters reset).
+- [ ] Mode selector screen is displayed again (three mode buttons visible).
+- [ ] Outcome message disappears.
+- [ ] Turn indicator and rematch button disappear.
+- [ ] User can select a new mode (same or different from the previous game).
+- [ ] Click on rematch button does not trigger multiple resets (debounced or one-time).
+
+**Size:** M  
+**Notes:** State reset logic; orchestrates transition between game-over state and mode selection.
+
+---
+
+## Epic 8: UI/UX & Responsive Design
+
+**Goal:** The game renders correctly on desktop, tablet, and mobile; provides clear visual feedback and meets accessibility standards.  
+**Priority:** P1  
+**Estimated Size:** M
+
+### Stories
+
+#### Story 8.1 — Implement Responsive Board Layout
+**As a** player on mobile or tablet, **I want** the board to scale and remain playable on my screen **so that** I can play on any device.
+
+**Acceptance Criteria:**
+- [ ] Board adapts to screen sizes: desktop (1920×1080), tablet (768×1024), mobile (375×667, 480×800).
+- [ ] Each cell remains at least 44×44 px (touch target minimum).
+- [ ] Board is centered on the screen.
+- [ ] Mode selector buttons also scale: readable on all screen sizes, minimum 44×44 px per button.
+- [ ] Text (turn indicator, outcome message) remains readable at all sizes (no overflow, responsive font sizes).
+- [ ] Media queries are used: CSS breakpoints at 480px, 768px, 1024px.
+- [ ] Manual test on device: iOS Safari, Android Chrome, desktop Chrome/Firefox/Safari.
+
+**Size:** M  
+**Notes:** CSS and layout work. Requires cross-device testing.
+
+---
+
+#### Story 8.2 — Provide Visual Feedback on Cell Interaction
+**As a** player, **I want** to see visual feedback when hovering or clicking a cell **so that** I feel responsive UI.
+
+**Acceptance Criteria:**
+- [ ] Desktop: Hovering over an empty cell shows visual affordance (e.g., background color change, subtle shadow, cursor: pointer).
+- [ ] Mobile/Touch: Clicking a cell triggers a brief highlight (100–200ms) before mark is placed.
+- [ ] Hover state is removed when mouse leaves the cell.
+- [ ] Filled cells do not show hover effects (appear static).
+- [ ] After a move, the cell briefly highlights (color invert or pulse) as feedback.
+- [ ] Color contrast is maintained in all states (hover, active, filled).
+
+**Size:** S  
+**Notes:** CSS animations and state changes; enhances UX responsiveness.
+
+---
+
+#### Story 8.3 — Implement Accessible Keyboard Navigation
+**As a** keyboard-only user, **I want** to navigate and play the game using only the keyboard **so that** I can use the app independently.
+
+**Acceptance Criteria:**
+- [ ] Tab key cycles through all interactive elements: mode buttons, board cells, rematch button.
+- [ ] Shift+Tab cycles backwards.
+- [ ] Focus indicator is visible on all focusable elements (at least 2px border, high contrast).
+- [ ] Enter and Space keys activate focused buttons and cells.
+- [ ] Arrow keys can optionally be used to navigate cells (up/down/left/right from current cell).
+- [ ] Focus management: after a move, focus remains accessible (does not jump unexpectedly).
+- [ ] Manual test: Play full game using keyboard only (no mouse).
+
+**Size:** M  
+**Notes:** Accessibility-critical. Requires keyboard testing with actual screen reader if possible.
+
+---
+
+#### Story 8.4 — Apply High-Contrast Color Scheme
+**As a** user with low vision, **I want** the colors to have sufficient contrast **so that** I can read text and distinguish game elements.
+
+**Acceptance Criteria:**
+- [ ] All text has a contrast ratio of at least 4.5:1 (normal text) or 3:1 (large text, 18pt+).
+- [ ] Color palettes used: backgrounds, text, buttons, score indicators (green/yellow/red).
+- [ ] Score colors are distinguishable by non-color-blind users and color-blind users (tested with deuteranopia/protanopia simulators).
+- [ ] No information is conveyed by color alone (e.g., scores use symbols + color).
+- [ ] Board cells (X, O, empty) are visually distinct (shape or high contrast).
+- [ ] WCAG color contrast checker confirms compliance (WebAIM tool or similar).
+
+**Size:** M  
+**Notes:** Color & contrast validation; requires testing with accessibility tools and simulators.
+
+---
+
+#### Story 8.5 — Optimize Performance for Smooth Gameplay
+**As a** player, **I want** the game to respond instantly to my clicks **so that** gameplay feels fluid.
+
+**Acceptance Criteria:**
+- [ ] Cell click-to-visual-feedback latency is ≤ 100ms (measured via browser DevTools).
+- [ ] AI move completes within 2 seconds (performance target from NFR-01).
+- [ ] No lag or stuttering during board rendering or state updates.
+- [ ] No console errors or memory leaks over 10+ consecutive games (Chrome DevTools Memory profiler).
+- [ ] Minimax recursion does not block the UI (optional: use Web Workers if needed, deferred if not necessary).
+
+**Size:** S  
+**Notes:** Performance validation; use browser DevTools and profiling.
 
 ---
 
 ## Technical Tasks
 
-Non-user-facing work required to support the stories above. These are not user stories.
-
-| ID | Task | Related Stories | Notes |
-|----|------|-----------------|-------|
-| T-01 | Set up HTML5 Canvas rendering with 2D context | 1.1, 5.1 | Initialize canvas element; create drawing context |
-| T-02 | Implement fixed-tick game loop | 1.2, 3.1 | Game loop runs at fixed rate (e.g., 10 ticks/sec); independent of render frame rate |
-| T-03 | Create GameEngine core class | 1.2–1.8, 2.2 | Encapsulates game logic; manages state, collision, movement |
-| T-04 | Create InputManager class | 2.1–2.3 | Handles keyboard events; buffers input; checks for reversals |
-| T-05 | Create StateManager class | 3.1–3.3 | Manages current game state; serialization; storage |
-| T-06 | Create ReplayRecorder class | 3.1–3.3 | Records frames; finalizes on game end |
-| T-07 | Create ReplayPlayer class | 4.1–4.5, 5.5 | Loads replays; manages playback timing and speed |
-| T-08 | Create Renderer class | 1.1–1.8, 5.1 | Draws grid, snake (live + ghost), food, score, UI elements |
-| T-09 | Create GameController orchestration layer | All stories | Coordinates all components; manages game lifecycle |
-| T-10 | Implement random food spawn algorithm | 1.5 | Ensure food never spawns on snake; handle grid fullness edge case |
-| T-11 | Create speed progression formula | 1.6 | Document deterministic formula for speed; test consistency |
-| T-12 | Set up UI scaffolding (buttons, modals, replay list) | 4.1, 1.8 | HTML elements for play/pause/speed controls, end screen, replay list |
-| T-13 | Implement localStorage or session storage for replay list | 3.3 | Store replay list for current session; clear on reload |
-| T-14 | Write unit tests for input buffering & reversal logic | 2.1–2.3 | Test 100+ key-press sequences; verify no reversals |
-| T-15 | Write unit tests for collision detection | 1.3–1.4 | Test all walls, self-collision, edge cases (tail safety) |
-| T-16 | Write integration tests for simultaneous play | 5.1–5.5 | Live + ghost gameplay; verify isolation and determinism |
-| T-17 | Write replay accuracy tests (bit-exact) | 3.1–3.3, 5.5 | Record game, replay, compare frame-by-frame; verify 100% match |
+| ID | Task | Related Epic | Notes |
+|----|------|-------------|-------|
+| T-01 | Set up project structure: index.html, styles.css, main.js | All | Foundation for all stories; single-page app. |
+| T-02 | Create unit test suite for minimax algorithm (50+ test cases) | Epic 4 | Comprehensive coverage of win/draw/ongoing scenarios. |
+| T-03 | Create unit test suite for game state detection (win/draw/terminal) | Epic 6 | Cover all 8 winning lines, full-board draws, edge cases. |
+| T-04 | Create integration test: play 100+ random games against Impossible AI | Epic 4 | Validate that AI never loses. |
+| T-05 | Accessibility audit: WCAG 2.1 AA compliance check | Epic 8 | Use automated tools (axe, Lighthouse) + manual testing. |
+| T-06 | Cross-browser testing: Chrome, Firefox, Safari, Edge on desktop + mobile | Epic 8 | Ensure consistent behavior and rendering. |
+| T-07 | Performance profiling: measure move latency and memory usage | Epic 8 | Validate responsiveness and no memory leaks. |
 
 ---
 
 ## Traceability Matrix
 
-_Map each story to its source inputs so implementation can be validated against product, technical, and UX intent._
-
 | Story ID | PRD Source | Architecture Source | UX Source |
 |----------|------------|---------------------|-----------|
-| 1.1 | FR-01 (Live Movement) | Component: GameEngine, Renderer | Flow: Initial App Load (Step 2) |
-| 1.2 | FR-01 (Live Movement) | Component: InputManager, GameEngine | Flow: Live Game Happy Path (Step 3) |
-| 1.3 | FR-06 (Wall Collision) | Component: GameEngine (collision) | Flow: Live Game Happy Path (Step 7) |
-| 1.4 | FR-07 (Self-Collision) | Component: GameEngine (collision) | Flow: Live Game Happy Path (Step 7) |
-| 1.5 | FR-02, FR-03, FR-04 (Food, Score, Growth) | Component: GameEngine, StateManager | Flow: Live Game Happy Path (Step 6) |
-| 1.6 | FR-05 (Speed Progression) | Component: GameEngine (speed curve) | UX: Game Board — Default State; no explicit flow |
-| 1.7 | FR-03 (Score Tracking) | Component: Renderer (UI display) | UX: Game Board — Score Label |
-| 1.8 | FR-13 (none explicit) | Component: GameController (lifecycle) | Flow: Live Game Happy Path (Step 8) |
-| 2.1 | FR-13 (Rapid Input Handling) | Component: InputManager (buffering) | Flow: Live Game — Input Edge Case (Step 2) |
-| 2.2 | FR-13 (Direction Reversal Prevention) | Component: InputManager (reversal check) | Flow: Live Game — Input Edge Case (Step 4) |
-| 2.3 | FR-01 (Live Movement) | Component: InputManager (event capture) | Flow: Live Game Happy Path (Step 3) |
-| 3.1 | FR-08 (State Serialization) | Component: StateManager, ReplayRecorder | UX: not explicitly flow; architectural requirement |
-| 3.2 | FR-08 (State Serialization) | Component: ReplayRecorder (finalization) | UX: not explicitly flow; architectural requirement |
-| 3.3 | FR-09 (Replay List) | Component: StateManager, ReplayList | Flow: Initial App Load (Step 5) |
-| 4.1 | FR-09 (Replay List) | Component: Renderer (list display) | Flow: Initial App Load (Step 5); Replay Selection & Playback |
-| 4.2 | FR-10 (Replay Playback) | Component: ReplayPlayer (load), Renderer (controls) | Flow: Replay Selection & Playback (Step 5–6) |
-| 4.3 | FR-10 (Replay Playback at Variable Speeds) | Component: ReplayPlayer (playback) | Flow: Replay Selection & Playback (Step 7) |
-| 4.4 | FR-10 (implicit pause/resume) | Component: ReplayPlayer (pause state) | Flow: Replay Selection & Playback (Step 7 — User Action: Pause) |
-| 4.5 | FR-10 (Variable Speeds) | Component: ReplayPlayer (speed multiplier) | Flow: Replay Selection & Playback (Step 7 — User Action: Change Speed) |
-| 5.1 | FR-11 (Ghost Snake Rendering) | Component: Renderer (ghost rendering), ReplayPlayer | Flow: Live Game with Simultaneous Replay (Step 3) |
-| 5.2 | FR-12 (Simultaneous Play & Replay) | Component: GameController (dual loops) | Flow: Live Game with Simultaneous Replay (Step 2) |
-| 5.3 | FR-12 (Ghost Isolation) | Component: GameEngine (collision check condition) | Flow: Live Game with Simultaneous Replay (Step 7–8) |
-| 5.4 | FR-12 (simultaneous end states) | Component: GameController (lifecycle coordination) | Flow: Live Game with Simultaneous Replay (Step 8) |
-| 5.5 | NFR-01 (Bit-exact replay), FR-12 | Component: ReplayPlayer, StateManager, GameEngine | UX: not explicit flow; correctness requirement |
+| 1.1 | FR-01 (mode selection screen) | Component: UI Renderer, Event Handler | Flow 1 (mode selection) |
+| 1.2 | FR-01, FR-02, FR-03, FR-04 (game initialization) | Data Flow: Game Initialization | Flow 1 (board display) |
+| 2.1 | FR-02 (PvP mode, mark placement) | Component: Move Executor, Event Handler | Flow 2 (human move) |
+| 2.2 | FR-02 (turn alternation) | Component: Game State Manager | Flow 2 (turn tracking) |
+| 3.1 | FR-03 (Easy AI random moves) | Component: Easy AI, Minimax Engine | Flow 2 / 3 (AI move) |
+| 3.2 | FR-03 (Easy AI flow) | Data Flow: AI Move Flow | Flow 3 (AI turn orchestration) |
+| 4.1 | FR-04 (minimax algorithm) | Component: Minimax Engine, Data Model: MinimaxResult | Architecture section 5 (minimax detail) |
+| 4.2 | FR-04, NFR-01 (AI plays best move, performance) | Component: Move Executor | Flow 3 (AI move execution) |
+| 5.1 | FR-05 (score visualization) | Component: Score Visualizer, Data Flow: AI Move Flow | Flow 3 (score computation) |
+| 5.2 | FR-05 (display scores, UI) | Component: Score Visualizer, UI Renderer | Flow 3 (score overlay display) |
+| 5.3 | FR-05 (clear scores) | Component: Score Visualizer | Flow 3 (score cleanup) |
+| 6.1 | FR-06 (win detection) | Component: Game State Manager | UX section 6 (win state) |
+| 6.2 | FR-07 (draw detection) | Component: Game State Manager | UX section 6 (draw state) |
+| 6.3 | FR-08 (prevent moves after terminal) | Component: Move Executor, Event Handler | Flow 4 (board disabled) |
+| 6.4 | FR-06, FR-07 (outcome message) | Component: UI Renderer | Flow 4 (outcome message) |
+| 7.1 | FR-09 (rematch button) | Component: UI Renderer | Flow 4 (rematch button) |
+| 7.2 | FR-09 (rematch flow) | Component: Game State Manager, UI Renderer | Flow 4 (reset and mode selection) |
+| 8.1 | FR-11 (responsive design) | Infrastructure: static deployment | UX section 6 (responsive states) |
+| 8.2 | — (UX enhancement, not explicitly PRD req) | Component: UI Renderer | UX section 5 (interaction patterns) |
+| 8.3 | NFR-04 (keyboard + mouse input) | Component: Event Handler | UX section 7 (keyboard navigation) |
+| 8.4 | NFR-05 (high-contrast colors) | Component: UI Renderer | UX section 7 (color contrast, accessibility) |
+| 8.5 | NFR-01, NFR-02, NFR-03 (performance, no leaks) | Component: Minimax Engine, Data Flow | UX section 9 (performance targets) |
 
 ---
 
 ## Open Questions & Assumptions
 
-- **Assumption:** Grid size remains fixed at 20×20; no runtime configuration in MVP.
-- **Assumption:** Initial snake length is 3 segments; no configuration.
-- **Assumption:** Speed progression formula is simple (e.g., +10% per food or fixed tick-rate increase); will be documented during implementation.
-- **Assumption:** Replay list limit is 50 games; oldest auto-purged on overflow to prevent memory bloat.
-- **Assumption:** In-memory storage only for MVP; no localStorage or backend persistence.
-- **Assumption:** All stories are independently testable (no story depends on another).
-- **Open question:** Should speed adjustment be available during live game (not just replay)? (Answer: No, not in MVP. Speed auto-progresses only with growth.)
-- **Open question:** Should replays be deletable by user? (Answer: No, not in MVP. Auto-purge oldest on overflow only.)
-- **Open question:** Should we log replay metadata (e.g., highest score, average survival time)? (Answer: Nice-to-have for future; not in MVP.)
-- **Open question:** Is 50-replay limit sufficient, or should it be higher? (Answer: 50 is reasonable for MVP; adjust based on memory testing.)
+- **Assumption:** Users are familiar with Tic-Tac-Toe rules; no in-game tutorial is required for MVP.
+- **Assumption:** Alpha-beta pruning is implemented in Story 4.1 for performance; minimax without pruning would be acceptable but slower.
+- **Assumption:** Single-player games only; no multiplayer or network play in MVP.
+- **Assumption:** All scores displayed as +1, 0, −1; more granular scores (e.g., −2, +2) are not needed for 3×3.
+- **Open question:** Should the AI move be slightly delayed (500ms–1s) to feel like a thinking opponent, or move instantly? _(Recommend: 500ms delay for Easy AI; 1–2s for Impossible AI to display scores.)_
+- **Open question:** If multiple AI moves have the same highest minimax score, should the AI pick the first, a random one, or a specific strategy? _(Recommend: Deterministic—smallest cell index—for repeatability.)_
+- **Open question:** Should game history or statistics (win/loss counts) be persisted in localStorage? _(Out of scope for MVP; defer to v2.)_
 
 ---
 
 ## Out of Scope
 
-The following features and stories are explicitly deferred from this breakdown:
-
-- **AI Autopilot:** Pathfinding (A*, BFS) to navigate toward food automatically. (Marked as stretch goal in PRD)
-- **Time Rewind:** Undo/rewind last N moves during live game. (Marked as stretch goal in PRD)
-- **Leaderboard:** Score ranking, persistence, or sharing. (Marked as stretch goal in PRD)
-- **Obstacles & Power-ups:** Speed boosts, wall pass-through, moving obstacles. (Marked as stretch goal in PRD)
-- **Persistent Storage:** localStorage, server backend, or cross-session replay saving. (In-memory only for MVP)
-- **Mobile Touch Controls:** Swipe or button-based input. (Keyboard only for MVP; WASD is stretch goal)
-- **Sound & Music:** Audio effects or background music. (Not in MVP)
-- **Fullscreen Mode:** Maximize game to viewport. (Not in MVP)
-- **Custom Grid Sizes:** User-configurable grid dimensions. (Fixed at 20×20 for MVP)
-- **Difficulty Levels:** Settings to adjust speed curve, grid size, or spawn rate. (Fixed for MVP)
-- **Replay URL Sharing:** Encode replays in URL parameters for sharing. (Not in MVP)
-
----
-
-## Appendix
-
-### Key Links
-- **PRD:** [prd_final.md](prd_final.md)
-- **Architecture:** [architecture_final.md](architecture_final.md)
-- **UX Design:** [ux_final.md](ux_final.md)
-- **Requirements:** [Requirements 1.md](Requirements%201.md)
-- **Expected Outcomes:** [Expected-Outcomes 1.md](Expected-Outcomes%201.md)
-
-### Story Format Reference
-All stories follow the format: **"As a [persona], I want [action] so that [benefit]."**
-- Each story is independently deliverable and testable.
-- Each story includes acceptance criteria as testable conditions.
-- Each story includes an estimated size (XS/S/M/L/XL).
-- Each story has notes on dependencies, edge cases, or open questions.
-
-### Traceability Strategy
-Every story maps to at least one source from PRD (Functional Requirements), Architecture (Components & Constraints), or UX (Flows & States). This ensures that no requirement is missed and every story aligns with product vision.
+- **Ultimate Tic-Tac-Toe:** 9×9 variant with nested boards.
+- **4×4 or 5×5 grid variants:** Larger boards with 4-in-a-row or 5-in-a-row win conditions.
+- **Teaching mode:** Show optimal response to suboptimal moves.
+- **Difficulty knobs:** Deliberate suboptimal moves at lower levels.
+- **Game history or replay:** Persistent storage or replay functionality.
+- **Multiplayer online:** Network play or real-time multiplayer.
+- **Native mobile app:** iOS/Android apps; web-only for MVP.
+- **Backend server:** All logic is client-side; no API endpoints or database.
