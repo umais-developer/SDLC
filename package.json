@@ -5,8 +5,8 @@
   "main": "main.js",
   "scripts": {
     "test": "node tests.js",
-    "build": "mkdir -p dist && cp index.html styles.css main.js dist/",
-    "start": "echo 'Open index.html in a browser to play'"
+    "build": "node -e \"const fs=require('fs'); const path=require('path'); if(!fs.existsSync('dist'))fs.mkdirSync('dist'); fs.copyFileSync('index.html','dist/index.html'); fs.copyFileSync('styles.css','dist/styles.css'); fs.copyFileSync('main.js','dist/main.js'); console.log('Build complete: dist/ folder created with all assets');\"",
+    "start": "echo Open index.html in a browser to play"
   },
   "keywords": [
     "tic-tac-toe",
