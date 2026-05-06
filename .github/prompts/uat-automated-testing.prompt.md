@@ -1,5 +1,6 @@
 ---
 mode: agent
+playwright_headless: false
 description: Automated User Acceptance Testing (UAT) agent that verifies the application against all user stories and acceptance criteria, automatically fixes issues found, and gates deployment until all requirements pass.
 ---
 
@@ -86,6 +87,151 @@ Test all features from the user stories in `epics_stories_final.md`. Test covera
 2. Read `architecture_final.md` to understand technical design
 3. Read `ux_final.md` for expected UI/UX behavior
 4. Start the development server or open the application in a browser
+
+### Phase 1.5: Browser Debugging & System Verification
+**Objective:** Capture detailed debugging information to diagnose any runtime issues before formal UAT execution.
+
+**This phase provides:**
+- Early detection of critical bugs
+- Console log analysis for errors/warnings
+- Canvas/rendering verification
+- Network resource verification
+- Page state inspection
+- Evidence trail for troubleshooting
+
+**Steps:**
+
+#### 1A: Console Log Capture ✅
+```javascript
+// Method: Attach console listeners before user interactions
+- Listen for all console.log(), console.warn(), console.error() messages
+- Capture message type, text, and timestamp
+- Record first 50+ messages during gameplay
+- Flag any ERROR or exception messages
+- Store logs for later analysis in DEBUG_REPORT.md
+```
+
+**What to verify:**
+- ✓ No uncaught JavaScript errors
+- ✓ No "undefined is not a function" errors
+- ✓ Initialization logs show proper component setup
+- ✓ Game loop ticks logged at regular intervals
+- ✓ Collision/movement messages appear as expected
+
+**Example console output expected:**
+```
+[GameEngine.initialize] Game initialized with state:
+  Snake body: [(10,10), (9,10), (8,10)]
+  Food position: (x,y)
+[Tick 0] Snake moving from (10,10) to (11,10)
+[Tick 1] Snake moving from (11,10) to (12,10)
+```
+
+#### 1B: Network Resource Verification ✅
+```javascript
+// Method: Check all HTTP requests completed successfully
+- Verify index.html loaded (200 OK)
+- Verify all .js files loaded (200 OK)
+- Verify CSS stylesheet loaded (200 OK)
+- Check for 404 errors
+- Check for CORS issues
+- Check for timeout errors
+```
+
+**What to verify:**
+- ✓ All resources returned HTTP 200
+- ✓ No failed requests
+- ✓ No timeout errors
+- ✓ Page fully loaded (readyState === 'complete')
+
+#### 1C: Canvas & Rendering Verification ✅
+```javascript
+// Method: Analyze canvas pixel data
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+// Count non-background pixels (drawing activity)
+- Total pixels: canvas.width × canvas.height
+- Drawn pixels: count pixels != background color
+- Rendering active if: drawnPixels > 100
+
+// What's rendered:
+- Grid lines (grid)
+- Snake body (snake)
+- Food item (food)
+```
+
+**What to verify:**
+- ✓ Canvas context exists (not null)
+- ✓ Canvas has explicit width/height (not 0)
+- ✓ Drawn pixels > 100 (indicates rendering happening)
+- ✓ Rendering percentage 10-30% (typical for grid game)
+
+#### 1D: Page State Inspection ✅
+```javascript
+// Method: Inspect DOM elements and their state
+- Canvas elements: count and verify IDs
+- Game controller: check if global gameController exists
+- Screen elements: verify all .screen divs present
+- Active screen: check classList for 'active' class
+- Input elements: verify buttons clickable
+```
+
+**What to verify:**
+- ✓ Canvas elements present (gameCanvas, replayCanvas)
+- ✓ GameController instantiated and global
+- ✓ All screen divs present (home, game, gameOver, replay, etc.)
+- ✓ Only one screen has .active class at a time
+- ✓ Button elements are clickable
+
+#### 1E: Server/Terminal Log Inspection ✅
+Check terminal where dev server running:
+```
+Serving HTTP on :: port 8080 (http://[::]:8080/)
+GET / 200 OK
+GET /index.html 200 OK
+GET /js/game-engine.js 200 OK
+[... no errors ...]
+```
+
+**What to verify:**
+- ✓ Server started successfully
+- ✓ Listening on expected port
+- ✓ All requests logged as 200 OK
+- ✓ No server errors in terminal
+
+#### 1F: Create DEBUG_REPORT.md
+If any issues found in 1A-1E:
+```markdown
+# Debug Report - [Date/Time]
+
+## Issues Found
+1. [Issue with logs/evidence]
+2. [Issue with resources]
+3. [Issue with rendering]
+
+## Evidence
+- Console logs: [attached]
+- Network requests: [screenshot]
+- Canvas state: [pixels drawn]
+- Errors: [list]
+```
+
+**Decision Tree:**
+```
+IF any critical issue found in Phase 1.5:
+  → Create DEBUG_REPORT.md with findings
+  → Attempt auto-fix in Phase 4 (if applicable)
+  → Re-run Phase 1.5 after fix
+  → Only proceed to Phase 2 if cleared
+
+ELSE (no critical issues):
+  → Log: "✅ System ready for UAT"
+  → Proceed to Phase 2
+```
+
+---
 
 ### Phase 2: Automated UAT Execution
 Execute tests from the generated `uat-test-plan_final.md`:
