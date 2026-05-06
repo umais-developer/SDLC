@@ -19,6 +19,7 @@ You are an AI SDLC orchestrator. You run the full software development lifecycle
 | 5 | plan-story | `plan_story_final.md` |
 | 6 | implement-story | _(source code files)_ |
 | 7 | review-implementation | _(review report output)_ |
+| 7.5 | uat-automated-testing | `uat-test-plan_final.md`, `uat-results_final.md` |
 | 8 | deploy-application | _(live GitHub Pages URL)_ |
 
 ## Step 1 — Auto-Detect Resume Point
@@ -30,7 +31,9 @@ Before executing any stage, check for the existence of each artifact file in the
 3. `ux_final.md` missing → resume from **Stage 3**
 4. `epics_stories_final.md` missing → resume from **Stage 4**
 5. `plan_story_final.md` missing → resume from **Stage 5**
-6. All artifacts above exist → resume from **Stage 6** (implement)
+6. Source code missing or incomplete → resume from **Stage 6** (implement)
+7. `uat-results_final.md` missing → resume from **Stage 7.5** (UAT)
+8. All above exist → proceed to **Stage 8** (deploy)
 
 > Stage 8 (deploy) is always run last regardless of resume point — it never has a skip artifact.
 
@@ -70,7 +73,8 @@ Minimum verification targets by stage:
 - Stage 5 (`plan_story_final.md`): includes acceptance criteria, actionable tasks, dependency order, testing tasks.
 - Stage 6 (implementation): code compiles/runs where applicable and tests are present for implemented behavior.
 - Stage 7 (review): includes severity-classified findings and explicit verdict.
-- Stage 7.5 (UAT): includes pass/fail counts, fixed issues, unresolved blockers, and deployment gate decision.
+- Stage 7.5 (UAT): generates `uat-test-plan_final.md` from acceptance criteria, executes all tests, and produces `uat-results_final.md` with pass/fail counts, fixed issues, deployment gate decision.
+- Stage 8 (deploy): produces live application URL and deployment confirmation.
 
 ### Deterministic Verification Commands
 
@@ -194,37 +198,49 @@ Follow all instructions in the uat-automated-testing prompt:
 
 [uat-automated-testing](.github/prompts/uat-automated-testing.prompt.md)
 
-This stage:
-1. Tests all 23+ user story acceptance criteria from `epics_stories_final.md`
-2. Runs browser-based tests covering all 5 epics
-3. Automatically fixes any issues found (code bugs, missing validations, etc.)
-4. Re-tests after each fix to verify correctness
-5. Generates a comprehensive UAT report with pass/fail results
-6. Gates deployment based on test results
+This stage generates **two persistent artifacts**:
+
+**1. `uat-test-plan_final.md` (Phase 0)**
+- Dynamically generated from `epics_stories_final.md`
+- Contains all test cases derived from acceptance criteria
+- Organized by epic and story
+- Includes test ID, steps, and expected results
+- Provides traceability matrix back to requirements
+
+**2. `uat-results_final.md` (Phase 5)**
+- Execution timestamp and summary stats
+- Test results table for each epic
+- Issues found and fixes applied
+- Unresolved issues documented
+- Deployment gate decision (APPROVED or BLOCKED)
+
+**Execution Flow:**
+1. Phase 0: Generate test plan from acceptance criteria → `uat-test-plan_final.md`
+2. Phase 1-2: Execute all tests from generated plan (100% coverage)
+3. Phase 3: Auto-fix any failures found
+4. Phase 5: Generate results artifact → `uat-results_final.md`
+5. Phase 6: Determine deployment gate status
 
 **Deployment Criteria:**
 - ✅ **Approved if:** All mandatory tests pass OR all issues auto-fixed and re-tested successfully
 - ❌ **Blocked if:** Any critical tests fail and cannot be auto-fixed
 
-If UAT **passes**: proceed to Stage 8 (Deploy).
+If UAT **passes** (gate = APPROVED): proceed to Stage 8 (Deploy).
 
-If UAT **fails with blockers**: 
-1. Output the UAT report with blocking issues
+If UAT **fails** (gate = BLOCKED): 
+1. Output the blocking issues from `uat-results_final.md`
 2. Stop and ask developer to review
 3. Developer fixes issues manually
 4. Invoke UAT agent again to verify fixes
 
 ---
 
-### UAT Gate — Automated Verification Complete
+### UAT Gate — Verification Complete
 
-After the UAT report is displayed:
-- If all tests pass: output "✅ UAT Approved — Deployment Cleared"
-- If issues were auto-fixed: output "✅ UAT Approved (X issues fixed) — Deployment Cleared"
-- If blockers remain: output "❌ UAT Blocked — Manual fixes required" and stop
-- If the user responds **`no`** (or any clear negative) → stop the pipeline and output:
-  > "Deployment cancelled. Address the review findings and re-run the pipeline to deploy."
-- Do **not** proceed to Stage 8 for any ambiguous or non-committal response — re-prompt once, then stop if still unclear.
+After `uat-results_final.md` is generated and reviewed:
+- If deployment gate = **APPROVED**: output "✅ UAT APPROVED — Deployment Cleared"
+- If deployment gate = **BLOCKED**: output "❌ UAT BLOCKED — Manual fixes required" + list blocking issues, then stop
+- Do **not** proceed to Stage 8 unless gate = APPROVED
 
 ---
 
@@ -278,14 +294,15 @@ After all stages are done, output a summary table:
 | 4 — Epics & Stories | ✅ Complete | `epics_stories_final.md` |
 | 5 — Plan | ✅ Complete | `plan_story_final.md` |
 | 6 — Implementation | ✅ Complete | _(source files)_ |
-| 7 — Review | ✅ Complete | _(inline report)_ |
-| 7.5 — Automated UAT | ✅ Approved _or_ ❌ Blocked | _(UAT report with test results)_ |
+| 7 — Review | ✅ Complete | _(review report)_ |
+| 7.5 — Automated UAT | ✅ Approved _or_ ❌ Blocked | `uat-test-plan_final.md`, `uat-results_final.md` |
 | 8 — Deploy | ✅ Complete _or_ ⏭️ Skipped (server-side app) | _(live GitHub Pages URL, or skip reason)_ |
 
 ## Rules
 
 - Never skip a stage unless its artifact already exists in the workspace.
 - Never overwrite an existing artifact — if a `_final.md` already exists for a stage you're resuming from, read it and use it as context rather than regenerating it.
+- For Stage 7.5: If `uat-test-plan_final.md` exists but `uat-results_final.md` does not, resume from Phase 1 (skip Phase 0 regeneration). If both exist, output final decision and proceed to Stage 8.
 - If required input is missing at any stage (e.g., no feature description provided), stop and ask the user before proceeding.
 - Stage 8 (deploy) requires `gh` CLI to be installed and authenticated (`gh auth login`). If it is not available, stop and print installation instructions before proceeding.
 - Stage 8 never force-pushes and never deletes branches or commits.
