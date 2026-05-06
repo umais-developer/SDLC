@@ -31,9 +31,10 @@ Before executing any stage, check for the existence of each artifact file in the
 3. `ux_final.md` missing → resume from **Stage 3**
 4. `epics_stories_final.md` missing → resume from **Stage 4**
 5. `plan_story_final.md` missing → resume from **Stage 5**
-6. Source code missing or incomplete → resume from **Stage 6** (implement)
-7. `uat-results_final.md` missing → resume from **Stage 7.5** (UAT)
-8. All above exist → proceed to **Stage 8** (deploy)
+6. Source code files missing or incomplete (check for all required files per architecture) → resume from **Stage 6** (implement)
+7. `CODE_REVIEW.md` missing → resume from **Stage 7** (review)
+8. `uat-results_final.md` missing → resume from **Stage 7.5** (UAT)
+9. All above exist → proceed to **Stage 8** (deploy)
 
 > Stage 8 (deploy) is always run last regardless of resume point — it never has a skip artifact.
 
@@ -71,8 +72,8 @@ Minimum verification targets by stage:
 - Stage 3 (`ux_final.md`): includes User Flows, States & Variations, Accessibility Considerations.
 - Stage 4 (`epics_stories_final.md`): includes at least one epic, user stories with acceptance criteria, and Traceability Matrix mapping stories to PRD/Architecture/UX.
 - Stage 5 (`plan_story_final.md`): includes acceptance criteria, actionable tasks, dependency order, testing tasks.
-- Stage 6 (implementation): code compiles/runs where applicable and tests are present for implemented behavior.
-- Stage 7 (review): includes severity-classified findings and explicit verdict.
+- Stage 6 (implementation): all source files from `architecture_final.md` exist and are non-empty; code compiles/runs where applicable; tests present for behavior.
+- Stage 7 (review): saved to `CODE_REVIEW.md`; includes severity-classified findings, verdict, and traceability to PRD.
 - Stage 7.5 (UAT): generates `uat-test-plan_final.md` from acceptance criteria, executes all tests, and produces `uat-results_final.md` with pass/fail counts, fixed issues, deployment gate decision.
 - Stage 8 (deploy): produces live application URL and deployment confirmation.
 
@@ -186,7 +187,10 @@ Follow all instructions in the review-implementation prompt:
 
 [review-implementation](.github/prompts/review-implementation.prompt.md)
 
-When complete: output the full review report inline, then proceed to Stage 7.5 (Automated UAT).
+When complete: 
+1. Save the full review report to `CODE_REVIEW.md` in the workspace root
+2. Output the review findings inline
+3. Proceed to Stage 7.5 (Automated UAT)
 
 ---
 
@@ -294,15 +298,16 @@ After all stages are done, output a summary table:
 | 4 — Epics & Stories | ✅ Complete | `epics_stories_final.md` |
 | 5 — Plan | ✅ Complete | `plan_story_final.md` |
 | 6 — Implementation | ✅ Complete | _(source files)_ |
-| 7 — Review | ✅ Complete | _(review report)_ |
+| 7 — Review | ✅ Complete | `CODE_REVIEW.md` |
 | 7.5 — Automated UAT | ✅ Approved _or_ ❌ Blocked | `uat-test-plan_final.md`, `uat-results_final.md` |
 | 8 — Deploy | ✅ Complete _or_ ⏭️ Skipped (server-side app) | _(live GitHub Pages URL, or skip reason)_ |
 
 ## Rules
 
 - Never skip a stage unless its artifact already exists in the workspace.
-- Never overwrite an existing artifact — if a `_final.md` already exists for a stage you're resuming from, read it and use it as context rather than regenerating it.
-- For Stage 7.5: If `uat-test-plan_final.md` exists but `uat-results_final.md` does not, resume from Phase 1 (skip Phase 0 regeneration). If both exist, output final decision and proceed to Stage 8.
+- Never overwrite an existing artifact — if a `_final.md` or `CODE_REVIEW.md` already exists, read it and use as context rather than regenerating.
+- **Stage 6:** Verify all source files from `architecture_final.md` exist and are non-empty. If missing, Stage 6 must re-run.
+- **Stage 7.5:** If `uat-test-plan_final.md` exists but `uat-results_final.md` does not, resume Phase 1 (skip Phase 0). If both exist, output final gate decision; proceed to Stage 8 only if APPROVED.
 - If required input is missing at any stage (e.g., no feature description provided), stop and ask the user before proceeding.
 - Stage 8 (deploy) requires `gh` CLI to be installed and authenticated (`gh auth login`). If it is not available, stop and print installation instructions before proceeding.
 - Stage 8 never force-pushes and never deletes branches or commits.
