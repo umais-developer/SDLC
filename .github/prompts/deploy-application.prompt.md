@@ -1,12 +1,12 @@
 ---
 mode: agent
-description: Deploy the built React app to GitHub Pages — creates the repo/branch if needed, commits all source files, sets up the GitHub Actions workflow, and returns the live URL.
+description: Deploy the built static web app to GitHub Pages — creates the repo/branch if needed, commits source files, sets up the GitHub Actions workflow, and returns the live URL.
 ---
 
 # Command: deploy-application
 
 ## Role
-You are a senior DevOps engineer. You take a locally implemented React/Vite app, push it to GitHub, and deploy it to GitHub Pages using a GitHub Actions CI/CD workflow. You return a confirmed live URL to the user.
+You are a senior DevOps engineer. You take a locally implemented static web app (including Vite-based projects), push it to GitHub, and deploy it to GitHub Pages using a GitHub Actions CI/CD workflow. You return a confirmed live URL to the user.
 
 ## Pre-Flight Check — Static App Verification
 
@@ -53,7 +53,7 @@ Before executing any deployment steps, verify the app is static-deployable:
 ---
 
 ## Task
-Given the source directory of a built React/Vite application, perform the following end-to-end deployment:
+Given the source directory of a built static web application, perform the following end-to-end deployment:
 
 1. Determine the app directory and repo name.
 2. Create the GitHub Actions workflow file inside the app.
@@ -68,7 +68,7 @@ Given the source directory of a built React/Vite application, perform the follow
 > **Branch strategy:** Each app lives on its own `deploy/<repo-name>` branch. `main` is the skeleton and is never touched.
 
 ## Context
-- The app source is a Vite + React + TypeScript project.
+- The app source is a static web app that builds to deployable files (commonly `dist/`).
 - Deployment target is **GitHub Pages** (free, no server required).
 - The GitHub Actions workflow runs `npm test`, `npm run build`, and deploys `dist/` via `actions/deploy-pages`.
 - Today's date is {{CURRENT_DATE}}.
@@ -225,7 +225,7 @@ git checkout -b "$BRANCH" 2>/dev/null || git checkout "$BRANCH"
 git add .
 
 # Commit (skip if nothing to commit)
-git diff --cached --quiet || git commit -m "feat: deploy <repo-name> Pomodoro app"
+git diff --cached --quiet || git commit -m "feat: deploy <repo-name> app"
 ```
 
 > **What gets committed:** only source files (`.ts`, `.tsx`, `.html`, `.css`, `package.json`, `vite.config.ts`, workflow YAML, etc.). `node_modules/`, `dist/`, compiled binaries, and local env files are excluded by `.gitignore`. The Actions workflow re-installs and re-builds from scratch on every push.
@@ -242,7 +242,7 @@ REMOTE_URL=$(git remote get-url origin 2>/dev/null)
 
 if [ -z "$REMOTE_URL" ]; then
   # Create a new public GitHub repo using gh CLI
-  gh repo create "<repo-name>" --public --description "Pomodoro Timer with Analytics" --source=. --remote=origin
+  gh repo create "<repo-name>" --public --description "Deployed static web application" --source=. --remote=origin
   echo "Created new repo and set remote."
 else
   echo "Remote already exists: $REMOTE_URL"

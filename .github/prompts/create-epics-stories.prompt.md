@@ -15,7 +15,11 @@ Once the breakdown is complete, save it to a file named `epics_stories_final.md`
 
 ## Context
 - The user will provide a feature description, a PRD, or a problem statement as input.
-- If a `prd_final.md` exists in the workspace, use it as the primary source of requirements.
+- If `prd_final.md`, `architecture_final.md`, and `ux_final.md` exist in the workspace, use all three as required inputs:
+  - `prd_final.md` is the source of product requirements and scope.
+  - `architecture_final.md` defines technical constraints, system boundaries, and non-functional requirements.
+  - `ux_final.md` defines user flows, key interactions, screen states, and accessibility expectations.
+- Do not generate final stories from PRD alone when architecture and UX artifacts are available.
 - The output is intended for engineering teams working in agile sprints (Scrum or Kanban).
 - Assume stories will be tracked in a backlog tool (e.g., Jira, GitHub Issues, Linear).
 - Today's date is {{CURRENT_DATE}}. Use it when populating date fields.
@@ -35,6 +39,33 @@ Once the breakdown is complete, save it to a file named `epics_stories_final.md`
 - Mark any section lacking sufficient input with `[TBD — needs input]`.
 - Flag assumptions explicitly; do not invent requirements.
 - Aim for stories that can be completed within a single sprint (1–2 weeks).
+- Every story must be traceable to at least one requirement or decision from PRD, Architecture, or UX artifacts.
+
+## Step Verification
+
+Before drafting epics/stories, run input verification:
+0. Optional normalization for ambiguous requirements:
+  ```bash
+  python3 .agents/scripts/intent_expansion.py --input Requirements.md --output .agents/tmp/intent_expanded.json
+  ```
+  Use `.agents/tmp/intent_expanded.json` as supporting context.
+1. Confirm `prd_final.md`, `architecture_final.md`, and `ux_final.md` exist and are readable.
+2. Extract key inputs from each artifact:
+  - PRD: goals, functional requirements, non-functional requirements, scope boundaries.
+  - Architecture: constraints, system boundaries, interfaces, security/privacy considerations.
+  - UX: flows, states (default/loading/empty/error/success), accessibility expectations.
+3. If any required artifact is missing or unreadable, stop and ask for clarification instead of proceeding with partial inputs.
+
+Before saving `epics_stories_final.md`, run output verification:
+1. Every story follows the required user-story format.
+2. Every story includes testable acceptance criteria.
+3. Every story has at least one source reference captured in the Traceability Matrix.
+4. Coverage check: all critical P0/P1 PRD requirements appear in at least one story.
+5. Coverage check: architecture constraints and UX critical flows are represented in stories and/or technical tasks.
+6. Run deterministic stage verification and require pass before finalize:
+  ```bash
+  python3 .agents/scripts/deterministic_checks.py --stage stage4 --artifact epics_stories_final.md
+  ```
 
 ---
 
@@ -50,6 +81,8 @@ Produce the breakdown using the following structure:
 **Date:** {{CURRENT_DATE}}
 **Version:** 1.0
 **Related PRD:** [link or TBD]
+**Related Architecture:** [link or TBD]
+**Related UX:** [link or TBD]
 
 ---
 
@@ -117,6 +150,13 @@ _Non-user-facing work required to support the stories above. These are not user 
 | ID | Task | Related Story | Notes |
 |----|------|---------------|-------|
 | T-01 | | | |
+
+## Traceability Matrix
+_Map each story to its source inputs so implementation can be validated against product, technical, and UX intent._
+
+| Story ID | PRD Source | Architecture Source | UX Source |
+|----------|------------|---------------------|-----------|
+| 1.1 | [section / requirement] | [constraint / component] | [flow / state / screen] |
 
 ## Open Questions & Assumptions
 - **Assumption:**
