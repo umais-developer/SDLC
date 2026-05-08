@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-Verification script for Stage 1 (PRD): Goals & Requirements
+Verification script for Stage 1 (PRD): Problem Statement + Goals & Requirements
 
-Validates that the goals.json output conforms to the schema and contains
-required structure and traceability.
+Validates that both problem.json and goals.json conform to their schemas and
+contain the required structure, traceability, and completeness.
 
 Exit code: 0 = pass, 1 = fail
 """
@@ -44,6 +44,29 @@ def verify_schema(goals_json: dict, schema: dict) -> None:
         raise StructureError(
             "Stage 1",
             f"JSON schema validation failed: {e.message} at {'.'.join(str(p) for p in e.path)}"
+        )
+
+
+def verify_problem_structure(problem_json: dict) -> None:
+    """Verify problem statement is sufficiently complete."""
+    primary_goal = problem_json.get("primary_goal", "")
+    if len(primary_goal.strip()) < 10:
+        raise CompletionError("Stage 1", "primary_goal is too short — must be a clear 1-2 sentence statement")
+
+    in_scope = problem_json.get("scope_boundaries", {}).get("in_scope", [])
+    if not in_scope:
+        raise CompletionError("Stage 1", "scope_boundaries.in_scope must have at least one entry")
+
+    affected = problem_json.get("affected_areas", [])
+    if not affected:
+        raise CompletionError("Stage 1", "affected_areas must have at least one entry")
+
+    ambiguities = problem_json.get("ambiguities", [])
+    ambiguous_scope = problem_json.get("scope_boundaries", {}).get("ambiguous", [])
+    if not ambiguities and not ambiguous_scope:
+        raise CompletionError(
+            "Stage 1",
+            "ambiguities array is empty — document at least one assumption or default applied"
         )
 
 
@@ -101,6 +124,78 @@ def verify_priority_distribution(goals_json: dict) -> None:
         raise CompletionError("Stage 1", "At least one P0 (must-have) requirement is required")
 
 
+def verify_nfr_measurability(goals_json: dict) -> None:
+    """
+    Verify that every NFR acceptance criterion contains at least one measurable
+    threshold — a concrete number, unit, or comparative phrase.
+    Hand-wavy criteria like 'feels instant' or 'noticeably fast' are rejected.
+    """
+    import re
+    nfrs = goals_json.get("non_functional_requirements", [])
+    MEASURABLE_PATTERN = re.compile(
+        r"""
+        \d+            # bare number
+        | <\s*\d+      # < N
+        | >\s*\d+      # > N
+        | \d+\s*ms\b   # Nms
+        | \d+\s*s\b    # Ns
+        | \d+\s*%\b    # N%
+        | \d+\s*fps\b  # Nfps
+        | WCAG         # accessibility standard name counts
+        | ARIA         # ARIA standard name counts
+        """,
+        re.VERBOSE | re.IGNORECASE,
+    )
+    for nfr in nfrs:
+        criteria = nfr.get("acceptance_criteria", [])
+        if not criteria:
+            continue  # handled by FR structure check
+        all_vague = all(not MEASURABLE_PATTERN.search(c) for c in criteria)
+        if all_vague:
+            raise CompletionError(
+                "Stage 1",
+                f"NFR {nfr.get('id')}: all acceptance criteria are vague — at least one must "
+                "contain a concrete threshold (a number, unit, standard name, or comparative value). "
+                f"Current criteria: {criteria}"
+            )
+
+
+def verify_volume_figures_justified(goals_json: dict) -> None:
+    """
+    Verify that any bare round-number capacity figure cited in an NFR description
+    (e.g. '100 replays', '1000 users') is accompanied by a rationale field or
+    documented in the constraints/ambiguities sections.
+
+    This catches 'should handle 100 saved replays' appearing with no explanation
+    of where '100' came from.
+    """
+    import re
+    ROUND_NUMBER_RE = re.compile(
+        r'\b(\d{2,})\s+(?:replays?|entries|items?|records?|users?|requests?|rows?)\b',
+        re.IGNORECASE,
+    )
+    constraints = goals_json.get("constraints", [])
+    ambiguities_text = " ".join(
+        str(a) for a in goals_json.get("ambiguities", [])
+    )
+    constraint_text = " ".join(c.get("description", "") + c.get("rationale", "") for c in constraints)
+    context_text = ambiguities_text + " " + constraint_text
+
+    nfrs = goals_json.get("non_functional_requirements", [])
+    for nfr in nfrs:
+        description = nfr.get("description", "")
+        for match in ROUND_NUMBER_RE.finditer(description):
+            figure = match.group(0)
+            # Accept if the same figure appears in constraints or ambiguities (justified)
+            if not re.search(re.escape(match.group(1)), context_text):
+                raise CompletionError(
+                    "Stage 1",
+                    f"NFR {nfr.get('id')}: capacity figure '{figure}' appears without justification. "
+                    "Document where this number comes from in constraints[] or the problem's ambiguities[]. "
+                    "Example: 'Based on localStorage ceiling of ~5 MB, estimated 100 replays at ~50 KB each.'"
+                )
+
+
 def verify_testing_strategy(goals_json: dict) -> None:
     """Verify testing strategy is defined."""
     testing = goals_json.get("testing_strategy", {})
@@ -123,36 +218,52 @@ def verify_testing_strategy(goals_json: dict) -> None:
 def main(goals_json_path: str) -> None:
     """
     Main verification entry point.
-    
+
+    Derives problem.json path from the same directory as goals.json.
+
     Args:
         goals_json_path: Path to the generated goals.json file
-        
+
     Raises:
         StructureError, TraceabilityError, CompletionError on validation failure
     """
-    
-    # Load JSON and schema
+    goals_path = Path(goals_json_path)
+    problem_json_path = goals_path.parent / "problem.json"
+    schemas_dir = Path(__file__).parent.parent / "schemas"
+
+    # --- Step 1a: Validate problem.json ---
+    problem_json = load_json(str(problem_json_path))
+    problem_schema = load_schema(str(schemas_dir / "problem.json"))
+    verify_schema(problem_json, problem_schema)
+    verify_problem_structure(problem_json)
+    print("✅ problem.json validation PASSED")
+    print(f"   • request_type: {problem_json.get('request_type')}")
+    print(f"   • {len(problem_json.get('scope_boundaries', {}).get('in_scope', []))} in-scope item(s)")
+    print(f"   • {len(problem_json.get('ambiguities', []))} assumption(s) documented")
+
+    # --- Step 1b: Validate goals.json ---
     goals_json = load_json(goals_json_path)
-    schema_path = Path(__file__).parent.parent / "schemas" / "goals.json"
-    schema = load_schema(str(schema_path))
-    
-    # Run all verifications
-    verify_schema(goals_json, schema)
+    goals_schema = load_schema(str(schemas_dir / "goals.json"))
+    verify_schema(goals_json, goals_schema)
     verify_goal_structure(goals_json)
     verify_fr_structure(goals_json)
     verify_priority_distribution(goals_json)
+    verify_nfr_measurability(goals_json)
+    verify_volume_figures_justified(goals_json)
     verify_testing_strategy(goals_json)
-    
-    print("✅ Stage 1 verification PASSED")
+    print("✅ goals.json validation PASSED")
     print(f"   • {len(goals_json.get('goals', []))} goal(s)")
     print(f"   • {len(goals_json.get('functional_requirements', []))} functional requirement(s)")
     print(f"   • {len(goals_json.get('non_functional_requirements', []))} non-functional requirement(s)")
     print(f"   • {len(goals_json.get('constraints', []))} constraint(s)")
 
+    print("\n✅ Stage 1 verification PASSED")
+
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
         print("Usage: python verify/prd_structure.py <path-to-goals.json>")
+        print("       (problem.json is expected in the same directory as goals.json)")
         sys.exit(1)
     
     try:

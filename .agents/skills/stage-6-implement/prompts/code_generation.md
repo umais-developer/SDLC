@@ -11,6 +11,15 @@ You generate source code for each task in the implementation plan using the tech
 
 For each task, write the complete file content. No partial files. No placeholders.
 
+**Scope discipline:** only modify files listed in `tasks.json`. If a new file is required but not listed, stop and report the missing task.
+
+**Test snapshot:** before any file writes, record the current test file list in `.agents/artifacts/stage-6/test_snapshot.json`.
+
+Command:
+```bash
+python .agents/skills/stage-6-implement/verify/capture_test_snapshot.py .agents/artifacts/stage-6/test_snapshot.json src tests
+```
+
 After all files are written, run the **build command** and **test command** from `tech_stack.json` (`build_command` and `test_command` fields). If those fields are absent, ask the user before proceeding.
 
 ## Rules
@@ -18,16 +27,38 @@ After all files are written, run the **build command** and **test command** from
 1. **Be literal.** Take the user request at face value. If they say "add dark mode," don't interpret that as "redesign the UI."
 2. **Complete files only.** Write the entire file — not just the changed function.
 3. **Strict typing.** Use the type system the selected language provides. Avoid `any` / untyped equivalents unless unavoidable — document why.
-4. **Tests alongside code.** If you write `GridState.ts`, you write `GridState.test.ts` in the same pass.
+4. **Tests alongside code.** Only create test files listed in `tasks.json` for the task you are implementing.
 5. **Security by default.** No raw HTML injection with user data. Validate all external inputs (localStorage, file imports, URL params).
 6. **Follow the component interface.** Each component's public interface must match `components.json` exactly.
 7. **No commented-out code.** No TODOs in production code. No dead code.
+8. **Progress tracking.** Update `.agents/artifacts/stage-6/progress.json` after each file write (atomic: file write succeeds, then progress.json update). Track `tasks_verified` after tests pass for that task.
+9. **Bounded retries.** Max 3 fix attempts per failing build/test command.
+10. **Evidence logs.** Capture build/test stdout+stderr to `.agents/artifacts/stage-6/build.log` and `.agents/artifacts/stage-6/test.log`, and write exit codes to `.agents/artifacts/stage-6/build.exit` and `.agents/artifacts/stage-6/test.exit`.
+11. **Cross-task scope.** If a fix requires modifying another task's file, HALT and report a cross-task dependency defect.
+12. **Test mode.** Set `test_mode` in progress.json to `split` when using pre/new test runs, otherwise `full-suite`.
+13. **Failure tracking.** When retries are exhausted, add the task to `failed_tasks` with the command and log excerpt, then HALT.
+14. **Retry scope.** Max 3 attempts per command per task (build has its own 3, tests have their own 3).
 
 ## Input
 
 **Implementation tasks (from Stage 5a tasks.json):**
 ```
 {{tasks_json}}
+```
+
+**Stories (from Stage 4 stories.json):**
+```
+{{stories_json}}
+```
+
+**Problem (from Stage 1 problem.json):**
+```
+{{problem_json}}
+```
+
+**Goals (from Stage 1 goals.json):**
+```
+{{goals_json}}
 ```
 
 **Component interfaces (from Stage 2b components.json):**
@@ -42,24 +73,34 @@ After all files are written, run the **build command** and **test command** from
 
 ## Execution
 
+Before any file writes, snapshot pre-existing tests to `.agents/artifacts/stage-6/test_snapshot.json`.
+
 Work through tasks in `execution_order` from `tasks.json`. For each task:
 
 1. Read the task description and file path
 2. Write the complete file to `{{file_path}}`
 3. Confirm: "Written: `{{file_path}}` (N lines)"
+4. Update `.agents/artifacts/stage-6/progress.json`
 
 After all source files are written, read `build_command` and `test_command` from `{{tech_stack_json}}`.
 
 Run the build command. If it fails:
+- Capture stdout/stderr to `.agents/artifacts/stage-6/build.log` and write the exit code to `.agents/artifacts/stage-6/build.exit`
 - Read the error carefully
 - Fix the specific file causing the error
 - Re-run the build command
 - **Do not proceed to Stage 7 until build succeeds**
 
 Run the test command. If tests fail:
+- Capture stdout/stderr to `.agents/artifacts/stage-6/test.log` and write the exit code to `.agents/artifacts/stage-6/test.exit`
+- Run pre-existing tests (from `test_snapshot.json`) and write `.agents/artifacts/stage-6/test_pre.log` + `.agents/artifacts/stage-6/test_pre.exit`
+- Run tests listed in `tasks.json` and write `.agents/artifacts/stage-6/test_new.log` + `.agents/artifacts/stage-6/test_new.exit`
+- If the test runner cannot target specific files, run the full suite once and set `test_mode` to `full-suite`
 - Fix the failing test or the implementation it tests
 - Re-run the test command
 - **Do not proceed to Stage 7 until all tests pass**
+
+If the fix requires modifying another task's file, write `.agents/artifacts/stage-6/cross_task_defects.json` and HALT.
 
 ## Quality Checklist (run before declaring Stage 6 complete)
 

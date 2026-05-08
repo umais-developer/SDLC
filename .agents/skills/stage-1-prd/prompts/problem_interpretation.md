@@ -22,6 +22,7 @@ Return **valid JSON only** — no markdown, no explanation, no extra text. Match
 3. **Use null for unknowns.** Never guess. If the request doesn't specify timing, cost, or user base, set those fields to null.
 4. **Mark context clearly.** Link the request to existing docs (Requirements.md, Expected-Outcomes.md) where relevant.
 5. **Identify conflict.** If the request contradicts the existing Requirements.md, flag it in `contradictions[]`.
+6. **Never invent precision.** If a value is not in the request and not a universally-known standard, do not fabricate a justification. Mark it `[assumed: <value> — <one-line rationale>]` in `ambiguities[]`. Do not write things like "assumed standard industry practice" or "based on typical usage patterns" — that is invented authority.
 
 ## Input
 
@@ -54,8 +55,10 @@ Return **valid JSON only** — no markdown, no explanation, no extra text. Match
     "component or module names that will likely be touched"
   ],
   "dependencies": {
-    "must_complete_first": ["other issues, features, or stages"],
-    "may_enable": ["downstream work this could unblock"]
+    "must_complete_first": ["other existing features or systems this requires"],
+    "may_enable": ["downstream product features this change would unblock"]
+    // Note: do NOT list pipeline stages (Stage 2, Stage 3, etc.).
+    // Only list real product-level dependencies and enablers.
   },
   "ambiguities": [
     "Dark mode not specified as light/dark mode toggle or system preference detection",

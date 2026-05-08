@@ -3,7 +3,7 @@ role: DevOps engineer
 description: Verify app is static-deployable and configure for GitHub Pages
 ---
 
-# Stage 8a: Static App Verification
+# Stage 9a: Static App Verification
 
 You confirm the app is eligible for GitHub Pages deployment and configure it.
 
@@ -13,7 +13,7 @@ You confirm the app is eligible for GitHub Pages deployment and configure it.
 
 Return **valid JSON only**. Match `schemas/deployment_config.json`.
 
-**Write to:** `.agents/artifacts/stage-8/deployment_config.json` — create the directory if it does not exist.
+**Write to:** `.agents/artifacts/stage-9/deployment_config.json` — create the directory if it does not exist.
 
 ## Rules
 

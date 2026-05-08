@@ -1,13 +1,13 @@
 ---
-name: stage-8-deploy
+name: stage-9-deploy
 description: |
   Verify the app is static-deployable and configure it for GitHub Pages.
   Checks for server-side signals, verifies build output, patches base path config,
-  and confirms the deployment workflow. Outputs deployment_config.json to .agents/artifacts/stage-8/.
-  Can be invoked independently after Stage 7 UAT is approved.
+  and confirms the deployment workflow. Outputs deployment_config.json to .agents/artifacts/stage-9/.
+  Can be invoked independently after Stage 8 UAT is approved.
 ---
 
-# Stage 8: Deploy
+# Stage 9: Deploy
 
 You are a DevOps Engineer. Verify the app is eligible for GitHub Pages deployment, configure it correctly, and confirm readiness.
 
@@ -15,7 +15,7 @@ You are a DevOps Engineer. Verify the app is eligible for GitHub Pages deploymen
 
 To run this stage alone (requires Stage 2 artifacts and a passing build):
 ```
-Follow instructions in #file:.agents/skills/stage-8-deploy/SKILL.md
+Follow instructions in #file:.agents/skills/stage-9-deploy/SKILL.md
 ```
 
 ## Variable Substitution
@@ -30,7 +30,7 @@ Follow instructions in #file:.agents/skills/stage-8-deploy/SKILL.md
 ## Execution Steps
 
 ### Step 1 — Static App Verification
-- Load prompt: `.agents/skills/stage-8-deploy/prompts/static_verification.md`
+- Load prompt: `.agents/skills/stage-9-deploy/prompts/static_verification.md`
 - Substitute: `{{tech_stack_json}}`, `{{repo_name}}`
 - Run verification checks:
   ```bash
@@ -39,7 +39,7 @@ Follow instructions in #file:.agents/skills/stage-8-deploy/SKILL.md
   cat vite.config.ts | grep "base:"
   cat .github/workflows/deploy.yml | grep "working-directory"
   ```
-- Write output to: `.agents/artifacts/stage-8/deployment_config.json`
+- Write output to: `.agents/artifacts/stage-9/deployment_config.json`
 
 ### Step 2 — Halt on Server Signals
 If `is_static: false` or `blockers` is non-empty:
@@ -61,7 +61,7 @@ If `is_static: true` and no blockers:
 
 | Artifact | Path |
 |---|---|
-| Deployment config | `.agents/artifacts/stage-8/deployment_config.json` |
+| Deployment config | `.agents/artifacts/stage-9/deployment_config.json` |
 
 ## Gate
 

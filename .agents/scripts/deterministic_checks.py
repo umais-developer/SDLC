@@ -63,7 +63,7 @@ STAGE_RULES: Dict[str, Dict[str, object]] = {
             "**Verdict:**",
         ],
     },
-    "stage7.5": {
+    "stage8": {
         "required_headings": [
             "## Summary",
             "## Test Results by Epic",
@@ -143,7 +143,7 @@ def run_checks(stage: str, artifact: Path) -> Dict[str, object]:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run deterministic stage verification checks.")
-    parser.add_argument("--stage", required=True, help="Stage id, for example: stage1, stage4, stage7.5")
+    parser.add_argument("--stage", required=True, help="Stage id, for example: stage1, stage4, stage8")
     parser.add_argument("--artifact", required=True, help="Path to artifact file")
     parser.add_argument("--json", action="store_true", help="Print machine-readable JSON output")
     args = parser.parse_args()

@@ -7,7 +7,7 @@ description: Break down goals into epics and user stories with acceptance criter
 
 You break down the functional requirements into epics and user stories.
 
-**Your job:** Translate FR/NFR/goals into concrete, testable user stories. NOT to write code or design UIs.
+**Your job:** Decompose FRs that need decomposition into implementation-trackable stories. Do NOT invent personas, research, or UI design.
 
 ## Output Contract
 
@@ -17,13 +17,22 @@ Return **valid JSON only**. Match `schemas/stories.json`.
 
 ## Rules
 
-1. **Every FR gets coverage.** Each functional requirement must map to at least one story.
-2. **Stories are testable.** Acceptance criteria must be binary (pass/fail) — not subjective.
-3. **Explicit traceability.** Each story references its FR and GOAL by ID.
-4. **Reasonable scope.** A story should be completable in 1–3 days. Larger chunks are epics, not stories.
-5. **No implementation details.** Stories describe *what*, not *how*. "User can click Step" — not "Call `tick()` in UIController."
+1. **Decompose only when needed.** Use decomposition triggers from `problem_json`/inputs; do not restate story-grain FRs.
+2. **Stories are testable.** Acceptance criteria must be binary (pass/fail) and a subset/refinement of the linked FR acceptance criteria. Use a bullet list.
+3. **Explicit traceability.** Each story references FR/NFR/CON/GOAL IDs, plus relevant flow IDs and component names.
+4. **Epics are optional.** Use epics only when there are 4+ related stories.
+5. **No implementation details.** Stories describe *what*, not *how*.
+6. **Anti-hallucination rule.** Do not invent personas, research, or generic “standard patterns.”
+7. **No story points** unless explicitly required by the PRD.
+8. **Large only:** add `depends_on` with story IDs where a dependency exists.
+9. **Large only:** include a `traceability_matrix`. Omit it for Medium.
 
 ## Input
+
+**Problem context (from Stage 1 problem.json):**
+```
+{{problem_json}}
+```
 
 **Goals and requirements (from Stage 1b goals.json):**
 ```
@@ -33,6 +42,11 @@ Return **valid JSON only**. Match `schemas/stories.json`.
 **User flows (from Stage 3a flows.json):**
 ```
 {{flows_json}}
+```
+
+**Components (from Stage 2b components.json):**
+```
+{{components_json}}
 ```
 
 ## Output Format
@@ -57,7 +71,6 @@ Return **valid JSON only**. Match `schemas/stories.json`.
   "stories": [
     {
       "id": "S-1.1",
-      "epic": "E-1",
       "title": "Toggle cell alive/dead by clicking canvas",
       "as_a": "user",
       "i_want": "to click a cell on the grid to toggle it alive or dead",
@@ -69,14 +82,8 @@ Return **valid JSON only**. Match `schemas/stories.json`.
         "Live cell count decrements by 1 after making a cell dead",
         "Step button becomes enabled after the first live cell is drawn on an empty grid"
       ],
-      "story_points": 3,
-      "links_to": { "fr": ["FR-1"], "goal": ["GOAL-1"] },
-      "test_cases": [
-        "T: Click empty cell → verify cell colour changes to green",
-        "T: Click again → verify cell colour returns to dark",
-        "T: Check live count increments/decrements",
-        "T: Empty grid → click cell → Step button enabled"
-      ]
+      "links_to": { "fr": ["FR-1"], "goal": ["GOAL-1"], "flow": ["FLOW-1"] },
+      "components": ["GridRenderer", "InputController"]
     },
     {
       "id": "S-2.1",
@@ -91,14 +98,8 @@ Return **valid JSON only**. Match `schemas/stories.json`.
         "Step button is disabled while simulation is running",
         "Step button is disabled when grid is empty"
       ],
-      "story_points": 2,
-      "links_to": { "fr": ["FR-1", "FR-2"], "goal": ["GOAL-1"] },
-      "test_cases": [
-        "T: Paused + live cells → Step → generation = prev + 1",
-        "T: Running → Step button is disabled",
-        "T: Empty grid → Step button is disabled",
-        "T: Isolated cell → Step → cell dies (underpopulation rule)"
-      ]
+      "links_to": { "fr": ["FR-1", "FR-2"], "goal": ["GOAL-1"], "flow": ["FLOW-2"] },
+      "components": ["SimulationEngine", "ControlsPanel"]
     }
   ],
 

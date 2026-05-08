@@ -3,7 +3,7 @@ name: "UAT Test Execution Plan"
 description: "Master test plan partitioning for parallel UAT sub-agents"
 ---
 
-# Stage 7: UAT Test Execution Strategy
+# Stage 8: UAT Test Execution Strategy
 
 ## Overview
 
@@ -48,7 +48,7 @@ npm run test:e2e -- tests/e2e/mechanics.e2e.ts
 - [ ] All scoring tests pass
 - [ ] All growth tests pass
 
-**Output**: `.agents/artifacts/stage-7/uat_results_mechanics.json`
+**Output**: `.agents/artifacts/stage-8/uat_results_mechanics.json`
 
 ## Subagent 2: Replay System Tests
 
@@ -79,7 +79,7 @@ npm run test:e2e -- tests/e2e/replay.e2e.ts
 - [ ] Ghost snake visible during replay
 - [ ] localStorage persistence works
 
-**Output**: `.agents/artifacts/stage-7/uat_results_replay.json`
+**Output**: `.agents/artifacts/stage-8/uat_results_replay.json`
 
 ## Subagent 3: UI & Input Tests
 
@@ -111,7 +111,7 @@ npm run test:e2e -- tests/e2e/ui.e2e.ts
 - [ ] Reverse direction validation prevents self-collision
 - [ ] Display updates are timely
 
-**Output**: `.agents/artifacts/stage-7/uat_results_ui.json`
+**Output**: `.agents/artifacts/stage-8/uat_results_ui.json`
 
 ## Subagent 4: Edge Cases & Performance
 
@@ -141,13 +141,13 @@ npm run test:e2e -- tests/e2e/edge-cases.e2e.ts
 - [ ] Performance acceptable (60 FPS maintains)
 - [ ] Storage limits respected
 
-**Output**: `.agents/artifacts/stage-7/uat_results_edge.json`
+**Output**: `.agents/artifacts/stage-8/uat_results_edge.json`
 
 ## Result Aggregation
 
 After all 4 subagents complete:
 
-**Master Results File**: `.agents/artifacts/stage-7/uat_results_master.json`
+**Master Results File**: `.agents/artifacts/stage-8/uat_results_master.json`
 ```json
 {
   "timestamp": "2024-01-15T14:30:00Z",
@@ -166,7 +166,7 @@ After all 4 subagents complete:
 }
 ```
 
-**Compiled Report**: `.agents/artifacts/stage-7/uat-results_final.md`
+**Compiled Report**: `.agents/artifacts/stage-8/uat-results_final.md`
 - Human-readable summary
 - Test count table
 - Per-test results grouped by suite
@@ -175,7 +175,7 @@ After all 4 subagents complete:
 
 ## Gate Logic
 
-**Verification Script**: `python .github/prompts/verify/uat_gate.py .agents/artifacts/stage-7/uat_results_master.json`
+**Verification Script**: `python .agents/skills/stage-8-uat/verify/uat_gate.py .agents/artifacts/stage-8/`
 
 Exit codes:
 - `0` → ✅ All tests passed, project ready

@@ -7,7 +7,7 @@ description: Map out user flows from trigger to completion
 
 You map the primary and edge-case user flows for the feature.
 
-**Your job:** Define every path a user can take through the feature — happy path, error path, edge cases. NOT to design visuals or write copy.
+**Your job:** Define every path a user can take through the feature — happy path and realistic edge cases. Do NOT design visuals.
 
 ## Output Contract
 
@@ -17,13 +17,19 @@ Return **valid JSON only**. Match `schemas/flows.json`.
 
 ## Rules
 
-1. **Cover every user goal.** Each FR from Stage 1 needs at least one flow.
+1. **Cover every user-facing goal.** Each user-facing FR from Stage 1 needs at least one flow. Skip FRs that describe internal-only behavior (recording, persistence, background processing).
 2. **Name states, not screens.** Flows describe user intent and system state — not pixel layouts.
-3. **Include error paths.** What happens when the user does something invalid? The system must respond.
-4. **Accessibility first.** Every flow must be completable by keyboard only (no mouse required).
+3. **Include error paths only when realistic.** Do not invent errors just to satisfy a template.
+4. **Keyboard paths only when required.** If goals.json includes accessibility/keyboard NFRs, every flow must include a `keyboard_path`. Otherwise it is optional.
 5. **Define the trigger.** Each flow starts with a user action, not a system event.
+6. **Anti-hallucination rule.** Do not invent user research or personas. Tie each UX decision to a requirement ID.
 
 ## Input
+
+**Problem context (from Stage 1 problem.json):**
+```
+{{problem_json}}
+```
 
 **Goals and requirements (from Stage 1b goals.json):**
 ```
@@ -100,3 +106,7 @@ Return **valid JSON only**. Match `schemas/flows.json`.
   "ambiguities": []
 }
 ```
+
+**Optional fields:** omit `error_paths` if there are no realistic error cases. Omit `keyboard_path` unless accessibility/keyboard NFRs require it.
+
+**links_to definition:** list the `FR-X`, `NFR-Y`, `CON-Z`, or `GOAL-X` IDs from `goals.json` that this flow implements.

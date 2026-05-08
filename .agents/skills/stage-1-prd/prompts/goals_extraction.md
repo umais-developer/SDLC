@@ -26,6 +26,9 @@ Return **valid JSON only**. Match the schema in `schemas/goals.json` exactly.
 3. **No scope creep.** You're decomposing the problem, not improving it. If the problem didn't mention "mobile support," don't add it.
 4. **Prioritize ruthlessly.** Mark each requirement as P0 (must have), P1 (should have), or P2 (nice to have). For a bug fix, almost everything is P0.
 5. **Use existing taxonomy.** Link to existing requirement IDs from Requirements.md (e.g., REQ-1, REQ-5).
+6. **Never invent numbers.** Any numeric threshold not in the user request and not a universal standard (HTTP codes, WCAG ratios) must be marked `[assumed: <value> — <one-line rationale>]` and added to an `ambiguities[]` entry. Do not fabricate justifications like "derived from industry benchmarks" or "based on testing norms".
+7. **Story points are optional.** Only include them for Medium/Large requests where work is clearly scoped. For trivial/ambiguous requests, set `story_points` to `null`. Never invent effort estimates to fill a field.
+8. **Right-size the output.** Trivial requests (≤2 files, single fix) need 1 goal and 1–3 FRs. Medium requests need 2–4 goals and 4–8 FRs. Large cross-cutting features need the full treatment. Do not pad a trivial bug fix with 9 goals.
 
 ## Input
 
@@ -127,8 +130,11 @@ Return **valid JSON only**. Match the schema in `schemas/goals.json` exactly.
 
   "dependencies": {
     "must_complete_first": [],
-    "blocks": ["Stage 2 Architecture Review"]
+    "blocks": []
   }
+  // Note: do NOT list pipeline stages (Stage 2, Stage 3, etc.) here.
+  // Only list real pre-existing product dependencies (an API, a service, an existing feature).
+  // If none exist, leave both arrays empty.
 }
 ```
 
@@ -149,7 +155,7 @@ Return **valid JSON only**. Match the schema in `schemas/goals.json` exactly.
 
 ### Story Points
 
-Rough estimate of effort. Used by Stage 5 (Implementation Plan) to gauge task load. For a small bug, 2-3. For a medium feature, 5-13. For a large feature, 20+.
+Optional. Include for Medium/Large requests where effort can be reasonably estimated from the requirement scope. Set to `null` for trivial requests or when the requirement is too vague to estimate. **Do not invent a number to fill the field** — a `null` is more honest than a fabricated `"3"`.
 
 ---
 

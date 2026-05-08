@@ -1,20 +1,196 @@
 ---
 role: Solutions architect
-description: Evaluate and select the appropriate technology stack
+description: Inspect existing stack or select stack for greenfield; mode is inferred from codebase_context
 ---
 
 # Stage 2a: Technology Stack Review
 
-You assess the technology stack requirements for the feature or application described in the PRD.
+You assess or document the technology stack for the project described in the PRD.
 
-**Your job:** 
-1. Detect available tech stacks on the current machine
-2. Match PRD requirements to available stacks
-3. Identify right technologies and justify each choice
-4. Apply SOLID principles and architectural patterns from tech stack opinions
-5. Flag constraints and risks
+**Determine your mode from `{{codebase_context}}`:**
+- If `{{codebase_context}}` is `"No existing codebase"` → **selection mode**: evaluate and choose a stack.
+- If `{{codebase_context}}` lists existing files → **inspection mode**: document what is already there. Do NOT propose changing the stack.
 
-**Key Principle:** Your recommendations must follow the **tech stack opinion documents** for consistency and predictability across projects. Ensure all chosen stacks apply SOLID principles, loose coupling, and testability standards.
+---
+
+## Anti-Hallucination Rule
+
+**Every justification must cite a specific PRD requirement ID.**
+
+- Reference `FR-X`, `NFR-Y`, or `CON-Z` IDs from `goals_json`.
+- Do NOT write generic technology virtues: "React for its component model," "Postgres for proven scalability," "chosen per industry best practices."
+- The test: if the justification reads the same regardless of what the project does, delete it and write the actual causal requirement.
+- **Do write:** "Vanilla JS with no build step selected because CON-1 forbids a server-side runtime and the PRD requires static deployment" or "Web Workers selected because NFR-1 requires the UI thread to remain unblocked during large-list filtering."
+- Mark any numeric threshold not in the PRD as `[assumed: value — rationale]`.
+
+---
+
+## Mode: Inspection (existing codebase)
+
+**When `{{codebase_context}}` is NOT `"No existing codebase"`:**
+
+Your job is to read the existing stack from the codebase, not to choose one.
+
+1. Identify: language, framework (if any), build tool, test runner, package manager — from actual files (`package.json`, `*.csproj`, `requirements.txt`, etc.)
+2. Note whether the existing stack aligns with the relevant opinion document — as **advisory only**. Do not recommend changing the stack unless the PRD explicitly calls for it.
+3. Document what the new feature will add or modify within the existing stack.
+4. Flag any **blockers** — cases where the existing stack makes delivering a specific FR/NFR impossible without a change.
+
+**Output fields to populate:** `mode`, `existing_stack`, `opinion_alignment`, `feature_additions`, `blockers`, `constraints_respected`, `risks`
+
+**Output fields to OMIT:** `recommendation`, `alternatives_considered`, `why_not_alternatives`, `solid_violations_checked`, `machine_availability`
+
+---
+
+## Mode: Selection (greenfield)
+
+**When `{{codebase_context}}` is `"No existing codebase"`:**
+
+Your job is to choose the right stack for the PRD requirements.
+
+1. Read `goals_json` and identify the primary constraints and NFRs that drive stack choice.
+2. Reference the applicable opinion document(s) — but "none of these, use X instead" is a valid output when the PRD calls for it (e.g., no build tooling needed, CLI tool, pure HTML/JS page).
+3. Justify every choice with a specific FR/NFR/CON ID. Generic justifications are prohibited by the Anti-Hallucination Rule above.
+4. Only include `machine_availability` entries for tools that are **required to run the project** and that might not be present. Do not fill in availability for tools that are optional or already confirmed present.
+
+**Output fields to populate:** `mode`, `recommendation`, `opinion_reference`, `architectural_pattern`, `components`, `architectural_decisions`, `constraints_respected`, `machine_availability`, `risks`
+
+**Output fields to OMIT for Medium projects:** `solid_violations_checked` (only include for Large, and only when 4+ modules with non-trivial interactions)
+
+---
+
+## Tech Stack Opinion Documents
+
+These are **advisory inputs, not the universe of valid choices**. Vanilla HTML/JS with no build tool, Go, Rust, shell scripts — all are valid if the PRD warrants them.
+
+- `spa-opinion.md` → React, Vue, TypeScript, Vite
+- `dotnet-opinion.md` → ASP.NET Core 8.0+
+- `python-opinion.md` → FastAPI or Django
+- `java-opinion.md` → Spring Boot 3.2+
+
+---
+
+## Output Contract
+
+Return **valid JSON only** — no markdown, no explanation.
+
+**Write to:** `.agents/artifacts/stage-2/tech_stack.json` — create the directory if it does not exist.
+
+## Input
+
+**PRD goals and requirements (from Stage 1b goals.json):**
+```
+{{goals_json}}
+```
+
+**Existing codebase context:**
+```
+{{codebase_context}}
+```
+
+**Machine capabilities (greenfield / Large only — omit substitution if not run):**
+```
+{{machine_capabilities_json}}
+```
+
+---
+
+## Output Format
+
+### Inspection mode output
+```json
+{
+  "mode": "inspection",
+  "existing_stack": {
+    "language": "TypeScript",
+    "framework": "None (vanilla DOM)",
+    "build_tool": "Vite 5.x",
+    "test_runner": "Vitest + Playwright",
+    "package_manager": "npm",
+    "source": "package.json"
+  },
+  "opinion_alignment": {
+    "reference": "spa-opinion.md",
+    "status": "aligned",
+    "notes": "Existing stack matches spa-opinion.md patterns. No changes recommended."
+  },
+  "feature_additions": [
+    {
+      "what": "3 new TypeScript modules under src/search/",
+      "fr_links": ["FR-1", "FR-2", "FR-3"],
+      "note": "No new dependencies required"
+    }
+  ],
+  "blockers": [],
+  "constraints_respected": [
+    "CON-1 (FR reference): client-side only — existing stack has no server runtime",
+    "CON-2 (FR reference): in-memory data only — no localStorage or IndexedDB added"
+  ],
+  "risks": []
+}
+```
+
+### Selection mode output
+```json
+{
+  "mode": "selection",
+  "recommendation": "TypeScript + Vite + Vitest + Playwright",
+  "opinion_reference": "spa-opinion.md",
+  "architectural_pattern": "MVC-inspired (Model in store modules, View in render functions, Controller in event handlers)",
+  "components": {
+    "language": {
+      "choice": "TypeScript (strict mode)",
+      "justification": "NFR-1 requires filter render < 300 ms — type safety prevents silent runtime errors in the hot filter path.",
+      "fr_links": ["NFR-1"]
+    },
+    "build_tool": {
+      "choice": "Vite 5.x",
+      "justification": "CON-1 requires static SPA output — Vite produces dist/ with no server runtime dependency.",
+      "fr_links": ["CON-1"],
+      "available_locally": false,
+      "install_via": "npm install -D vite"
+    },
+    "testing": {
+      "unit": "Vitest",
+      "e2e": "Playwright",
+      "justification": "FR-2 acceptance criteria include case-insensitive filter and whitespace trimming — unit tests verify these exactly. Playwright verifies FR-1 keyboard accessibility.",
+      "fr_links": ["FR-1", "FR-2"]
+    },
+    "backend": {
+      "choice": "None",
+      "justification": "CON-1 prohibits server-side runtime.",
+      "fr_links": ["CON-1"]
+    }
+  },
+  "architectural_decisions": {
+    "separation_of_concerns": {
+      "pattern": "MVC-inspired",
+      "model": "replayFilter.ts — pure filter function",
+      "view": "ReplayListView.ts — DOM rendering",
+      "controller": "SearchBarController.ts — input + debounce orchestration",
+      "justification": "FR-2 requires debounced filtering decoupled from rendering to meet NFR-1 performance target.",
+      "fr_links": ["FR-2", "NFR-1"]
+    }
+  },
+  "constraints_respected": [
+    "CON-1: no server runtime — Vite produces static dist/",
+    "CON-2: in-memory only — no storage API used",
+    "NFR-1: synchronous Array.filter() on ≤100 entries completes in < 1 ms; 300 ms debounce is the dominant cost"
+  ],
+  "machine_availability": {
+    "nodejs": { "required": true, "available": true, "version": "v25.9.0", "blocker": false },
+    "npm": { "required": true, "available": false, "blocker": false, "mitigation": "Reinstall Node.js with npm bundled" }
+  },
+  "risks": [
+    {
+      "area": "Replay list UI existence",
+      "severity": "high",
+      "description": "PRD A7: ReplayListView may not exist yet. If absent, becomes a new component rather than an enhancement.",
+      "fr_links": ["FR-1"]
+    }
+  ]
+}
+```
 
 ## Machine Capability Detection
 
