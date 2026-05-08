@@ -1,4 +1,0 @@
-- role: system
-  content: "file://../../../../.github/prompts/plan-story.prompt.md"
-- role: user
-  content: "{{request}}\n\n[Eval context: no workspace tools are available. Do not call any tools or attempt to explore the workspace. Write the document directly from the information provided above.]"

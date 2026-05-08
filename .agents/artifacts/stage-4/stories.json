@@ -1,0 +1,657 @@
+{
+  "epics": [
+    {
+      "id": "E-1",
+      "name": "Core Game Engine",
+      "description": "Snake movement, collision detection, food consumption mechanics",
+      "stories": ["S-1.1", "S-1.2", "S-1.3", "S-1.4"]
+    },
+    {
+      "id": "E-2",
+      "name": "Game State & Scoring",
+      "description": "Score tracking, speed management, game lifecycle",
+      "stories": ["S-2.1", "S-2.2", "S-2.3"]
+    },
+    {
+      "id": "E-3",
+      "name": "Game UI Controls",
+      "description": "Buttons and menus for game flow (new, pause, resume, stop, replay list)",
+      "stories": ["S-3.1", "S-3.2", "S-3.3", "S-3.4", "S-3.5"]
+    },
+    {
+      "id": "E-4",
+      "name": "State Recording & Persistence",
+      "description": "Serialize game states for replay, persist completed games to storage",
+      "stories": ["S-4.1", "S-4.2", "S-4.3"]
+    },
+    {
+      "id": "E-5",
+      "name": "Replay Playback",
+      "description": "Display replay list, playback at variable speeds, bit-exact accuracy verification",
+      "stories": ["S-5.1", "S-5.2", "S-5.3", "S-5.4"]
+    },
+    {
+      "id": "E-6",
+      "name": "Ghost Snake Overlay",
+      "description": "Render ghost snake during replay, simultaneous live game and replay without interference",
+      "stories": ["S-6.1", "S-6.2", "S-6.3"]
+    },
+    {
+      "id": "E-7",
+      "name": "Input Handling",
+      "description": "Arrow key buffering, prevent reverse direction in single move",
+      "stories": ["S-7.1", "S-7.2"]
+    },
+    {
+      "id": "E-8",
+      "name": "Canvas Rendering",
+      "description": "Draw grid, snake, food, ghost snake on HTML5 Canvas",
+      "stories": ["S-8.1", "S-8.2", "S-8.3"]
+    }
+  ],
+
+  "stories": [
+    {
+      "id": "S-1.1",
+      "epic": "E-1",
+      "title": "Snake moves in response to arrow key input",
+      "as_a": "player",
+      "i_want": "to press arrow keys to control the snake's movement direction",
+      "so_that": "I can navigate the snake toward food and avoid collisions",
+      "acceptance_criteria": [
+        "Snake moves up when Up arrow is pressed and held",
+        "Snake moves down when Down arrow is pressed and held",
+        "Snake moves left when Left arrow is pressed and held",
+        "Snake moves right when Right arrow is pressed and held",
+        "Direction change takes effect on the next game tick (not immediately)",
+        "Multiple direction presses are queued, only latest valid direction executed per tick"
+      ],
+      "story_points": 5,
+      "links_to": { "fr": ["FR-1"], "goal": ["GOAL-1"] },
+      "test_cases": [
+        "T: Press Up → snake moves up on next tick",
+        "T: Press Right → snake moves right on next tick",
+        "T: Press Down, then Up → snake moves down (buffer respects order)",
+        "T: Press Right, then Left within same tick → snake does not reverse (see S-7.2)"
+      ]
+    },
+    {
+      "id": "S-1.2",
+      "epic": "E-1",
+      "title": "Snake grows when it consumes food",
+      "as_a": "player",
+      "i_want": "the snake to grow by one segment when it eats food",
+      "so_that": "my snake becomes longer and the game becomes harder",
+      "acceptance_criteria": [
+        "When snake head touches food, food is consumed",
+        "Snake length increases by 1",
+        "New body segment appears at previous head position",
+        "Tail does not move (snake extends, not just translates)"
+      ],
+      "story_points": 3,
+      "links_to": { "fr": ["FR-3"], "goal": ["GOAL-1"] },
+      "test_cases": [
+        "T: Snake length 3, eat food → length becomes 4",
+        "T: Head at food position → food removed, new segment at prev head",
+        "T: Multiple food consumptions → snake length increases each time"
+      ]
+    },
+    {
+      "id": "S-1.3",
+      "epic": "E-1",
+      "title": "Food spawns at random empty grid cells",
+      "as_a": "player",
+      "i_want": "food to appear at random locations on the grid",
+      "so_that": "the game remains unpredictable and engaging",
+      "acceptance_criteria": [
+        "Food spawns at game start at random empty cell",
+        "After food is consumed, new food spawns at different random empty cell",
+        "Food never spawns on any segment of the snake",
+        "Food never spawns outside grid boundaries",
+        "Food position is random (not biased to edges or center)"
+      ],
+      "story_points": 3,
+      "links_to": { "fr": ["FR-3"], "goal": ["GOAL-1"] },
+      "test_cases": [
+        "T: Game start → food appears on grid",
+        "T: Eat food → new food appears at different location",
+        "T: Run 10 games → food positions vary",
+        "T: Large snake → food spawns on empty cell, never on snake"
+      ]
+    },
+    {
+      "id": "S-1.4",
+      "epic": "E-1",
+      "title": "Collision detection ends game",
+      "as_a": "player",
+      "i_want": "the game to end when the snake hits a wall or itself",
+      "so_that": "I understand when I've failed and can try again",
+      "acceptance_criteria": [
+        "Game ends when snake head moves beyond grid boundary",
+        "Game ends when snake head occupies same cell as any body segment",
+        "Game-over state prevents further input and movement",
+        "Score and final length are displayed"
+      ],
+      "story_points": 3,
+      "links_to": { "fr": ["FR-2"], "goal": ["GOAL-1"] },
+      "test_cases": [
+        "T: Snake at right edge → move right → collision, game ends",
+        "T: Snake coiled → move into self → collision, game ends",
+        "T: Post-collision → arrow key pressed → no effect",
+        "T: Game-over → final score displayed"
+      ]
+    },
+    {
+      "id": "S-2.1",
+      "epic": "E-2",
+      "title": "Score increments when food is consumed",
+      "as_a": "player",
+      "i_want": "to see my score increase by 1 each time I eat food",
+      "so_that": "I can track my progress and compare with previous games",
+      "acceptance_criteria": [
+        "Score starts at 0",
+        "Score increments by 1 after each food consumption",
+        "Score is displayed on screen during active game",
+        "Score is preserved in replay metadata"
+      ],
+      "story_points": 2,
+      "links_to": { "fr": ["FR-4"], "goal": ["GOAL-1"] },
+      "test_cases": [
+        "T: Game start → score = 0",
+        "T: Eat food → score = 1",
+        "T: Eat 5 foods → score = 5",
+        "T: Game over → final score matches total foods eaten"
+      ]
+    },
+    {
+      "id": "S-2.2",
+      "epic": "E-2",
+      "title": "Speed increases as snake grows",
+      "as_a": "player",
+      "i_want": "the game to get faster as my snake grows longer",
+      "so_that": "the challenge scales with my progress",
+      "acceptance_criteria": [
+        "Initial game speed is 5 FPS (200ms per tick)",
+        "Speed increases by 1 FPS for each food item consumed",
+        "Speed does not exceed 15 FPS (physical cap for playability)",
+        "Speed change is reflected in game tick rate on next food consumption"
+      ],
+      "story_points": 3,
+      "links_to": { "fr": ["FR-5"], "goal": ["GOAL-1"] },
+      "test_cases": [
+        "T: Game start → FPS = 5",
+        "T: Eat 1 food → FPS = 6",
+        "T: Eat 10 foods → FPS = 15 (capped)",
+        "T: Tick timing confirms FPS change"
+      ]
+    },
+    {
+      "id": "S-2.3",
+      "epic": "E-2",
+      "title": "Track game lifecycle (start, play, pause, end)",
+      "as_a": "player",
+      "i_want": "the game state to transition correctly through play/pause/end",
+      "so_that": "I have full control over the game flow",
+      "acceptance_criteria": [
+        "Game transitions from Menu → Playing when 'New Game' clicked",
+        "Game transitions from Playing → Paused when 'Pause' clicked",
+        "Game transitions from Paused → Playing when 'Resume' clicked",
+        "Game transitions from any state → Menu when 'Stop' clicked",
+        "Game automatically transitions to ended state on collision"
+      ],
+      "story_points": 3,
+      "links_to": { "fr": ["FR-1"], "goal": ["GOAL-1"] },
+      "test_cases": [
+        "T: Menu → New Game → Playing state",
+        "T: Playing → Pause → Paused state, grid frozen",
+        "T: Paused → Resume → Playing state continues",
+        "T: Playing → Stop → Menu state",
+        "T: Collision → Ended state, score saved"
+      ]
+    },
+    {
+      "id": "S-3.1",
+      "epic": "E-3",
+      "title": "New Game button initializes fresh game",
+      "as_a": "player",
+      "i_want": "to start a fresh game by clicking 'New Game'",
+      "so_that": "I can play multiple rounds",
+      "acceptance_criteria": [
+        "Button click starts new game with snake at center, 3 segments",
+        "Food spawns at random empty cell",
+        "Score resets to 0",
+        "Speed resets to 5 FPS",
+        "Generation counter resets to 0",
+        "Game immediately begins ticking"
+      ],
+      "story_points": 2,
+      "links_to": { "fr": ["FR-12"], "goal": ["GOAL-1"] },
+      "test_cases": [
+        "T: Click New Game → game starts, snake visible at center",
+        "T: Previous game score = 10 → New Game → score = 0",
+        "T: New Game → button label changes to 'Pause'"
+      ]
+    },
+    {
+      "id": "S-3.2",
+      "epic": "E-3",
+      "title": "Pause and Resume buttons control game tick",
+      "as_a": "player",
+      "i_want": "to pause the game, then resume it from where I paused",
+      "so_that": "I can take a break without losing progress",
+      "acceptance_criteria": [
+        "Pause button stops game ticking and input processing",
+        "Grid state is preserved exactly",
+        "Pause button label changes to 'Resume'",
+        "Resume button continues from paused state without loss",
+        "Resume button label changes back to 'Pause'"
+      ],
+      "story_points": 2,
+      "links_to": { "fr": ["FR-12"], "goal": ["GOAL-1"] },
+      "test_cases": [
+        "T: Pause → grid frozen, tick stopped",
+        "T: Pause → Resume → game continues from exact state",
+        "T: Pause, move snake → no effect until Resume"
+      ]
+    },
+    {
+      "id": "S-3.3",
+      "epic": "E-3",
+      "title": "Stop button returns to main menu",
+      "as_a": "player",
+      "i_want": "to stop the current game and return to the menu",
+      "so_that": "I can play a different game or view replays",
+      "acceptance_criteria": [
+        "Stop button halts game or replay immediately",
+        "Game state is cleared from canvas",
+        "Main menu is displayed with 'New Game' and 'View Replays' buttons",
+        "Game in progress is NOT recorded to replay list if stopped mid-play"
+      ],
+      "story_points": 2,
+      "links_to": { "fr": ["FR-12"], "goal": [] },
+      "test_cases": [
+        "T: Playing → Stop → menu appears",
+        "T: Paused → Stop → menu appears",
+        "T: Replay playing → Stop → menu appears, replay ended"
+      ]
+    },
+    {
+      "id": "S-3.4",
+      "epic": "E-3",
+      "title": "View Replays button displays replay list",
+      "as_a": "player",
+      "i_want": "to see a list of my completed games",
+      "so_that": "I can select one to watch as a replay",
+      "acceptance_criteria": [
+        "Clicking 'View Replays' shows list of completed games",
+        "Each replay entry shows score, timestamp, and duration",
+        "List is sorted by timestamp (newest first)",
+        "Empty message shown if no replays exist",
+        "Each replay has a delete option"
+      ],
+      "story_points": 3,
+      "links_to": { "fr": ["FR-7"], "goal": ["GOAL-2"] },
+      "test_cases": [
+        "T: No games completed → 'No replays available'",
+        "T: 3 games played → list shows 3 entries with scores",
+        "T: Replay list sorted newest first"
+      ]
+    },
+    {
+      "id": "S-3.5",
+      "epic": "E-3",
+      "title": "Delete button removes replay from list and storage",
+      "as_a": "player",
+      "i_want": "to delete old replays to manage storage space",
+      "so_that": "I can keep only my best games",
+      "acceptance_criteria": [
+        "Delete button appears next to each replay in list",
+        "Clicking delete shows confirmation dialog",
+        "Confirming deletion removes replay from list and localStorage",
+        "Cancelled deletion leaves replay intact"
+      ],
+      "story_points": 2,
+      "links_to": { "fr": ["FR-7"], "goal": ["GOAL-2"] },
+      "test_cases": [
+        "T: List has replay → click delete → confirm → replay gone",
+        "T: Delete → cancel → replay still in list"
+      ]
+    },
+    {
+      "id": "S-4.1",
+      "epic": "E-4",
+      "title": "Serialize complete game state each tick",
+      "as_a": "system",
+      "i_want": "to capture every game state during play",
+      "so_that": "accurate replays can be generated",
+      "acceptance_criteria": [
+        "Every game tick is recorded with snake position, food position, score, generation",
+        "Recording includes player input sequence for deterministic replay",
+        "Serialization format is compact (< 100KB for 100-tick game)",
+        "No data loss during recording"
+      ],
+      "story_points": 5,
+      "links_to": { "fr": ["FR-6"], "goal": ["GOAL-2"] },
+      "test_cases": [
+        "T: Play 50 ticks → 50 states recorded",
+        "T: Each state includes snake, food, score",
+        "T: Replay all states → produces original game"
+      ]
+    },
+    {
+      "id": "S-4.2",
+      "epic": "E-4",
+      "title": "Save completed game to replay list and localStorage",
+      "as_a": "system",
+      "i_want": "to persist completed games for future replay",
+      "so_that": "players can watch replays across sessions",
+      "acceptance_criteria": [
+        "When game ends, final recording is saved to localStorage",
+        "Recording includes metadata: score, timestamp, duration",
+        "Replay metadata appears in replay list immediately",
+        "localStorage persists across browser session restarts"
+      ],
+      "story_points": 3,
+      "links_to": { "fr": ["FR-6", "FR-7"], "goal": ["GOAL-2"] },
+      "test_cases": [
+        "T: Game ends → replay appears in list",
+        "T: Browser restart → replay list preserved",
+        "T: Multiple games → all appear in list"
+      ]
+    },
+    {
+      "id": "S-4.3",
+      "epic": "E-4",
+      "title": "Handle localStorage quota exceeded gracefully",
+      "as_a": "player",
+      "i_want": "to know when storage is full and manage space",
+      "so_that": "I don't lose game data due to quota limits",
+      "acceptance_criteria": [
+        "When localStorage quota exceeded, warning is displayed",
+        "Player is prompted to delete old replays",
+        "Delete option is offered to free space"
+      ],
+      "story_points": 2,
+      "links_to": { "fr": ["FR-6"], "goal": ["GOAL-2"] },
+      "test_cases": [
+        "T: Many games saved → storage full → warning appears",
+        "T: Delete replay → space freed, new recording succeeds"
+      ]
+    },
+    {
+      "id": "S-5.1",
+      "epic": "E-5",
+      "title": "Select a replay from list and begin playback",
+      "as_a": "player",
+      "i_want": "to click a replay and watch it play automatically",
+      "so_that": "I can review my previous games",
+      "acceptance_criteria": [
+        "Clicking a replay in list starts automatic playback",
+        "Playback begins at 1× speed (normal game speed)",
+        "Ghost snake animates through all recorded states",
+        "Speed controls are visible during playback"
+      ],
+      "story_points": 3,
+      "links_to": { "fr": ["FR-7"], "goal": ["GOAL-2"] },
+      "test_cases": [
+        "T: Select replay → playback starts immediately",
+        "T: Replay progresses frame by frame",
+        "T: Speed controls visible and responsive"
+      ]
+    },
+    {
+      "id": "S-5.2",
+      "epic": "E-5",
+      "title": "Playback speed controls (0.5×, 1×, 2×, 4×)",
+      "as_a": "player",
+      "i_want": "to adjust replay playback speed",
+      "so_that": "I can watch in slow motion or fast forward",
+      "acceptance_criteria": [
+        "Speed control buttons visible during replay: 0.5×, 1×, 2×, 4×",
+        "Clicking a speed multiplier updates playback immediately",
+        "0.5× plays at half speed (slower for analysis)",
+        "4× plays at 4× speed (faster overview)",
+        "Current speed is visually highlighted"
+      ],
+      "story_points": 3,
+      "links_to": { "fr": ["FR-7"], "goal": ["GOAL-2"] },
+      "test_cases": [
+        "T: Replay at 1× → click 2× → playback speeds up",
+        "T: Replay at 2× → click 0.5× → playback slows down",
+        "T: Speed button shows current selection"
+      ]
+    },
+    {
+      "id": "S-5.3",
+      "epic": "E-5",
+      "title": "Pause and resume replay playback",
+      "as_a": "player",
+      "i_want": "to pause a replay and resume it later",
+      "so_that": "I can analyze specific frames",
+      "acceptance_criteria": [
+        "Pause button stops replay animation",
+        "Grid frozen on current replay frame",
+        "Resume button continues from paused frame",
+        "Manual frame stepping possible while paused"
+      ],
+      "story_points": 2,
+      "links_to": { "fr": ["FR-7"], "goal": ["GOAL-2"] },
+      "test_cases": [
+        "T: Replay playing → Pause → animation stops",
+        "T: Replay paused → Resume → continues from same frame",
+        "T: Paused replay → speed change → works on resume"
+      ]
+    },
+    {
+      "id": "S-5.4",
+      "epic": "E-5",
+      "title": "Verify bit-exact replay accuracy",
+      "as_a": "system",
+      "i_want": "to ensure replayed games produce identical state sequences",
+      "so_that": "replays are trustworthy and deterministic",
+      "acceptance_criteria": [
+        "Replayed game produces same snake positions frame-by-frame as original",
+        "Food positions match exactly at each tick",
+        "Scores match exactly at each tick",
+        "No variation in replay across multiple playbacks"
+      ],
+      "story_points": 3,
+      "links_to": { "fr": ["FR-10"], "goal": ["GOAL-2"] },
+      "test_cases": [
+        "T: Record game → replay twice → both identical",
+        "T: Compare replay frame N with original frame N → match",
+        "T: Verify scores and positions bit-exact across replays"
+      ]
+    },
+    {
+      "id": "S-6.1",
+      "epic": "E-6",
+      "title": "Render ghost snake distinct from live snake",
+      "as_a": "player",
+      "i_want": "to visually distinguish the ghost snake from the live snake",
+      "so_that": "I can follow both game states simultaneously",
+      "acceptance_criteria": [
+        "Ghost snake appears in faded color (lower opacity)",
+        "Live snake appears in solid, vibrant color",
+        "Both snakes are clearly visible on same canvas",
+        "No visual artifacts or overlap confusion"
+      ],
+      "story_points": 3,
+      "links_to": { "fr": ["FR-8"], "goal": ["GOAL-3"] },
+      "test_cases": [
+        "T: Replay running → ghost snake rendered in faded color",
+        "T: Live game overlapped with ghost → both visible, distinct colors",
+        "T: No rendering glitches or performance degradation"
+      ]
+    },
+    {
+      "id": "S-6.2",
+      "epic": "E-6",
+      "title": "Start new live game while replay is running",
+      "as_a": "player",
+      "i_want": "to play a new game while watching a ghost replay simultaneously",
+      "so_that": "I can compare my live strategy with a previous game",
+      "acceptance_criteria": [
+        "New Game button available during active replay",
+        "Clicking New Game starts live game without stopping replay",
+        "Both live snake and ghost snake render on same canvas",
+        "Live game and replay tick independently"
+      ],
+      "story_points": 5,
+      "links_to": { "fr": ["FR-9"], "goal": ["GOAL-3"] },
+      "test_cases": [
+        "T: Replay at 1× → click New Game → live game starts",
+        "T: Live and ghost both visible, moving independently",
+        "T: Input affects only live snake, not ghost"
+      ]
+    },
+    {
+      "id": "S-6.3",
+      "epic": "E-6",
+      "title": "Ensure no collision logic between live and ghost snakes",
+      "as_a": "player",
+      "i_want": "the ghost snake to not interfere with my live game outcome",
+      "so_that": "I can focus on my own gameplay without ghost interference",
+      "acceptance_criteria": [
+        "Ghost snake occupies same cell as live snake without collision",
+        "Live snake collision detection only checks live snake body",
+        "Food consumption only affects live snake, never ghost",
+        "Live game ends only on live snake collision, not ghost collision"
+      ],
+      "story_points": 5,
+      "links_to": { "fr": ["FR-9"], "goal": ["GOAL-3"] },
+      "test_cases": [
+        "T: Live and ghost occupy same cell → no collision",
+        "T: Live snake eats food while ghost is on same cell → only live grows",
+        "T: Live snake dies → game ends, ghost continues"
+      ]
+    },
+    {
+      "id": "S-7.1",
+      "epic": "E-7",
+      "title": "Buffer arrow key input for smooth play",
+      "as_a": "player",
+      "i_want": "my rapid key presses to be queued and processed in order",
+      "so_that": "I don't lose inputs during fast gameplay",
+      "acceptance_criteria": [
+        "Arrow keys are buffered in a queue",
+        "Queue is processed one direction per game tick",
+        "Only the latest direction in queue is executed per tick",
+        "Old directions are discarded if newer ones arrive"
+      ],
+      "story_points": 3,
+      "links_to": { "fr": ["FR-11"], "goal": ["GOAL-1"] },
+      "test_cases": [
+        "T: Press Up, Down rapidly → Down is executed (latest)",
+        "T: Press Left, Up, Right → Right is executed",
+        "T: Input queue processes one per tick"
+      ]
+    },
+    {
+      "id": "S-7.2",
+      "epic": "E-7",
+      "title": "Prevent snake from reversing direction in single move",
+      "as_a": "player",
+      "i_want": "the snake to not reverse into itself due to rapid inputs",
+      "so_that": "I don't accidentally kill myself with a quick key press",
+      "acceptance_criteria": [
+        "Pressing Right then Left rapidly does not cause reverse",
+        "Only the current valid direction is executed",
+        "Invalid reverse direction is ignored or buffered for next tick",
+        "Snake never moves into its own body as a result of input buffering"
+      ],
+      "story_points": 3,
+      "links_to": { "fr": ["FR-11"], "goal": ["GOAL-1"] },
+      "test_cases": [
+        "T: Snake moving Right → press Left → snake continues Right",
+        "T: Snake moving Right → press Left before next tick → no reverse collision",
+        "T: Rapid Right-Left-Right sequence → no self-collision",
+        "T: Correctness bar: rapid input never causes invalid move"
+      ]
+    },
+    {
+      "id": "S-8.1",
+      "epic": "E-8",
+      "title": "Draw grid on HTML5 Canvas",
+      "as_a": "system",
+      "i_want": "to render the 30×30 game grid on canvas",
+      "so_that": "players can see the game state",
+      "acceptance_criteria": [
+        "Canvas displays 30×30 grid cells",
+        "Grid cells are clearly visible and sized consistently",
+        "Grid background is light color for contrast",
+        "Grid dimensions match requirements (30×30)"
+      ],
+      "story_points": 2,
+      "links_to": { "fr": [], "goal": [] },
+      "test_cases": [
+        "T: Canvas loaded → grid visible with correct dimensions",
+        "T: Grid cells are square and evenly spaced",
+        "T: Canvas responsive to window size"
+      ]
+    },
+    {
+      "id": "S-8.2",
+      "epic": "E-8",
+      "title": "Draw live snake and food on canvas",
+      "as_a": "system",
+      "i_want": "to render the live snake segments and food item",
+      "so_that": "players see the current game state",
+      "acceptance_criteria": [
+        "Snake head rendered in solid green",
+        "Snake body segments rendered in slightly lighter green",
+        "Food rendered in red/yellow contrasting color",
+        "Updates on each game tick without lag"
+      ],
+      "story_points": 2,
+      "links_to": { "fr": [], "goal": [] },
+      "test_cases": [
+        "T: New game → snake visible at center, food elsewhere",
+        "T: Move snake → segments follow head",
+        "T: Each tick → snake and food redrawn correctly"
+      ]
+    },
+    {
+      "id": "S-8.3",
+      "epic": "E-8",
+      "title": "Draw ghost snake in faded style on canvas",
+      "as_a": "system",
+      "i_want": "to render ghost snake with lower opacity and optional dash pattern",
+      "so_that": "ghost is visually distinct from live snake",
+      "acceptance_criteria": [
+        "Ghost snake rendered with ~50% opacity",
+        "Ghost snake color similar to live but noticeably faded",
+        "Optional: ghost segments drawn with dashed or dotted outline",
+        "Ghost rendering does not cause performance lag"
+      ],
+      "story_points": 2,
+      "links_to": { "fr": ["FR-8"], "goal": ["GOAL-3"] },
+      "test_cases": [
+        "T: Replay running → ghost snake rendered in faded style",
+        "T: Live + ghost on canvas → both visible, distinguished",
+        "T: No performance degradation with dual rendering"
+      ]
+    }
+  ],
+
+  "traceability_matrix": [
+    { "fr_id": "FR-1", "stories": ["S-1.1", "S-2.3", "S-3.1"] },
+    { "fr_id": "FR-2", "stories": ["S-1.4"] },
+    { "fr_id": "FR-3", "stories": ["S-1.2", "S-1.3"] },
+    { "fr_id": "FR-4", "stories": ["S-2.1"] },
+    { "fr_id": "FR-5", "stories": ["S-2.2"] },
+    { "fr_id": "FR-6", "stories": ["S-4.1", "S-4.2"] },
+    { "fr_id": "FR-7", "stories": ["S-3.4", "S-5.1", "S-5.3"] },
+    { "fr_id": "FR-8", "stories": ["S-6.1", "S-8.3"] },
+    { "fr_id": "FR-9", "stories": ["S-6.2", "S-6.3"] },
+    { "fr_id": "FR-10", "stories": ["S-5.4"] },
+    { "fr_id": "FR-11", "stories": ["S-7.1", "S-7.2"] },
+    { "fr_id": "FR-12", "stories": ["S-3.1", "S-3.2", "S-3.3"] }
+  ],
+
+  "ambiguities": [
+    "Canvas cell size not specified; assumed 10-15px cells for 30×30 grid visibility",
+    "Ghost snake style (dashed vs. opacity) left to implementation; opacity assumed primary distinction",
+    "Food color not specified; assumed red or yellow for contrast with green snake"
+  ]
+}

@@ -1,0 +1,321 @@
+{
+  "components": [
+    {
+      "name": "GridState",
+      "file": "src/engine/GridState.ts",
+      "responsibility": "Represents the game grid; owns snake body segments, food position, and provides query methods",
+      "public_interface": [
+        "width: number (getter)",
+        "height: number (getter)",
+        "snake: [number, number][] (getter - array of [x, y] coordinates)",
+        "food: [number, number] (getter)",
+        "setSnake(segments: [number, number][]): void",
+        "setFood(x: number, y: number): void",
+        "clone(): GridState",
+        "toJSON(): object"
+      ],
+      "state_owned": [
+        "snake: array of [x, y] head and body segments",
+        "food: [x, y] position",
+        "width: number (30)",
+        "height: number (30)"
+      ],
+      "depends_on": [],
+      "justification": "FR-1, FR-3: Grid state must persist between ticks and be queried by collision detector and renderer"
+    },
+    {
+      "name": "SnakeEngine",
+      "file": "src/engine/SnakeEngine.ts",
+      "responsibility": "Handles snake movement logic; updates head position based on direction, grows on food consumption, maintains body segments",
+      "public_interface": [
+        "move(direction: Direction, foodPos: [number, number]): { headX: number, headY: number, grew: boolean }",
+        "grow(): void",
+        "getHead(): [number, number]",
+        "getBody(): [number, number][]"
+      ],
+      "state_owned": [
+        "snake: array of segments",
+        "lastDirection: Direction"
+      ],
+      "depends_on": ["GridState"],
+      "justification": "FR-1: Core snake movement mechanics; FR-5: Must support speed increases as snake grows"
+    },
+    {
+      "name": "CollisionDetector",
+      "file": "src/engine/CollisionDetector.ts",
+      "responsibility": "Detects collisions between snake head and walls or body; determines game-over conditions",
+      "public_interface": [
+        "checkWallCollision(x: number, y: number, gridWidth: number, gridHeight: number): boolean",
+        "checkSelfCollision(head: [number, number], body: [number, number][]): boolean",
+        "checkFoodCollision(head: [number, number], food: [number, number]): boolean"
+      ],
+      "state_owned": [],
+      "depends_on": [],
+      "justification": "FR-2: Collision detection for walls and self-body; determines when game ends"
+    },
+    {
+      "name": "FoodSpawner",
+      "file": "src/engine/FoodSpawner.ts",
+      "responsibility": "Spawns food at random empty grid cells; ensures food does not spawn on snake body",
+      "public_interface": [
+        "spawn(snakeBody: [number, number][], gridWidth: number, gridHeight: number): [number, number]"
+      ],
+      "state_owned": [],
+      "depends_on": [],
+      "justification": "FR-3: Food must appear at random empty cells, never on snake"
+    },
+    {
+      "name": "GameState",
+      "file": "src/engine/GameState.ts",
+      "responsibility": "Tracks game-level state: score, speed, game status (playing/paused/ended), current generation",
+      "public_interface": [
+        "score: number (getter/setter)",
+        "speed: number (getter) - FPS",
+        "status: 'playing' | 'paused' | 'ended' (getter/setter)",
+        "generation: number (getter)",
+        "incrementScore(): void",
+        "updateSpeed(snakeLength: number): number",
+        "incrementGeneration(): void",
+        "reset(): void"
+      ],
+      "state_owned": [
+        "score: number",
+        "speed: number",
+        "status: string",
+        "generation: number"
+      ],
+      "depends_on": [],
+      "justification": "FR-4: Score tracking; FR-5: Speed management based on snake length"
+    },
+    {
+      "name": "InputHandler",
+      "file": "src/input/InputHandler.ts",
+      "responsibility": "Buffers arrow key input to prevent reverse direction in single move; provides direction queue for engine",
+      "public_interface": [
+        "setDirection(direction: Direction): void",
+        "getDirection(): Direction",
+        "onKeyDown(event: KeyboardEvent): void",
+        "onKeyUp(event: KeyboardEvent): void"
+      ],
+      "state_owned": [
+        "inputQueue: Direction[]",
+        "lastDirection: Direction",
+        "keysPressed: Set<string>"
+      ],
+      "depends_on": [],
+      "justification": "FR-11: Prevent rapid key presses from causing reverse direction; only process latest buffered direction per tick"
+    },
+    {
+      "name": "StateSerializer",
+      "file": "src/replay/StateSerializer.ts",
+      "responsibility": "Captures and serializes complete game state for replay recording; enables bit-exact playback",
+      "public_interface": [
+        "serialize(gameState: GameState, gridState: GridState, generation: number): SerializedState",
+        "deserialize(data: SerializedState): { gameState: GameState, gridState: GridState }",
+        "compressStates(states: SerializedState[]): CompressedStates",
+        "decompressStates(compressed: CompressedStates): SerializedState[]"
+      ],
+      "state_owned": [],
+      "depends_on": ["GameState", "GridState"],
+      "justification": "FR-6: Must record all game states for accurate replay; serialization enables persistence to localStorage"
+    },
+    {
+      "name": "ReplayRecorder",
+      "file": "src/replay/ReplayRecorder.ts",
+      "responsibility": "Records complete game from start to end; stores in memory; provides access to replay list",
+      "public_interface": [
+        "recordTick(state: SerializedState): void",
+        "finishGame(timestamp: number): void",
+        "getRecording(): ReplayData",
+        "getPlayedGames(): ReplayMetadata[]",
+        "saveToLocalStorage(): void",
+        "loadFromLocalStorage(): void",
+        "deleteReplay(id: string): void"
+      ],
+      "state_owned": [
+        "currentRecording: SerializedState[]",
+        "playedGames: ReplayMetadata[]"
+      ],
+      "depends_on": ["StateSerializer"],
+      "justification": "FR-6, FR-7: Must record all states and persist completed games for replay selection"
+    },
+    {
+      "name": "ReplayEngine",
+      "file": "src/replay/ReplayEngine.ts",
+      "responsibility": "Plays back recorded game states at variable speeds (0.5×, 1×, 2×, 4×); generates ghost snake for overlay",
+      "public_interface": [
+        "loadReplay(replayData: ReplayData): void",
+        "play(): void",
+        "pause(): void",
+        "stop(): void",
+        "setSpeed(multiplier: 0.5 | 1 | 2 | 4): void",
+        "getCurrentState(): SerializedState",
+        "isFinished(): boolean",
+        "getProgress(): { current: number, total: number }"
+      ],
+      "state_owned": [
+        "currentReplay: ReplayData",
+        "currentFrame: number",
+        "speed: number",
+        "isPlaying: boolean"
+      ],
+      "depends_on": ["StateSerializer"],
+      "justification": "FR-7: Playback at variable speeds; FR-9: Generates independent state for ghost snake overlay"
+    },
+    {
+      "name": "CanvasRenderer",
+      "file": "src/render/CanvasRenderer.ts",
+      "responsibility": "Renders live game and/or ghost replay on HTML5 Canvas; manages colors, cell size, full/partial redraws",
+      "public_interface": [
+        "drawGrid(): void",
+        "drawSnake(snake: [number, number][], color: string, opacity?: number): void",
+        "drawFood(food: [number, number], color?: string): void",
+        "drawGhostSnake(snake: [number, number][], opacity?: number): void",
+        "clear(): void",
+        "setGridDimensions(width: number, height: number, cellSize: number): void",
+        "pixelToGridCell(px: number, py: number): [number, number] | null"
+      ],
+      "state_owned": [
+        "canvas: HTMLCanvasElement",
+        "ctx: CanvasRenderingContext2D",
+        "gridWidth: number",
+        "gridHeight: number",
+        "cellSize: number"
+      ],
+      "depends_on": [],
+      "justification": "NFR-2: 60 FPS rendering on canvas; FR-8: Ghost snake rendered with visual distinction; FR-9: Simultaneous live and ghost rendering"
+    },
+    {
+      "name": "TickScheduler",
+      "file": "src/ui/TickScheduler.ts",
+      "responsibility": "Manages RAF loop; gates tick execution based on speed setting; coordinates game state updates",
+      "public_interface": [
+        "start(): void",
+        "pause(): void",
+        "resume(): void",
+        "step(): void",
+        "setSpeed(fps: number): void",
+        "isRunning: boolean (getter)",
+        "currentGeneration: number (getter)"
+      ],
+      "state_owned": [
+        "rafHandle: number",
+        "lastTickTime: number",
+        "generation: number",
+        "targetTickDuration: number"
+      ],
+      "depends_on": ["SnakeEngine", "GameState", "CollisionDetector", "FoodSpawner"],
+      "justification": "Core game loop; coordinates all engine updates per tick"
+    },
+    {
+      "name": "UIController",
+      "file": "src/ui/UIController.ts",
+      "responsibility": "Wires all DOM events to game engine; manages button states; coordinates display updates; handles game flow (new/pause/resume/stop/replay)",
+      "public_interface": [
+        "initialize(): void",
+        "onTick(generation: number, gameState: GameState, gridState: GridState): void",
+        "onGameEnd(score: number): void",
+        "onReplayFinished(): void",
+        "startNewGame(): void",
+        "pauseGame(): void",
+        "resumeGame(): void",
+        "stopGame(): void",
+        "selectReplay(replayId: string): void",
+        "setReplaySpeed(multiplier: number): void"
+      ],
+      "state_owned": [
+        "gameMode: 'menu' | 'playing' | 'replaying' | 'paused'",
+        "activeReplay: ReplayData | null"
+      ],
+      "depends_on": ["TickScheduler", "CanvasRenderer", "ReplayEngine", "ReplayRecorder", "InputHandler"],
+      "justification": "Central wiring layer between user interactions and game engine; coordinates all subsystems"
+    }
+  ],
+
+  "data_flow": [
+    "User presses arrow key → InputHandler buffers direction",
+    "TickScheduler.tick() → SnakeEngine.move(direction) → GridState updated with new snake position",
+    "CollisionDetector.checkCollisions() → determines game-over or food consumption",
+    "StateSerializer.serialize() → current state captured for replay",
+    "ReplayRecorder.recordTick() → state added to recording array",
+    "CanvasRenderer.draw() → renders live snake, food, ghost snake from ReplayEngine",
+    "On game end → ReplayRecorder finishes recording, saves to localStorage",
+    "On replay selection → ReplayEngine loads states, generates ghost snake in parallel with live game"
+  ],
+
+  "dependency_graph": {
+    "UIController": ["TickScheduler", "CanvasRenderer", "ReplayEngine", "ReplayRecorder", "InputHandler", "GameState"],
+    "TickScheduler": ["SnakeEngine", "GameState", "CollisionDetector", "FoodSpawner", "StateSerializer", "ReplayRecorder"],
+    "SnakeEngine": ["GridState"],
+    "CollisionDetector": [],
+    "FoodSpawner": [],
+    "GameState": [],
+    "InputHandler": [],
+    "StateSerializer": ["GridState", "GameState"],
+    "ReplayRecorder": ["StateSerializer"],
+    "ReplayEngine": ["StateSerializer"],
+    "CanvasRenderer": []
+  },
+
+  "entry_point": "src/main.ts",
+
+  "types": {
+    "Direction": "'up' | 'down' | 'left' | 'right'",
+    "SerializedState": "{ snake: [number, number][], food: [number, number], score: number, generation: number, timestamp: number }",
+    "ReplayData": "{ id: string, timestamp: number, score: number, states: SerializedState[], duration: number }",
+    "ReplayMetadata": "{ id: string, timestamp: number, score: number, duration: number }"
+  },
+
+  "file_structure": [
+    "src/engine/GridState.ts",
+    "src/engine/SnakeEngine.ts",
+    "src/engine/CollisionDetector.ts",
+    "src/engine/FoodSpawner.ts",
+    "src/engine/GameState.ts",
+    "src/input/InputHandler.ts",
+    "src/replay/StateSerializer.ts",
+    "src/replay/ReplayRecorder.ts",
+    "src/replay/ReplayEngine.ts",
+    "src/render/CanvasRenderer.ts",
+    "src/ui/TickScheduler.ts",
+    "src/ui/UIController.ts",
+    "src/main.ts",
+    "src/types.ts",
+    "src/index.html",
+    "src/style.css"
+  ],
+
+  "architectural_principles": [
+    "Separation of concerns: engine (logic), replay (state recording/playback), render (display), ui (wiring)",
+    "Immutability for replay states: each tick produces new SerializedState, old states preserved for replay",
+    "Deterministic replay: same input sequence produces identical sequence of game states (no randomness in moves)",
+    "Independent systems: live game ticking and replay playback operate independently without interference",
+    "Single source of truth: GridState and GameState are canonical; replica state only in serialization"
+  ],
+
+  "testing_strategy": {
+    "unit_tests": [
+      "GridState: snake segment management, cloning",
+      "SnakeEngine: movement in 4 directions, growth on food, boundary wrapping",
+      "CollisionDetector: wall collision, self-collision, food collision detection",
+      "FoodSpawner: random spawn on empty cells, never on snake",
+      "GameState: score increment, speed calculation based on length",
+      "InputHandler: buffering, direction changes, no reverse direction in rapid presses",
+      "StateSerializer: serialization/deserialization roundtrip, completeness",
+      "ReplayEngine: frame advancement, speed multiplier calculation"
+    ],
+    "integration_tests": [
+      "Complete game flow: start → move → eat → grow → speed increase → collision → end",
+      "Replay recording: all ticks recorded, replay states match original",
+      "Input buffering: rapid key presses prevent invalid moves",
+      "Live + ghost: simultaneous play without interference"
+    ],
+    "e2e_tests": [
+      "Launch game → move snake with arrow keys → eat food → verify score and speed",
+      "Complete game → verify saved to replay list",
+      "Select replay → play at 0.5x, 1x, 2x, 4x speeds",
+      "Start new game → start ghost replay → verify coexistence and no collision logic",
+      "Verify bit-exactness: replay produces same sequence of states"
+    ]
+  }
+}
