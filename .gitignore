@@ -24,6 +24,10 @@ env/
 # Stage 6 recovery backups
 .agents/artifacts/stage-6/progress.json.bak.*
 
+# Build output and Node deps (never tracked on any branch)
+node_modules/
+/dist/
+
 # Project-specific implementation code does NOT belong on main.
 # Main is the pipeline-only branch; src/, tests/, requirements, and
 # project requirements docs live on feature branches. The leading slash
