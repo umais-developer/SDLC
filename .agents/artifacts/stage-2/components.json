@@ -1,0 +1,299 @@
+{
+  "entry_point": "src/main.py",
+  "file_structure": [
+    "src/main.py",
+    "src/infrastructure/secrets_provider.py",
+    "src/integrations/mailbox_connector.py",
+    "src/business_logic/email_new_identifier.py",
+    "src/business_logic/pdf_extraction_engine.py",
+    "src/business_logic/data_validator.py",
+    "src/business_logic/job_state_manager.py",
+    "src/persistence/prescription_repository.py",
+    "src/persistence/audit_logger.py",
+    "src/orchestration/intake_orchestrator.py",
+    "src/orchestration/apscheduler_job_runner.py"
+  ],
+  "components": [
+    {
+      "name": "SecretsProvider",
+      "file": "src/infrastructure/secrets_provider.py",
+      "responsibility": "Load mailbox and database credentials from Vault on-demand with rotation support; ensure zero plaintext storage in code/config/env files",
+      "public_interface": [
+        "get_mailbox_credentials() -> Dict[str, str]",
+        "get_database_credentials() -> Dict[str, str]",
+        "rotate_credentials(credential_type: str) -> bool",
+        "is_credentials_expiring_soon() -> bool"
+      ],
+      "state_owned": [
+        "vault_client: VaultClient",
+        "credential_cache: Dict[str, Any]",
+        "last_rotation_timestamp: datetime",
+        "credential_ttl_minutes: int"
+      ],
+      "depends_on": [],
+      "fr_links": ["FR-1", "FR-4"],
+      "nfr_links": ["NFR-6"],
+      "con_links": ["CON-4", "CON-6"],
+      "justification": "Provides secure credential loading required by FR-1 (mailbox connection) and FR-4 (database storage). NFR-6 requires zero plaintext storage and org-standard rotation. CON-4 mandates IAM compliance. CON-6 requires renewability. SecretsProvider centralizes credential lifecycle management ensuring credentials never appear in logs, env files, or source code. Vault client handles rotation programmatically without service interruption."
+    },
+    {
+      "name": "MailboxConnector",
+      "file": "src/integrations/mailbox_connector.py",
+      "responsibility": "Authenticate to Microsoft Graph API using service principal credentials; retrieve emails from designated mailbox with scoped least-privilege access",
+      "public_interface": [
+        "connect() -> bool",
+        "disconnect() -> None",
+        "retrieve_emails(start_date: datetime, end_date: datetime) -> List[EmailMessage]",
+        "is_connected() -> bool",
+        "get_connection_status() -> str"
+      ],
+      "state_owned": [
+        "graph_client: GraphServiceClient",
+        "mailbox_id: str",
+        "scope_restrictions: List[str]",
+        "connection_state: str",
+        "last_connection_attempt_timestamp: datetime"
+      ],
+      "depends_on": ["SecretsProvider"],
+      "fr_links": ["FR-1", "FR-12"],
+      "nfr_links": ["NFR-2"],
+      "con_links": ["CON-1", "CON-4", "CON-7"],
+      "justification": "FR-1 requires auto-connect to designated mailbox using scoped credentials. FR-12 requires no human inbox interaction (read-only access, no folder movement). NFR-2 requires every email accounted for (100% enumeration). CON-1 constrains to single mailbox. CON-4 mandates IAM standards (service principal with mailbox-scoped permissions). Connector uses Graph SDK with scoped OAuth2 service principal to achieve least-privilege mailbox-only access; no folder modifications."
+    },
+    {
+      "name": "EmailNewIdentifier",
+      "file": "src/business_logic/email_new_identifier.py",
+      "responsibility": "Track processed email IDs; identify new unprocessed emails; distinguish new emails from previously processed emails across runs",
+      "public_interface": [
+        "identify_new_emails(emails: List[EmailMessage]) -> List[EmailMessage]",
+        "mark_email_processed(email_id: str, run_id: str) -> bool",
+        "get_last_processed_email_id() -> Optional[str]",
+        "get_last_processing_timestamp() -> Optional[datetime]",
+        "is_email_already_processed(email_id: str) -> bool"
+      ],
+      "state_owned": [
+        "processed_email_ids: Set[str]",
+        "last_processed_timestamp: datetime",
+        "processing_cache: Dict[str, ProcessingMetadata]"
+      ],
+      "depends_on": ["PrescriptionRepository"],
+      "fr_links": ["FR-2", "FR-11"],
+      "nfr_links": ["NFR-4", "NFR-5"],
+      "con_links": [],
+      "justification": "FR-2 requires identifying new unprocessed emails with PDF attachments without reprocessing already-seen emails. FR-11 requires safe restart from interruption point at email-by-email granularity. NFR-4 ensures reprocessing never produces duplicates (100% deduplication). NFR-5 enables restart within 1 minute without manual cleanup. EmailNewIdentifier consults PrescriptionRepository audit table for processed email IDs and maintains in-memory cache of processed emails within current run. Enables efficient duplicate detection across interruptions."
+    },
+    {
+      "name": "PDFExtractionEngine",
+      "file": "src/business_logic/pdf_extraction_engine.py",
+      "responsibility": "Extract 23 prescription fields from PDF attachments; detect format anomalies and fail explicitly when PDF is unreadable or malformed",
+      "public_interface": [
+        "extract_fields(pdf_bytes: bytes) -> Dict[str, Any]",
+        "validate_pdf_format(pdf_bytes: bytes) -> Tuple[bool, str]",
+        "get_supported_field_names() -> List[str]",
+        "detect_format_change(extracted_fields: Dict[str, Any]) -> bool"
+      ],
+      "state_owned": [
+        "expected_field_schema: Dict[str, type]",
+        "min_required_fields: int",
+        "format_baseline: Dict[str, Any]",
+        "pdf_parser: pdfplumber.PDF"
+      ],
+      "depends_on": ["DataValidator"],
+      "fr_links": ["FR-3", "FR-13"],
+      "nfr_links": ["NFR-3", "NFR-9"],
+      "con_links": ["CON-2"],
+      "justification": "FR-3 requires extracting all 23 fields: prescription#, patient name, drug name, day supply, total amount, drug type, brand indicator, DAW, origin, prescriber name, status, dispensing date, refill auth, order date, DOB, sex, lot#, patient type, drug class, prescriber NPI, prescriber license, 340B indicator, quantity. FR-13 requires failing explicitly when PDF format becomes unreadable. NFR-3 ensures captured records faithfully reflect source PDF (100% accuracy). NFR-9 mandates 100% detection of malformed PDFs in test suite. CON-2 tolerates minor variations but rejects wholesale format changes. PDFExtractionEngine uses pdfplumber for structured table parsing (best-in-class for prescription forms). Validates schema completeness and detects format drift; fails loudly rather than silently fabricating missing data."
+    },
+    {
+      "name": "DataValidator",
+      "file": "src/business_logic/data_validator.py",
+      "responsibility": "Validate extracted prescription data completeness and correctness; ensure required fields are present and formatted correctly before database write",
+      "public_interface": [
+        "validate_prescription_fields(fields: Dict[str, Any]) -> Tuple[bool, List[str]]",
+        "is_field_present(field_name: str, value: Any) -> bool",
+        "validate_composite_key(prescription_number: str, dispensing_date: datetime) -> bool",
+        "get_validation_errors() -> List[ValidationError]"
+      ],
+      "state_owned": [
+        "validation_rules: Dict[str, ValidationRule]",
+        "required_fields: Set[str]",
+        "validation_errors: List[ValidationError]",
+        "field_type_map: Dict[str, type]"
+      ],
+      "depends_on": [],
+      "fr_links": ["FR-3"],
+      "nfr_links": ["NFR-3"],
+      "con_links": [],
+      "justification": "FR-3 requires faithful reflection of PDF contents without silent data fabrication. NFR-3 mandates 100% accuracy verification (extracted values match source PDF exactly). DataValidator ensures all 23 fields are present and formatted correctly before reaching database. Blocks incomplete or malformed records, enabling audit trail to distinguish between format failures and legitimate data variations."
+    },
+    {
+      "name": "PrescriptionRepository",
+      "file": "src/persistence/prescription_repository.py",
+      "responsibility": "Store prescription records in PostgreSQL; handle deduplication by composite key (prescription#, dispensing_date); update existing records when same prescription received with newer data; maintain audit trail linking records to source emails",
+      "public_interface": [
+        "store_or_update(prescription: Prescription) -> str",
+        "find_by_composite_key(prescription_number: str, dispensing_date: datetime) -> Optional[Prescription]",
+        "get_all_prescriptions() -> List[Prescription]",
+        "get_records_from_email(email_id: str) -> List[Prescription]",
+        "bulk_upsert(prescriptions: List[Prescription]) -> Tuple[int, int]"
+      ],
+      "state_owned": [
+        "db_session: SQLAlchemy.Session",
+        "table_schema: DatabaseSchema",
+        "composite_key_index: str",
+        "audit_trail_reference: str"
+      ],
+      "depends_on": [],
+      "fr_links": ["FR-4", "FR-5", "FR-6"],
+      "nfr_links": ["NFR-3", "NFR-4", "NFR-8"],
+      "con_links": ["CON-3", "CON-5"],
+      "justification": "FR-4 requires storing records in organization's governed database (PostgreSQL). FR-5 mandates deduplication by composite key (prescription#, dispensing_date) with 100% reliability across runs and timing variations. FR-6 requires updating existing records when same prescription received with newer data. NFR-4 ensures reprocessing never produces duplicates (tested with 100+ duplicates and 50+ reprocessed emails). NFR-8 links every stored record to source email ID and PDF attachment for audit traceability. CON-3 specifies composite key semantics. CON-5 restricts database access to tables needed for this capability only. Repository uses SQLAlchemy ORM with native PostgreSQL composite unique constraint (Rx#, dispensing_date). UPSERT logic updates existing records; audit table maintains reference to source email_id for traceability."
+    },
+    {
+      "name": "AuditLogger",
+      "file": "src/persistence/audit_logger.py",
+      "responsibility": "Record run outcomes (start/end times, email/record counts, status, metrics); record email-level processing details (email ID, subject, received date, extract outcome, error classification); maintain audit trail for Compliance and Operations queries",
+      "public_interface": [
+        "create_run_record(run_context: RunContext) -> str",
+        "record_email_processed(email_id: str, subject: str, outcome: str, error_details: Optional[str]) -> str",
+        "finalize_run_record(run_id: str, status: str, metrics: Dict[str, Any]) -> bool",
+        "get_run_by_id(run_id: str) -> RunAuditRecord",
+        "query_email_processing_records(filter: AuditFilter) -> List[EmailAuditRecord]"
+      ],
+      "state_owned": [
+        "db_session: SQLAlchemy.Session",
+        "run_audit_table: str",
+        "email_audit_table: str",
+        "json_logger: structlog.BoundLogger",
+        "active_run_id: Optional[str]"
+      ],
+      "depends_on": [],
+      "fr_links": ["FR-9", "FR-10", "FR-14"],
+      "nfr_links": ["NFR-8", "NFR-10"],
+      "con_links": [],
+      "justification": "FR-9 requires recording run outcomes with start time, end time, email count, record count, overall status (Success/Partial/Failed). FR-10 requires email-level records with email ID, subject, received date, record count, processing outcome, error reason. FR-14 requires retention per organizational audit policy. NFR-8 enables tracing stored records back to source emails and running audits (queryable within 5 minutes). NFR-10 requires explicit failure classification and operator alerting. AuditLogger writes structured JSON audit records to PostgreSQL audit tables plus console/file log output via structlog. Enables Compliance to query by date range, sender, result status, email ID, or record count (5+ dimensions)."
+    },
+    {
+      "name": "JobStateManager",
+      "file": "src/business_logic/job_state_manager.py",
+      "responsibility": "Track processing state at email-by-email granularity; enable safe restart of interrupted runs without producing duplicates; manage resumption point across run interruptions",
+      "public_interface": [
+        "initialize_run_state(run_mode: str, start_date: Optional[datetime]) -> str",
+        "get_resumption_point() -> Optional[str]",
+        "mark_email_as_processed(email_id: str) -> bool",
+        "finalize_run_state(status: str) -> bool",
+        "is_resumable_state_available() -> bool",
+        "get_run_mode() -> str"
+      ],
+      "state_owned": [
+        "current_run_id: str",
+        "current_run_mode: str",
+        "processed_email_ids: Set[str]",
+        "resumption_point_email_id: Optional[str]",
+        "run_start_timestamp: datetime",
+        "state_persistence: Dict[str, Any]"
+      ],
+      "depends_on": ["PrescriptionRepository"],
+      "fr_links": ["FR-7", "FR-8", "FR-11"],
+      "nfr_links": ["NFR-5"],
+      "con_links": [],
+      "justification": "FR-7 requires supporting historical load mode from business-defined start date with safe interruption/resume capability. FR-8 requires daily run mode picking up only new emails since last successful run. FR-11 mandates email-level state tracking for safe restart without duplicates. NFR-5 enables restart within 1 minute without manual cleanup (tested with 100+ interruption scenarios and 0 duplicates across 20 restart tests). JobStateManager persists run state to audit table after each email processes; maintains in-memory state for fast resumption. On restart, queries audit table to find first unprocessed email, enabling resume within seconds."
+    },
+    {
+      "name": "IntakeOrchestrator",
+      "file": "src/orchestration/intake_orchestrator.py",
+      "responsibility": "Main job runner; coordinate all components; execute historical load or daily run mode; manage job lifecycle, error handling, retries, and completion reporting",
+      "public_interface": [
+        "run_historical_load(start_date: datetime) -> RunResult",
+        "run_daily_intake() -> RunResult",
+        "execute_intake_job(run_mode: str, start_date: Optional[datetime]) -> RunResult",
+        "get_last_run_result() -> Optional[RunResult]",
+        "get_job_status() -> str"
+      ],
+      "state_owned": [
+        "mailbox_connector: MailboxConnector",
+        "email_new_identifier: EmailNewIdentifier",
+        "pdf_extraction_engine: PDFExtractionEngine",
+        "prescription_repository: PrescriptionRepository",
+        "audit_logger: AuditLogger",
+        "job_state_manager: JobStateManager",
+        "current_run_context: RunContext",
+        "last_run_result: RunResult"
+      ],
+      "depends_on": ["MailboxConnector", "EmailNewIdentifier", "PDFExtractionEngine", "DataValidator", "PrescriptionRepository", "AuditLogger", "JobStateManager"],
+      "fr_links": ["FR-1", "FR-2", "FR-3", "FR-4", "FR-5", "FR-6", "FR-7", "FR-8", "FR-9", "FR-10", "FR-11", "FR-12", "FR-13", "FR-15"],
+      "nfr_links": ["NFR-1", "NFR-2"],
+      "con_links": [],
+      "justification": "IntakeOrchestrator coordinates execution of all components across both run modes (historical load and daily run). FR-15 requires unattended operation without human intervention; IntakeOrchestrator is triggered by APScheduler and runs without user action. NFR-1 requires daily runs complete on schedule with predictable outcomes. Orchestrator implements data flow: (1) MailboxConnector retrieves emails, (2) EmailNewIdentifier filters to new emails, (3) PDFExtractionEngine extracts fields, (4) DataValidator validates, (5) PrescriptionRepository stores/updates/deduplicates, (6) AuditLogger records outcomes, (7) JobStateManager tracks state for restart safety. On interruption, next run calls JobStateManager.get_resumption_point() and resumes from first unprocessed email."
+    },
+    {
+      "name": "APSchedulerJobRunner",
+      "file": "src/orchestration/apscheduler_job_runner.py",
+      "responsibility": "Integrate APScheduler with IntakeOrchestrator; manage daily job scheduling, execution triggers, persistent job store for restart safety, and retry logic for transient failures",
+      "public_interface": [
+        "start_scheduler() -> bool",
+        "stop_scheduler() -> bool",
+        "schedule_daily_run(hour: int, minute: int) -> str",
+        "reschedule_historical_load(start_date: datetime) -> str",
+        "get_scheduled_jobs() -> List[Job]",
+        "trigger_manual_run() -> RunResult"
+      ],
+      "state_owned": [
+        "scheduler: APScheduler",
+        "executor: ThreadPoolExecutor",
+        "job_store: PersistentJobStore",
+        "retry_policy: RetryPolicy",
+        "scheduled_jobs: Dict[str, Job]"
+      ],
+      "depends_on": ["IntakeOrchestrator"],
+      "fr_links": ["FR-7", "FR-8", "FR-15"],
+      "nfr_links": ["NFR-1"],
+      "con_links": [],
+      "justification": "FR-8 requires daily scheduled operation at fixed business-agreed time. FR-7 supports one-time historical load (reschedulable). FR-15 requires unattended operation without human intervention. NFR-1 requires 99% completion on schedule within service window. APSchedulerJobRunner maintains persistent job store enabling restart safety and state recovery after service interruption. Retry logic handles transient failures (network, temporary database unavailability) without operator action; permanent failures surface to Operations via AuditLogger."
+    }
+  ],
+  "data_flow": [
+    "APSchedulerJobRunner triggers IntakeOrchestrator on daily schedule or manual trigger",
+    "IntakeOrchestrator initializes JobStateManager with run mode (historical or daily) and start date",
+    "MailboxConnector authenticates via SecretsProvider (Graph API OAuth2 service principal) and retrieves emails from designated mailbox",
+    "EmailNewIdentifier filters to new unprocessed emails (consults PrescriptionRepository audit table for processed email IDs)",
+    "For each new email, PDFExtractionEngine extracts 23 prescription fields from PDF attachment",
+    "DataValidator validates completeness and correctness of extracted fields",
+    "PrescriptionRepository stores or updates record, detecting duplicates by composite key (prescription#, dispensing_date); maintains audit reference to source email",
+    "AuditLogger records email processing outcome (success/partial/failed) with error details",
+    "JobStateManager marks email as processed in audit table, enabling resumption from interruption",
+    "On run completion, IntakeOrchestrator finalizes run record with status, metrics, and email/record counts",
+    "AuditLogger records run outcome (Success/Partial/Failed) with completion timestamp",
+    "On interruption, next scheduled run calls JobStateManager.get_resumption_point(), retrieves first unprocessed email ID from audit table, and resumes processing from that point without duplicating already-processed emails"
+  ],
+  "layer_boundaries": {
+    "persistence_layer": "PrescriptionRepository, AuditLogger, JobStateManager — exclusive access to PostgreSQL. Enforce composite unique constraint on (prescription_number, dispensing_date). Maintain audit tables: runs, email_processing, processed_email_tracking.",
+    "business_logic_layer": "PDFExtractionEngine, DataValidator, EmailNewIdentifier — encapsulate extraction, validation, and deduplication logic. Stateless or minimally stateful (caching only).",
+    "integration_layer": "MailboxConnector, SecretsProvider — encapsulate external system integration (Graph API, Vault). Shield business logic from API changes.",
+    "orchestration_layer": "IntakeOrchestrator, APSchedulerJobRunner — coordinate component interactions, manage job lifecycle, error handling, and retry logic."
+  },
+  "dependency_graph": {
+    "APSchedulerJobRunner": ["IntakeOrchestrator"],
+    "IntakeOrchestrator": ["MailboxConnector", "EmailNewIdentifier", "PDFExtractionEngine", "DataValidator", "PrescriptionRepository", "AuditLogger", "JobStateManager"],
+    "MailboxConnector": ["SecretsProvider"],
+    "EmailNewIdentifier": ["PrescriptionRepository"],
+    "PDFExtractionEngine": ["DataValidator"],
+    "DataValidator": [],
+    "PrescriptionRepository": [],
+    "AuditLogger": [],
+    "JobStateManager": ["PrescriptionRepository"],
+    "SecretsProvider": []
+  },
+  "test_strategy_per_component": {
+    "SecretsProvider": "Unit: Mock Vault client, verify credentials loaded with correct scope; verify credential expiration detection; verify rotation triggers on TTL. Integration: Test with real Vault instance, verify credentials rotated every 90 days without service interruption.",
+    "MailboxConnector": "Unit: Mock Graph SDK, verify OAuth2 authentication with service principal; verify mailbox ID scoped correctly; verify zero access to non-designated mailboxes. Integration: Test with Graph API sandbox, retrieve test emails, verify no folder modifications occur.",
+    "EmailNewIdentifier": "Unit: Mock PrescriptionRepository, verify processed email IDs cached correctly; verify new emails identified; verify already-processed emails filtered. Integration: Test with 100 emails, process once, reprocess same batch, verify 0 duplicates identified.",
+    "PDFExtractionEngine": "Unit: Test with 50 sample PDFs including well-formed and malformed PDFs; verify all 23 fields extracted correctly from well-formed PDFs; verify format anomalies detected (50+ malformed PDFs tested, 100% detection). Integration: Test with real prescription PDFs from pharmacy; sample review by Ops to verify accuracy.",
+    "DataValidator": "Unit: Verify required field presence; verify field type validation; verify composite key validation (prescription#, dispensing_date). Integration: Test with extracted fields from PDFExtractionEngine; verify no invalid records reach database.",
+    "PrescriptionRepository": "Unit: Mock SQLAlchemy, verify UPSERT logic updates existing records correctly. Integration: Test with PostgreSQL, load 100+ duplicate prescriptions, verify 100 input records become 1 stored record. Test update scenario: load prescription, reload with updated values, verify record updated not duplicated. Test composite key: (Rx#='123', date='2025-01-15') appears 5 times, verify exactly 1 stored record.",
+    "AuditLogger": "Unit: Mock database, verify run records created with correct structure; verify email records include all 5+ failure details (error reason, email ID, timestamp, field, retry count). Integration: Test query performance — retrieve records for date range in <5 minutes. Test retention: verify records queryable by 5+ dimensions (date, sender, status, email ID, record count).",
+    "JobStateManager": "Unit: Mock PrescriptionRepository, verify state persisted after each email; verify resumption point calculated correctly. Integration: Process 100 emails, interrupt at email #50, restart, verify resumes at email #51 without duplicates (tested across 20+ restart scenarios).",
+    "IntakeOrchestrator": "Integration: End-to-end test with all components. Historical load test: load 100+ historical emails from 3-month cutoff, verify all processed, no duplicates. Daily run test: schedule daily run, verify completes within service window, produces run record. Interruption test: interrupt mid-run, restart, verify resumes correctly. Error handling: inject format failures, connection failures, verify classified and recorded correctly.",
+    "APSchedulerJobRunner": "Integration: Schedule daily job, verify execution at scheduled time. Verify persistent job store survives service restart. Test transient failure retry: simulate network timeout, verify automatic retry without operator action. Test missed run alerting: disable scheduler for 2 days, restart, verify Operations alerted within 24 hours."
+  }
+}

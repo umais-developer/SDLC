@@ -1,0 +1,91 @@
+{
+  "mode": "selection",
+  "recommendation": {
+    "language": "Python",
+    "email_integration": "Microsoft Graph SDK with oauth2-client (or exchangelib for on-prem Exchange) — Justification: Directly supports FR-1 (auto-connect to designated mailbox with scoped credentials), FR-2 (identifies new emails via message ID tracking), and CON-4 (OAuth2 service principal authentication with IAM standards compliance). Graph API provides least-privilege mailbox restriction (NFR-7, CON-1) and token rotation support (CON-6).",
+    "pdf_extraction": "pdfplumber with pdfrw fallback — Justification: Directly supports FR-3 (extract 23 specific fields from structured PDF tables), NFR-3 (100% accuracy extraction from reliably formatted reports), NFR-9 (explicit failure detection and reporting when PDF format deviates from expected structure per CON-2), and CON-2 (handles minor layout variations but fails loudly on major format changes).",
+    "database": "PostgreSQL with SQLAlchemy ORM — Justification: Supports FR-4 (governed database storage with referential integrity), FR-5 (composite unique key Prescription#+Dispensing_date via database constraints), FR-6 (ACID transactions for safe updates), NFR-5 (point-in-time recovery and interruption safety via transaction rollback), NFR-8 (audit tables with foreign keys to trace records to originating emails), and CON-5 (role-based database access limited to schema needed).",
+    "job_orchestration": "APScheduler with persistent job store — Justification: Supports FR-8 (daily scheduled execution), NFR-1 (99% reliability via persistent execution state and built-in retry mechanisms), FR-11 (safe restart from interruption via state tracking at email granularity), and FR-9 (run outcome metrics recording).",
+    "secrets_management": "HashiCorp Vault (recommended) or Azure Key Vault if cloud-hosted — Justification: Supports NFR-6 (credentials never in plain text, rotation without downtime), CON-4 (centralized IAM standards compliance with audit logging), and CON-6 (automated credential rotation on organization's standard cycle). Vault provides platform-agnostic secret rotation, access audit trails, and TTL-based credential expiration.",
+    "audit_logging": "Python structlog with JSON structured logs routed to centralized facility (syslog, ELK, or cloud logging) — Justification: Supports FR-9 (run outcome records with metrics), FR-10 (email audit records with processing outcomes and error classification), NFR-10 (explicit failure recording and alerting), and NFR-9 (fail-loudly behavior with queryable audit trail). JSON structure enables compliance-grade retention and analysis."
+  },
+  "opinion_reference": "python-opinion.md",
+  "architectural_pattern": "Scheduled batch processor with email intake → PDF extraction → database storage → audit logging. Single daily job triggered by APScheduler, maintains processing state in database, records outcomes and failures for Operations/Compliance visibility.",
+  "architectural_decisions": [
+    "Decision 1 — Use Python for core batch application: Python's mature email libraries (Graph SDK, exchangelib), best-in-class PDF table extraction (pdfplumber), and SQLAlchemy ORM provide optimal fit for this data integration workload. Language choice driven by FR-3 (PDF extraction) and tooling maturity for stateful batch processing (FR-11 restart safety). Not selected: .NET would be equally valid but adds Windows platform dependency; Java is overkill for a batch job.",
+    "Decision 2 — Microsoft Graph API for email (not IMAP, not EWS): Graph API is Microsoft's recommended modern API with native OAuth2/service principal support, message ID tracking, and permission scoping to single mailbox (FR-1, NFR-7, CON-1, CON-4). EWS is legacy; IMAP lacks enterprise auth patterns and mailbox-level permission boundaries.",
+    "Decision 3 — pdfplumber for PDF extraction (not iTextSharp, not OCR): pdfplumber is best-in-class for extracting tabular data and detecting structural anomalies, enabling explicit failure-on-format-change behavior required by NFR-9 and CON-2. OCR unnecessary for structured PDFs and introduces hallucination risk (violates NFR-3 faithful accuracy). iTextSharp (more applicable to .NET stack) lacks Python native performance.",
+    "Decision 4 — PostgreSQL for database (not MySQL, not SQL Server): PostgreSQL provides superior ACID compliance, native composite unique constraints (FR-5), and point-in-time recovery (NFR-5). Platform-agnostic (supports on-prem and cloud), free, and mature. SQL Server would be equally valid if locked to .NET stack; MySQL's weaker transaction semantics make it suboptimal for consistency-critical audit requirements (NFR-8).",
+    "Decision 5 — APScheduler for job orchestration (not cron, not Windows Task Scheduler, not cloud functions): APScheduler provides persistent execution state tracking (FR-11), in-process error handling without external dependency, and job execution logs accessible to application code (FR-9, NFR-1). Cron/Task Scheduler lack state persistence for safe restart. Cloud functions add vendor lock-in and latency for daily execution.",
+    "Decision 6 — HashiCorp Vault for secrets management (not env vars, not Azure Key Vault, not Windows Credential Manager): Vault is platform-agnostic, supports programmatic credential rotation (CON-6), maintains audit trail of access (CON-4), and works on any infrastructure (on-prem, cloud, hybrid). Azure Key Vault equally valid if committed to Microsoft cloud; env vars insufficient for CON-6 rotation requirement.",
+    "Decision 7 — Structured JSON logging (not unstructured text logs): Enables FR-10 email audit queries by date/status/sender, supports NFR-10 failure alerting via structured field matching, and provides Compliance-grade retention. Routed to syslog/ELK/cloud logging for centralized analysis.",
+    "Decision 8 — Composite key database constraint for deduplication (not application-level uniqueness check): Database constraint (FR-5 on Prescription# + Dispensing_date) ensures deduplication is ACID-compliant and race-condition-safe across concurrent restarts. Application-level checks are insufficient for NFR-4 (100% deduplication) guarantee.",
+    "Decision 9 — Application-level transaction tracking via email_processing audit table (not relying on email client flags): Email client flags are unreliable and mailbox-dependent (violates FR-12 no-human-interaction requirement). Database-backed processing state (email ID + run timestamp) ensures FR-11 restart safety and FR-10 audit completeness."
+  ],
+  "constraints_respected": [
+    "CON-1: Single designated business mailbox — OAuth2 service principal scoped to single mailbox via Graph API permissions.",
+    "CON-2: Structurally consistent PDF layout (minor variations tolerated) — pdfplumber detects and fails on major format changes; minor layout shifts handled via robust table detection.",
+    "CON-3: Composite key Prescription# + Dispensing_date for deduplication — Database UNIQUE constraint enforces composite key at storage layer (FR-5).",
+    "CON-4: Mailbox access under IAM standards with admin approval — Service principal / OAuth2 credentials managed via Vault with audit trail; no hardcoded secrets.",
+    "CON-5: Database access limited to tables needed — PostgreSQL role grants SELECT/INSERT/UPDATE on prescription and audit tables only; no schema-wide permissions.",
+    "CON-6: Credentials renewable on standard rotation cycle — Vault automation supports TTL-based credential rotation for service principal, database user, and email service principal without application downtime."
+  ],
+  "machine_availability": [
+    "Python 3.9 or later required (verify: python --version)",
+    "PostgreSQL 12 or later required (can be managed service or on-prem; verify: psql --version)",
+    "APScheduler and required dependencies installed via pip (distributed as part of application package)",
+    "Vault or Key Vault access required (must be configured by infrastructure team; application does not provision Vault)"
+  ],
+  "risks": [
+    "Risk 1 — PDF format variations: Prescription PDFs may change layout over time. Mitigation: pdfplumber detects structural anomalies and fails explicitly (NFR-9); processing alerts Operations for manual review and format update decision. Tested with representative PDFs before deployment.",
+    "Risk 2 — Network interruption during email retrieval: Graph API call may timeout mid-run. Mitigation: APScheduler state tracking allows resume from interruption point (FR-11). Retry logic with exponential backoff. Partial run outcome recorded (FR-9).",
+    "Risk 3 — Duplicate message ID handling: If Graph API message ID changes (rare but possible), system may reprocess same email. Mitigation: Composite key deduplication (FR-5) catches duplicates at database constraint layer even if email identified twice.",
+    "Risk 4 — Database constraint violation on composite key: If two different PDFs claim same Prescription# + Dispensing_date, application logic must decide update vs reject. Mitigation: FR-6 defines update semantics; schema supports versioning via audit timestamp.",
+    "Risk 5 — Credential rotation timing: If credentials rotated while run in progress, email/database connections may fail. Mitigation: Vault-managed credentials with TTL > max run duration; rotation triggered during maintenance window outside daily run time.",
+    "Risk 6 — Audit log growth: 100+ emails/day × 365 days = 36K+ audit records/year. Mitigation: Implement log retention policy (e.g., 7-year compliance hold). Archive old logs to cold storage. Partition email_processing table by date range."
+  ],
+  "selected_components": {
+    "language_runtime": "Python 3.11 (latest stable; 3.9+ acceptable)",
+    "email_client": "msgraph-sdk-python (Microsoft Graph) or exchangelib (if on-prem Exchange)",
+    "pdf_parser": "pdfplumber>=0.9.0 with pdfrw fallback",
+    "orm": "SQLAlchemy 2.0 with psycopg2-binary (PostgreSQL driver)",
+    "scheduler": "APScheduler>=3.10.0 with sqlalchemy job store",
+    "secrets": "hvac>=1.2.0 (HashiCorp Vault client)",
+    "logging": "structlog>=23.1.0 with python-json-logger>=2.0.7",
+    "http_client": "requests>=2.31.0 (for Graph API, Vault REST calls)",
+    "database_driver": "psycopg2-binary>=2.9.0 (PostgreSQL native driver)"
+  },
+  "deployment_environment": {
+    "recommended_platform": "Linux container (Docker) or Windows Service",
+    "container_base": "python:3.11-slim (if containerized)",
+    "process_supervisor": "systemd (Linux) or Windows Service (Windows)",
+    "log_destination": "syslog / rsyslog (on-prem) or cloud logging (AWS CloudWatch, Azure Monitor, GCP Logging)",
+    "vault_endpoint": "To be configured by infrastructure team; application expects VAULT_ADDR and VAULT_TOKEN env vars or mTLS cert"
+  },
+  "nfr_alignment": {
+    "NFR-1_reliability": "APScheduler executes daily at configured time with persistent state recovery; built-in retry for transient failures (99% uptime target achievable with retry logic + state persistence).",
+    "NFR-2_completeness": "Email audit tracking in database ensures every retrieved email is accounted for; Graph API message ID uniqueness ensures no emails missed.",
+    "NFR-3_accuracy": "pdfplumber extraction directly from PDF structure (not OCR); validation against schema catches incomplete/malformed records (fail-explicit behavior).",
+    "NFR-4_deduplication": "ACID database constraint on (Prescription# + Dispensing_date) composite key; duplicates rejected at write time regardless of processing order.",
+    "NFR-5_restart_safety": "Email_processing audit table tracks completion state; interrupted run resumes from first unprocessed email without re-running successful ones.",
+    "NFR-6_credential_security": "Vault-managed credentials never in code, config, or env files; application retrieves secrets at runtime via mTLS or token auth.",
+    "NFR-7_mailbox_restriction": "OAuth2 service principal scoped to single mailbox via Graph API permission boundaries; enforced at API call time.",
+    "NFR-8_audit_traceability": "email_processing table stores email_id, subject, received_date, extraction_outcome, record_count; prescription records linked via foreign key to email_processing row.",
+    "NFR-9_fail_explicit": "pdfplumber detects format anomalies and raises exceptions (caught + logged); system never silently produces incomplete records.",
+    "NFR-10_failure_visibility": "Run outcome and email outcome records stored in database; Operations can query failure status by date range; failed runs trigger alerting via structured log matching."
+  },
+  "fr_coverage": {
+    "FR-1": "Microsoft Graph SDK auto-authenticates via service principal; scoped to single mailbox.",
+    "FR-2": "Graph API retrieves all emails; message ID tracking identifies new emails since last run (stored in database).",
+    "FR-3": "pdfplumber extracts 23 fields from PDF table; validation schema ensures all required fields present.",
+    "FR-4": "SQLAlchemy writes to PostgreSQL schema; referential integrity enforced via constraints.",
+    "FR-5": "UNIQUE constraint on (prescription_number, dispensing_date) composite key at database layer.",
+    "FR-6": "ON CONFLICT DO UPDATE logic in INSERT statement handles re-seen prescriptions (update semantics).",
+    "FR-7": "APScheduler supports custom job start date; historical load retrieves emails from cutoff date forward.",
+    "FR-8": "APScheduler daily trigger at configured time; retrieves only emails since last successful run timestamp.",
+    "FR-9": "Run outcome record created per execution with start/end time, email count, record count, status.",
+    "FR-10": "Email processing audit record created per email with identifier, subject, received_date, outcome, error details.",
+    "FR-11": "Email_processing state table tracks completion; restart query identifies first unprocessed email and resumes from there.",
+    "FR-12": "Graph API read-only; no email movement, forwarding, or inbox modification."
+  }
+}

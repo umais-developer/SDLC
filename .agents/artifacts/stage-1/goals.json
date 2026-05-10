@@ -1,0 +1,455 @@
+{
+  "problem_id": "Automate prescription data intake with audit trail and deduplication",
+  
+  "goals": [
+    {
+      "id": "GOAL-1",
+      "description": "Eliminate manual handling of prescription PDF reports arriving by email",
+      "success_criteria": [
+        "Zero manual data entry for prescription PDF processing",
+        "Staff previously handling manual extraction redirected to higher-value work",
+        "Intake process runs unattended on daily schedule"
+      ],
+      "priority": "P0"
+    },
+    {
+      "id": "GOAL-2",
+      "description": "Make prescription data reliably available in a single governed location that the business trusts",
+      "success_criteria": [
+        "All captured records stored in organization's governed database environment",
+        "Data accessible to Operations, Finance, Compliance without requiring access to raw email systems",
+        "Dataset can be relied upon as source of truth for downstream reporting and analytics"
+      ],
+      "priority": "P0"
+    },
+    {
+      "id": "GOAL-3",
+      "description": "Ensure complete capture with no loss and no double-counting of prescription records",
+      "success_criteria": [
+        "Every email with prescription PDF attachment received is accounted for in system",
+        "No prescription records lost due to processing failures without recovery path",
+        "No duplicate records created from reprocessing or retrying emails"
+      ],
+      "priority": "P0"
+    },
+    {
+      "id": "GOAL-4",
+      "description": "Establish verifiable audit trail of data intake for compliance and operational accountability",
+      "success_criteria": [
+        "Every run produces traceable outcome record showing start time, end time, email count, record count, result status",
+        "Every email processed produces record with identifier, subject, received date, extraction outcome, error details",
+        "For any stored prescription record, originating email and PDF can be traced",
+        "Audit records retained in governed environment accessible to Compliance and Operations"
+      ],
+      "priority": "P0"
+    }
+  ],
+
+  "functional_requirements": [
+    {
+      "id": "FR-1",
+      "description": "Automatically connect to designated business mailbox and retrieve emails",
+      "acceptance_criteria": [
+        "System authenticates to designated business mailbox using scoped credentials",
+        "System retrieves all emails sent to mailbox without requiring manual inbox manipulation",
+        "Connection uses least-privilege scoping that restricts access to single designated mailbox only"
+      ],
+      "priority": "P0",
+      "user_facing": false,
+      "links_to": ["Section 7.1 Email Intake", "Section 6.4 Security Requirements"],
+      "story_points": "5"
+    },
+    {
+      "id": "FR-2",
+      "description": "Identify new emails with prescription PDF attachments that have not yet been processed",
+      "acceptance_criteria": [
+        "System identifies only emails not previously processed (no reprocessing of already-seen emails)",
+        "System detects PDF attachments on identified emails",
+        "System distinguishes between new emails and previously processed emails using tracking mechanism"
+      ],
+      "user_facing": false,
+      "priority": "P0",
+      "links_to": ["Section 7.1 Email Intake"],
+      "story_points": "3"
+    },
+    {
+      "id": "FR-3",
+      "description": "Extract 23 specific prescription information fields from PDF attachments",
+      "acceptance_criteria": [
+        "System captures all 23 fields listed in Section 11: Prescription number, Patient name, Drug name, Day supply, Total prescription amount, Drug type, Brand indicator, Dispense-as-written indicator, Prescription origin, Prescriber name, Prescription status, Dispensing date, Refill authorization, Order date, Patient DOB, Patient sex, Lot number, Patient type, Drug class, Prescriber NPI, Prescriber license, 340B indicator, Quantity",
+        "System faithfully reflects contents of source PDF without silent fabrication of missing data",
+        "When source PDF is ambiguous or unreadable, system records failure with reason rather than proceeding with incomplete data"
+      ],
+      "user_facing": false,
+      "priority": "P0",
+      "links_to": ["Section 7.2 Prescription Data Capture", "Section 11 Data Dictionary"],
+      "story_points": "13"
+    },
+    {
+      "id": "FR-4",
+      "description": "Store captured prescription records in organization's governed database environment",
+      "acceptance_criteria": [
+        "System writes all extracted records to designated database schema",
+        "Database write operations enforce referential integrity and data type constraints",
+        "Storage location is controlled under organization's data governance standards"
+      ],
+      "user_facing": false,
+      "priority": "P0",
+      "links_to": ["Section 7.3 Storage and Deduplication"],
+      "story_points": "3"
+    },
+    {
+      "id": "FR-5",
+      "description": "Deduplicate prescription records using composite key of prescription number and dispensing date",
+      "acceptance_criteria": [
+        "If same prescription (same prescription number AND dispensing date) appears in multiple emails or multiple runs, system stores it only once",
+        "System detects duplicate prescriptions before writing to database",
+        "Duplicate detection works reliably regardless of processing order or timing of re-runs"
+      ],
+      "priority": "P0",
+      "user_facing": false,
+      "links_to": ["Section 7.3 Storage and Deduplication", "Section 9.1 Assumptions"],
+      "story_points": "5"
+    },
+    {
+      "id": "FR-6",
+      "description": "Update stored prescription records when same prescription is seen with newer data",
+      "acceptance_criteria": [
+        "When prescription with same (prescription number, dispensing date) is received with updated field values, system updates existing record rather than creating new record",
+        "Updated record reflects latest version of prescription data",
+        "Update operation maintains referential integrity and does not leave dataset in inconsistent state"
+      ],
+      "priority": "P0",
+      "user_facing": false,
+      "links_to": ["Section 7.3 Storage and Deduplication", "Acceptance Criterion 4"],
+      "story_points": "3"
+    },
+    {
+      "id": "FR-7",
+      "description": "Support one-time historical load mode bringing all reports from business-defined cutoff date forward",
+      "acceptance_criteria": [
+        "System can be configured with start date for historical load",
+        "Historical load retrieves all emails received from start date forward",
+        "Historical load may be safely interrupted and resumed from interruption point",
+        "Historical load completes without manual intervention"
+      ],
+      "priority": "P0",
+      "user_facing": true,
+      "links_to": ["Section 7.4 Operating Modes", "Section 12.1 Run Frequency"],
+      "story_points": "5"
+    },
+    {
+      "id": "FR-8",
+      "description": "Support ongoing daily run mode picking up only new emails since last successful run",
+      "acceptance_criteria": [
+        "System can be scheduled to run once per day at business-agreed time",
+        "Daily run identifies and processes only emails received since previous successful run",
+        "Daily run completes without manual intervention",
+        "Daily run produces clear success/partial/failed outcome"
+      ],
+      "priority": "P0",
+      "user_facing": true,
+      "links_to": ["Section 7.4 Operating Modes", "Section 12.1 Run Frequency"],
+      "story_points": "5"
+    },
+    {
+      "id": "FR-9",
+      "description": "Record outcome of each system run with pass/partial/fail status and execution metrics",
+      "acceptance_criteria": [
+        "Each run produces outcome record with: start timestamp, end timestamp, emails examined count, emails processed count, records stored count, overall result status",
+        "Result status is one of: Success (all emails processed), Partial (some processed, some not), Failed (run did not complete)",
+        "Failure reasons are explicitly recorded in run record",
+        "Run outcome records stored in governed database and accessible to Operations and Compliance"
+      ],
+      "priority": "P0",
+      "user_facing": true,
+      "links_to": ["Section 7.5 Audit and Logging", "Section 12.2 Outcomes Communicated"],
+      "story_points": "3"
+    },
+    {
+      "id": "FR-10",
+      "description": "Record details of each email processed including outcome and error information",
+      "acceptance_criteria": [
+        "Each processed email produces audit record with: email identifier, subject line, received date, record count extracted, processing outcome",
+        "If email cannot be processed, record includes error reason and classification (temporary/permanent)",
+        "Email processing records retained in governed database for audit trail",
+        "Compliance can query email processing records by date range, status, or sender"
+      ],
+      "priority": "P0",
+      "user_facing": true,
+      "links_to": ["Section 7.5 Audit and Logging", "Acceptance Criterion 7"],
+      "story_points": "3"
+    },
+    {
+      "id": "FR-11",
+      "description": "Enable safe restart of interrupted runs without producing duplicate records",
+      "acceptance_criteria": [
+        "System tracks processing state at email-by-email granularity",
+        "If run is interrupted, restarting picks up at first unprocessed email",
+        "No duplicate records are created when interrupted run is restarted",
+        "Dataset remains consistent during interruption and recovery"
+      ],
+      "priority": "P0",
+      "user_facing": true,
+      "links_to": ["Section 7.5 Audit and Logging", "Section 12.3 Outcomes", "Acceptance Criterion 5"],
+      "story_points": "8"
+    },
+    {
+      "id": "FR-12",
+      "description": "Operate without human inbox interaction including without moving or forwarding emails",
+      "acceptance_criteria": [
+        "System does not require moving emails between folders",
+        "System does not require forwarding emails",
+        "System tracks processed emails without modifying mailbox state",
+        "No email operations visible in mailbox beyond reading attachments"
+      ],
+      "priority": "P0",
+      "user_facing": false,
+      "links_to": ["Section 7.1 Email Intake"],
+      "story_points": "2"
+    },
+    {
+      "id": "FR-13",
+      "description": "Fail explicitly and clearly when PDF format changes or becomes unreadable",
+      "acceptance_criteria": [
+        "When PDF structure deviates from expected format in way that prevents reliable extraction, system records email as failed or partial rather than proceeding with incomplete data",
+        "Failure is surfaced to Operations so format change can be addressed",
+        "System does not silently produce incorrect records due to format drift"
+      ],
+      "priority": "P0",
+      "user_facing": true,
+      "links_to": ["Section 8 Non-Functional Requirements", "Business Risk: Format Change"],
+      "story_points": "5"
+    },
+    {
+      "id": "FR-14",
+      "description": "Retain audit records of runs and email processing in governed database",
+      "acceptance_criteria": [
+        "All run outcome records retained per organization's audit retention policy",
+        "All email processing records retained per organization's audit retention policy",
+        "Retention configuration is documented and reviewed by Compliance",
+        "Retention purging does not remove records needed to answer audit inquiries"
+      ],
+      "priority": "P0",
+      "user_facing": true,
+      "links_to": ["Section 7.5 Audit and Logging", "Section 12.4 Retention"],
+      "story_points": "2"
+    },
+    {
+      "id": "FR-15",
+      "description": "Operate without human intervention in the mailbox or data processing pipeline",
+      "acceptance_criteria": [
+        "System runs scheduled job without requiring manual trigger or human intervention",
+        "System continues to retry transient failures without requiring operator action",
+        "Permanent failures are surfaced to Operations without blocking future runs"
+      ],
+      "priority": "P0",
+      "user_facing": false,
+      "links_to": ["Section 7.1 Email Intake", "Goal 1"],
+      "story_points": "3"
+    }
+  ],
+
+  "non_functional_requirements": [
+    {
+      "id": "NFR-1",
+      "description": "Daily scheduled runs complete on their scheduled day with predictable outcomes",
+      "acceptance_criteria": [
+        "Daily run scheduled at fixed business-agreed time (e.g., end of business day) completes within service window",
+        "Missed runs are visible to Operations by next business day at latest",
+        "Run outcomes visible in monitoring dashboard and audit trail",
+        "Reliability target: [assumed: 99% of scheduled runs complete successfully in 10+ consecutive business day period]"
+      ],
+      "priority": "P0",
+      "story_points": null
+    },
+    {
+      "id": "NFR-2",
+      "description": "Every email with prescription PDF attachment is accounted for in the system",
+      "acceptance_criteria": [
+        "All emails arriving at designated mailbox are examined in some run",
+        "Each email is classified as: successfully processed, partially processed, or failed with reason",
+        "No emails silently dropped from audit trail",
+        "Audit trail accounts for 100% of emails received"
+      ],
+      "priority": "P0",
+      "story_points": null
+    },
+    {
+      "id": "NFR-3",
+      "description": "Captured records faithfully reflect the contents of source PDF without silent corruption",
+      "acceptance_criteria": [
+        "Extracted field values match source PDF values exactly",
+        "Where source PDF is ambiguous or unreadable, email marked as partial/failed rather than data fabricated",
+        "Accuracy verified through sample review by Pharmacy Operations",
+        "Data fidelity target: [assumed: 100% of readable data captured accurately]"
+      ],
+      "priority": "P0",
+      "story_points": null
+    },
+    {
+      "id": "NFR-4",
+      "description": "Rerunning or retrying emails never produces duplicate records in dataset",
+      "acceptance_criteria": [
+        "Reprocessing already-processed email produces exactly zero additional records (0 duplicates)",
+        "Retrying failed email does not create duplicate if eventually successful (deduplication rate: 100%)",
+        "Re-receiving sent email 5+ times results in exactly 1 stored record (verified in test with 100 duplicate prescriptions)",
+        "Deduplication works across multiple runs and multiple days (tested over 10-day period with 50+ reprocessed emails)"
+      ],
+      "priority": "P0",
+      "story_points": null
+    },
+    {
+      "id": "NFR-5",
+      "description": "Interrupted runs can be safely restarted from interruption point without manual cleanup",
+      "acceptance_criteria": [
+        "Run interrupted mid-processing can be restarted within 1 minute without manual steps",
+        "Restart completes from first unprocessed email without requiring manual dataset cleaning (tested with 100+ interruption scenarios)",
+        "Zero duplicate or partial records left from interrupted segment (verified across 20 restart tests)",
+        "Recovery is fully automated without requiring Compliance or Operations intervention (100% automation rate)"
+      ],
+      "priority": "P0",
+      "story_points": null
+    },
+    {
+      "id": "NFR-6",
+      "description": "Credentials used to access mailbox and database are not stored in plain form and follow organizational rotation standards",
+      "acceptance_criteria": [
+        "Zero instances of mailbox credentials embedded in source code or unencrypted configuration files (verified via code audit)",
+        "Zero instances of database credentials embedded in source code or unencrypted configuration files (verified via code audit)",
+        "100% of credentials stored using organization's standard secrets management (vault/managed identity)",
+        "Credential lifecycle (issue, rotate, retire) follows organizational standards [assumed: 90-day rotation cycle]",
+        "Credential rotation does not interrupt scheduled runs (0 seconds downtime during rotation)"
+      ],
+      "priority": "P0",
+      "story_points": null
+    },
+    {
+      "id": "NFR-7",
+      "description": "Mailbox access is technically restricted to the single designated business mailbox",
+      "acceptance_criteria": [
+        "Zero mailbox access attempts to non-designated mailboxes (100% blocked by authentication layer)",
+        "Mailbox access scoped at authentication layer using service principal or role-based access control",
+        "Scoping verified by Information Security at setup and re-verified annually [assumed: annual review cadence]",
+        "Audit trail shows 100% of mailbox access restricted to designated mailbox only (verified over 30-day period)"
+      ],
+      "priority": "P0",
+      "story_points": null
+    },
+    {
+      "id": "NFR-8",
+      "description": "Any stored record can be traced back to originating email; any run can be audited",
+      "acceptance_criteria": [
+        "100% of stored prescription records include reference to source email ID and PDF attachment",
+        "Compliance can produce list of all records derived from specific email within 5 minutes (query performance)",
+        "For 100% of processing runs, outcome record exists with status and metrics (verified over 30-day period)",
+        "Audit trail queryable by 5+ dimensions: date range, email sender, result status, email ID, record count (tested in UAT)"
+      ],
+      "priority": "P0",
+      "story_points": null
+    },
+    {
+      "id": "NFR-9",
+      "description": "Capability fails clearly and loudly when data integrity would be compromised",
+      "acceptance_criteria": [
+        "When PDF format changes or structure becomes unreadable, system fails rather than producing questionable data (100% detection rate in test with 50 malformed PDFs)",
+        "Failures surfaced to Operations within 4 hours on same business day [assumed: same-day alert requirement]",
+        "Failed processing leaves dataset in consistent state: 0 partial/corrupted records (verified via database integrity check)",
+        "Operator can diagnose root cause from error logs and audit trail within 15 minutes of failure alert (tested in runbook)"
+      ],
+      "priority": "P0",
+      "story_points": null
+    },
+    {
+      "id": "NFR-10",
+      "description": "Failed or partial processing is recorded explicitly and surface to operators",
+      "acceptance_criteria": [
+        "Partial processing (some emails processed, some failed) is classified with status in audit record (Success/Partial/Failed)",
+        "Failures include 5+ details: error reason, email ID, timestamp, failed field, retry count (verified in audit schema)",
+        "Operations receives alert for sustained failures after 3 consecutive failed runs [assumed: 3-run threshold]",
+        "Transient failures generating zero alerts if automatically recovered within 1 hour (tested with connection interruption scenarios)"
+      ],
+      "priority": "P0",
+      "story_points": null
+    }
+  ],
+
+  "constraints": [
+    {
+      "id": "CON-1",
+      "description": "System must use a single designated business mailbox as the sole intake point",
+      "rationale": "BRD Section 9.2 requires use of designated mailbox; Section 5 scope explicitly limits to this single mailbox. Multiple mailbox support would expand scope and create new governance questions."
+    },
+    {
+      "id": "CON-2",
+      "description": "PDF reports must follow structurally consistent layout with tolerance for minor variations only",
+      "rationale": "BRD Section 9.1 assumption: PDF layout is structurally consistent. Wholesale format changes require business and technical review. This constraint prevents silent data corruption from unexpected layouts while allowing tolerance for minor layout drift."
+    },
+    {
+      "id": "CON-3",
+      "description": "Combination of prescription number and dispensing date must serve as uniqueness key for deduplication",
+      "rationale": "BRD Section 9.1 assumption: this composite key is sufficient for uniqueness. Changing deduplication logic would require business review of whether it still represents unique prescriptions."
+    },
+    {
+      "id": "CON-4",
+      "description": "Mailbox access must be granted under organization's identity and access management standards with administrative approval",
+      "rationale": "BRD Section 9.2 and Section 6.4 security requirements. IAM standards ensure least-privilege, auditability, and credential lifecycle management. Bypassing IAM standards creates security and compliance risk."
+    },
+    {
+      "id": "CON-5",
+      "description": "Database access is limited to the tables and operations needed for this capability only",
+      "rationale": "BRD Section 9.2 database scope constraint. Broader access increases security risk and violates least-privilege principle. Section 6.4 specifically requires this scoping."
+    },
+    {
+      "id": "CON-6",
+      "description": "Credentials used by capability must be renewable on organization's standard rotation cycle",
+      "rationale": "BRD Section 9.2 credential management constraint. Enforces consistency with organizational credential lifecycle and reduces risk of long-lived credentials. Section 6.4 requires credential security."
+    }
+  ],
+
+  "out_of_scope": [
+    "Reports arriving by channels other than designated mailbox (paper, fax, other inboxes)",
+    "Downstream reporting, dashboards, or analytics built on captured data",
+    "Changes to how prescription reports are produced or formatted by upstream sources",
+    "Replacement of existing pharmacy management systems",
+    "Support for multiple mailboxes or intake channels",
+    "Automatic format migration or adaptation when PDF structure changes"
+  ],
+
+  "testing_strategy": {
+    "unit_tests": [
+      "PDF field extraction: verify all 23 fields extracted correctly from well-formed PDF",
+      "Deduplication logic: verify (prescription#, dispensing_date) correctly identifies duplicates",
+      "Record update logic: verify existing records updated when same prescription received with new data",
+      "Audit record creation: verify run outcome and email processing records created with correct structure",
+      "Failure classification: verify failures classified correctly as transient vs. permanent",
+      "Retry logic: verify interrupted runs pick up at correct resumption point",
+      "Credential handling: verify credentials not exposed in logs or error messages",
+      "Data validation: verify required fields validated before database write"
+    ],
+    "integration_tests": [
+      "Email retrieval: connect to test mailbox, retrieve test emails with PDF attachments",
+      "PDF extraction end-to-end: retrieve email, extract PDF, parse fields, verify correctness",
+      "Database write: write extracted records to test database, verify persistence and integrity",
+      "Deduplication integration: reprocess same email, verify no duplicates in database",
+      "Update scenario: process email with prescription, then reprocess with updated values, verify update",
+      "Historical load: load 100+ historical test emails, verify all processed and no duplicates",
+      "Daily run: schedule test run, verify completion and audit record creation",
+      "Run interruption: interrupt test run mid-processing, restart, verify no duplicates and correct completion",
+      "Audit trail: verify all emails and runs appear in audit logs with correct timestamps and outcomes"
+    ],
+    "browser_tests": [
+      "Compliance audit query: verify Operations/Compliance users can query run outcomes by date range",
+      "Email processing list: verify Compliance can produce list of emails processed in period with outcomes",
+      "Audit trail review: verify users can trace prescription record back to originating email",
+      "Outcome monitoring dashboard: verify Operations can see pass/partial/fail status of recent runs"
+    ]
+  },
+
+  "dependencies": {
+    "must_complete_first": [],
+    "blocks": [
+      "Stage 2 Architecture depends on these requirements for technology stack decisions (email integration approach, PDF parsing approach, database schema, audit logging framework)"
+    ]
+  }
+}

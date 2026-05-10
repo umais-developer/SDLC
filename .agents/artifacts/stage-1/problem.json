@@ -1,0 +1,85 @@
+{
+  "raw_request": "Create PRD for Prescription Data Capture: Automated Intake of Prescription Reports from Email",
+  "request_type": "feature",
+  "primary_goal": "Automate the intake of prescription data from emailed PDF reports into a governed database, eliminating manual handling and establishing a complete audit trail that ensures every report is captured, deduplicated, and traceable.",
+  "user_pain_point": "Manual extraction of prescription data from PDF attachments does not scale, is error-prone due to manual transcription, and provides no audit trail. The business needs a reliable, verifiable, automated process that frees staff for higher-value work.",
+  "scope_boundaries": {
+    "in_scope": [
+      "Automated retrieval of emails from the designated business mailbox",
+      "Reading and parsing PDF attachments to extract prescription data",
+      "Capturing 23 fields of prescription information per record",
+      "Storing captured records in the organization's governed database",
+      "One-time historical load from a business-defined start date",
+      "Ongoing daily scheduled operation picking up only new emails since last run",
+      "Deduplication: preventing duplicate records when same prescription seen multiple times",
+      "Record updates when newer version of same prescription is received",
+      "Comprehensive audit logging: run records and email-level processing records",
+      "No human inbox interaction required (no forwarding, no folder movement)"
+    ],
+    "out_of_scope": [
+      "Reports arriving by channels other than the designated mailbox (paper, fax, other inboxes)",
+      "Downstream reporting, dashboards, or analytics built on the captured data",
+      "Changes to how prescription reports are produced or formatted by upstream sources",
+      "Replacement of existing pharmacy management systems",
+      "Changes to legacy spreadsheet data handling"
+    ],
+    "ambiguous": [
+      "PDF format: BRD states 'minor variations are tolerated' but does not define tolerance level or what constitutes 'wholesale format change'",
+      "Technology stack: BRD deliberately avoids prescribing implementation details (Section 15)",
+      "Specific 'governed database environment' definition not specified; only that it must be 'organization's governed database'",
+      "Exact daily run time not locked in: BRD says 'end of business day' but no specific hour or timezone defined",
+      "Historical load cutoff date: described as 'business-defined' but not yet agreed (Section 5.1 and 12.1)",
+      "Credential rotation cycle: referenced as 'organization's standard rotation cycle' but exact period not specified (Section 9.2)",
+      "Definition of 'Partial' run outcome conditions (Section 12.2): when does partial occur vs full failure",
+      "Email identification mechanism: how duplicates are recognized; is it message ID, sender+date+subject hash, or other?",
+      "Handling of format edge cases: what happens when PDF is unreadable, garbled, or partially corrupted?"
+    ]
+  },
+  "affected_areas": [
+    "Email intake and mailbox connection layer",
+    "PDF parsing and prescription data extraction engine",
+    "Prescription data validation and transformation logic",
+    "Deduplication and record matching system",
+    "Database storage layer and schema",
+    "Audit logging and run tracking system",
+    "Scheduled job orchestration and execution",
+    "Credential management and lifecycle",
+    "Error handling and retry logic",
+    "Historical data load capability"
+  ],
+  "dependencies": {
+    "must_complete_first": [],
+    "may_enable": [
+      "Downstream reporting and dashboards on prescription data",
+      "Financial and revenue analysis (340B program tracking, volume reporting)",
+      "Compliance and regulatory inquiry responses",
+      "Pharmacy operations insights and analytics",
+      "Audit trail reviews and internal control validation"
+    ]
+  },
+  "ambiguities": [
+    "Technology stack: BRD Section 15 explicitly states implementation details are not prescribed; email retrieval, PDF parsing, and database platform are open choices",
+    "PDF format tolerance: Section 9.1 assumes 'minor variations tolerated' but does not quantify tolerance or define escalation path for format changes",
+    "Cutoff date for historical load: Section 5.1 says 'business-defined start date' but no date is specified; must be negotiated at planning",
+    "Specific daily run time: Section 12.1 says 'end of business day' but no specific hour, timezone, or SLA window defined",
+    "Credential rotation period: Section 9.2 references 'organization's standard rotation cycle' [assumed to be 90 days based on typical corporate standards, but not stated in BRD]",
+    "Mailbox duplication detection: How does system identify if same email was processed before? (Message ID, content hash, sender+date+subject signature?)",
+    "Partial run definition: Section 12.2 defines three outcomes (Success, Partial, Failed) but thresholds for Partial vs Failed are not specified",
+    "PDF corruption handling: What is the fallback behavior if PDF cannot be parsed? (Email recorded as failed, or partial with extracted fields?)",
+    "Record update semantics: When prescription is seen again with updated values, Section 7.3 says record is updated, but 'update' operation is not detailed (overwrite all fields, selective merge, timestamp tracking?)"
+  ],
+  "contradictions": [],
+  "traceability": {
+    "links_to_requirements": [
+      "Section 2: Business Context and Problem Statement — establishes why manual process fails",
+      "Section 3.1: Primary Objectives — four key goals that define success",
+      "Section 5: Scope — clear boundaries of in and out",
+      "Section 7: Functional Capabilities — seven specific business functions to deliver",
+      "Section 8: Non-Functional Requirements — eight quality attributes expected",
+      "Section 9: Assumptions, Constraints, Dependencies — preconditions and limitations",
+      "Section 11: Data Captured Per Prescription — exact 23 fields to be extracted",
+      "Section 13: Acceptance Criteria — eight demonstrations of successful delivery"
+    ],
+    "addresses_expected_outcome": "Complete automation of prescription data intake with verifiable audit trail, deduplication safeguards, and recoverability to ensure data integrity, eliminate manual processing, scale with volume, and provide compliance-grade traceability."
+  }
+}

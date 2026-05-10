@@ -1,0 +1,643 @@
+{
+  "flows": [
+    {
+      "id": "FLOW-1",
+      "name": "Monitor Daily Run Completion (Happy Path)",
+      "trigger": "Operations Manager opens monitoring dashboard",
+      "actor": "Operations Manager",
+      "preconditions": [
+        "Yesterday's scheduled run completed successfully",
+        "Dashboard system is accessible",
+        "Current time is within business hours (9 AM)"
+      ],
+      "steps": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Opens monitoring dashboard"
+        },
+        {
+          "step": 2,
+          "actor": "system",
+          "action": "Displays run status panel showing: 'Yesterday's run: SUCCESS' with metrics (emails examined: 156, records stored: 144, timestamp: 2026-05-08 17:05 UTC)"
+        },
+        {
+          "step": 3,
+          "actor": "system",
+          "action": "Displays scheduled run panel showing: 'Today's scheduled run: PENDING (scheduled for 5 PM)' with countdown timer"
+        },
+        {
+          "step": 4,
+          "actor": "user",
+          "action": "Checks back at 6 PM to verify today's run"
+        },
+        {
+          "step": 5,
+          "actor": "system",
+          "action": "Displays run status panel showing: 'Today's run: SUCCESS' with metrics (emails examined: 163, records stored: 151, timestamp: 2026-05-09 17:07 UTC)"
+        },
+        {
+          "step": 6,
+          "actor": "user",
+          "action": "Observes success status and concludes no action required"
+        }
+      ],
+      "postconditions": [
+        "Operations Manager confirmed daily run succeeded",
+        "Metrics visible and trending stable",
+        "No alerts required"
+      ],
+      "error_paths": [],
+      "links_to": [
+        "FR-8",
+        "FR-9",
+        "NFR-1",
+        "GOAL-1",
+        "GOAL-2"
+      ]
+    },
+    {
+      "id": "FLOW-2",
+      "name": "Alert on Partial Run Failure (Error Path)",
+      "trigger": "Daily run completes with PARTIAL status",
+      "actor": "Operations Manager",
+      "preconditions": [
+        "Daily run executed",
+        "Some emails processed successfully, others encountered errors",
+        "Run outcome recorded in audit system"
+      ],
+      "steps": [
+        {
+          "step": 1,
+          "actor": "system",
+          "action": "Sends alert to Operations via email/dashboard: 'Prescription intake run PARTIAL: 87/100 emails processed, 13 failed. Run ID: RUN-2026-05-09-001'"
+        },
+        {
+          "step": 2,
+          "actor": "user",
+          "action": "Receives alert and navigates to monitoring dashboard"
+        },
+        {
+          "step": 3,
+          "actor": "system",
+          "action": "Displays run detail panel with status=PARTIAL, showing run metrics and failure summary"
+        },
+        {
+          "step": 4,
+          "actor": "user",
+          "action": "Clicks 'View details' or 'Failed emails' section"
+        },
+        {
+          "step": 5,
+          "actor": "system",
+          "action": "Expands failed email list with reasons: 8 emails with 'PDF format unreadable', 3 with 'Network timeout', 2 with 'Malformed attachment'. Each row shows: email ID, sender, received date, error reason, error classification (transient/permanent)"
+        },
+        {
+          "step": 6,
+          "actor": "user",
+          "action": "Reviews errors and decides: transient errors can auto-retry, permanent errors (format change) require investigation"
+        },
+        {
+          "step": 7,
+          "actor": "user",
+          "action": "Clicks 'Retry failed emails' for transient-only subset"
+        },
+        {
+          "step": 8,
+          "actor": "system",
+          "action": "Initiates retry of 3 transient emails; logs operator action 'retry_initiated_by_ops' in audit trail with timestamp and operator ID"
+        },
+        {
+          "step": 9,
+          "actor": "system",
+          "action": "Sends follow-up alert: 'Retry completed: 3/3 emails now processed. 8 permanent failures require investigation.'"
+        },
+        {
+          "step": 10,
+          "actor": "user",
+          "action": "Documents permanent failures in issue tracker for format update investigation"
+        }
+      ],
+      "postconditions": [
+        "Partial failure acknowledged and visible to Operations",
+        "Root cause (transient vs permanent) identified",
+        "Corrective action taken (retry transient, escalate permanent)",
+        "Operator action logged in audit trail per FR-10"
+      ],
+      "error_paths": [
+        {
+          "trigger": "Operations clicks 'Retry failed emails' but no transient errors exist",
+          "system_response": "Retry button disabled or message: 'No transient failures to retry. 13 permanent errors require manual investigation.'"
+        },
+        {
+          "trigger": "Network timeout occurs during retry of failed emails",
+          "system_response": "System logs retry attempt as 'TIMEOUT_RETRY_FAILED', updates run status to PARTIAL again, and sends alert: 'Retry attempt failed. Original 13 failures remain. Recommend escalation.'"
+        }
+      ],
+      "links_to": [
+        "FR-8",
+        "FR-9",
+        "FR-10",
+        "NFR-9",
+        "NFR-10",
+        "FR-13",
+        "GOAL-1"
+      ]
+    },
+    {
+      "id": "FLOW-3",
+      "name": "Query Audit Trail by Date Range (Compliance Reporting)",
+      "trigger": "Compliance Officer needs to produce monthly audit report",
+      "actor": "Compliance Officer",
+      "preconditions": [
+        "Dashboard Audit Trail tab is accessible",
+        "Historical run data available for queried date range",
+        "Compliance user has audit query permissions"
+      ],
+      "steps": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Clicks 'Audit Trail' tab on monitoring dashboard"
+        },
+        {
+          "step": 2,
+          "actor": "system",
+          "action": "Displays query interface with filter options: date range picker (start/end), status dropdown (success/partial/failed/any), sender field, record count range slider"
+        },
+        {
+          "step": 3,
+          "actor": "user",
+          "action": "Enters query parameters: start_date=2026-05-01, end_date=2026-05-31, status=any"
+        },
+        {
+          "step": 4,
+          "actor": "system",
+          "action": "Executes query per FR-10; returns list of 21 run records for May 2026 with columns: Run ID, Start time, End time, Emails examined, Records stored, Status, Error summary (if applicable)"
+        },
+        {
+          "step": 5,
+          "actor": "user",
+          "action": "Reviews run summary and identifies run 5 (May 5, 3:14 PM) to drill down on"
+        },
+        {
+          "step": 6,
+          "actor": "user",
+          "action": "Clicks 'Run 5: 2026-05-05 15:14:00' to expand drill-down"
+        },
+        {
+          "step": 7,
+          "actor": "system",
+          "action": "Displays all 87 emails processed on May 5 with columns: Email ID, Sender, Subject (truncated), Received date, Outcome (success/partial/failed), Records extracted count, Error reason (if failed)"
+        },
+        {
+          "step": 8,
+          "actor": "user",
+          "action": "Clicks email ID 'msg-12345' to view email-level detail"
+        },
+        {
+          "step": 9,
+          "actor": "system",
+          "action": "Displays email audit record: Email ID, Subject, Received date, Sender, Records extracted (3 records), Extraction outcome (success), PDF attachment name, Processing timestamp, Link to PDF preview"
+        },
+        {
+          "step": 10,
+          "actor": "user",
+          "action": "Reviews email detail and record extraction mapping, then closes detail view to return to email list"
+        },
+        {
+          "step": 11,
+          "actor": "user",
+          "action": "Clicks 'Export to CSV' to download audit report"
+        },
+        {
+          "step": 12,
+          "actor": "system",
+          "action": "Generates CSV file 'audit-report-may2026.csv' containing all queried run and email records with full detail, and triggers download to user's device per FR-14"
+        }
+      ],
+      "postconditions": [
+        "Compliance Officer has complete audit trail for May 2026",
+        "Traceability established from each record to source email per NFR-8",
+        "CSV export available for compliance reporting",
+        "Query audited and logged with query parameters and timestamp"
+      ],
+      "error_paths": [
+        {
+          "trigger": "User queries date range with no data (e.g., future dates)",
+          "system_response": "System displays empty result: 'No runs found for 2026-06-01 to 2026-06-30. Adjust date range.'"
+        },
+        {
+          "trigger": "Export to CSV times out for large result set (e.g., 10,000+ records)",
+          "system_response": "System shows: 'Large export queued. Download link will be emailed within 5 minutes.' Queues background job and notifies user via email with download link."
+        }
+      ],
+      "links_to": [
+        "FR-9",
+        "FR-10",
+        "FR-14",
+        "NFR-8",
+        "GOAL-4"
+      ]
+    },
+    {
+      "id": "FLOW-4",
+      "name": "Trigger Historical Load (IT Operations)",
+      "trigger": "Business decides to backfill prescription data from Jan 1, 2024",
+      "actor": "IT Operations",
+      "preconditions": [
+        "System is in ready state (no current run executing)",
+        "Historical load feature enabled per FR-7",
+        "IT Operations has admin panel access"
+      ],
+      "steps": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Logs into admin panel"
+        },
+        {
+          "step": 2,
+          "actor": "system",
+          "action": "Displays admin dashboard with 'Scheduled Runs' section showing 'Daily intake (5 PM)' entry and 'New Manual Run' button"
+        },
+        {
+          "step": 3,
+          "actor": "user",
+          "action": "Clicks 'New Manual Run' button"
+        },
+        {
+          "step": 4,
+          "actor": "system",
+          "action": "Displays mode selection dropdown with options: [Daily run, Historical load]"
+        },
+        {
+          "step": 5,
+          "actor": "user",
+          "action": "Selects 'Historical load'"
+        },
+        {
+          "step": 6,
+          "actor": "system",
+          "action": "Displays form with: Mode=Historical load, and new field 'Start date' with tooltip '(will process all emails from start date to today, inclusive)' and date picker"
+        },
+        {
+          "step": 7,
+          "actor": "user",
+          "action": "Enters 'Start date = 2024-01-01' using date picker"
+        },
+        {
+          "step": 8,
+          "actor": "system",
+          "action": "Calculates email count estimate and displays confirmation modal: 'Historical load will process emails from 2024-01-01 through 2026-05-09 (approx 854 days, estimated 2,105 emails). This may take 4-6 hours. Continue?' with [Confirm] and [Cancel] buttons"
+        },
+        {
+          "step": 9,
+          "actor": "user",
+          "action": "Clicks [Confirm]"
+        },
+        {
+          "step": 10,
+          "actor": "system",
+          "action": "Initiates historical load job; logs run start in audit table per FR-14 with run_id, run_type='historical_load', start_date='2024-01-01', status='RUNNING'"
+        },
+        {
+          "step": 11,
+          "actor": "system",
+          "action": "Displays real-time progress panel: 'Processing: 347/2,105 emails (16%). Elapsed: 47 min. Processed: 331 records. ETA: 3 hours 52 minutes.'"
+        },
+        {
+          "step": 12,
+          "actor": "user",
+          "action": "Observes progress and closes admin panel; background job continues executing"
+        },
+        {
+          "step": 13,
+          "actor": "system",
+          "action": "Continues processing emails, logging each email outcome per FR-10 to audit table, maintaining email-by-email state tracking per FR-11"
+        },
+        {
+          "step": 14,
+          "actor": "system",
+          "action": "On completion after 5 hours 23 minutes, sends completion alert: 'Historical load completed: 2,105 emails processed, 2,087 records stored (18 duplicates detected and skipped per FR-5). Run ID: RUN-HIST-2024-01-01-001. Status: SUCCESS.' Updates run record in audit table with end_timestamp, status='SUCCESS', metrics."
+        }
+      ],
+      "postconditions": [
+        "Historical load completed from Jan 1, 2024 through May 9, 2026",
+        "All 2,105 emails accounted for per NFR-2",
+        "No duplicates introduced per NFR-4",
+        "Full audit trail of load recorded per FR-14",
+        "Dataset now contains 36 months of historical prescription records"
+      ],
+      "error_paths": [
+        {
+          "trigger": "User enters future start date (e.g., 2027-01-01)",
+          "system_response": "System displays validation error: 'Start date cannot be in the future. Enter date on or before today (2026-05-09).'"
+        },
+        {
+          "trigger": "System encounters network timeout during historical load at email 1,247/2,105",
+          "system_response": "System logs email 1,247 as 'PROCESSING_FAILED' with error_reason='Network timeout', marks run as PARTIAL, sends alert to IT Operations: 'Historical load PARTIAL at 59% (1,247/2,105). Network timeout at 2026-05-09 14:32 UTC. Resume from interruption? [Resume] [Investigate]' per FLOW-5"
+        }
+      ],
+      "links_to": [
+        "FR-7",
+        "FR-9",
+        "FR-10",
+        "FR-14",
+        "NFR-2",
+        "NFR-4",
+        "GOAL-3"
+      ]
+    },
+    {
+      "id": "FLOW-5",
+      "name": "Recover from Interrupted Run (Restart Safety)",
+      "trigger": "Historical load is running and gets interrupted (e.g., database connection lost)",
+      "actor": "IT Operations (automated recovery with manual confirmation)",
+      "preconditions": [
+        "Historical load or daily run is executing per FR-7 or FR-8",
+        "System has checkpointed email state in audit table per FR-11",
+        "Connection loss or infrastructure failure occurs mid-run"
+      ],
+      "steps": [
+        {
+          "step": 1,
+          "actor": "system",
+          "action": "Detects connection loss at email 1,247 of 2,105 during historical load"
+        },
+        {
+          "step": 2,
+          "actor": "system",
+          "action": "Catches exception, logs run state to audit table: run_id='RUN-HIST-...', status='PARTIAL', last_processed_email_id='msg-1247', last_processed_email_index=1246, error_reason='Database connection timeout', timestamp=2026-05-09 14:32 UTC per FR-10"
+        },
+        {
+          "step": 3,
+          "actor": "system",
+          "action": "Sends alert to IT Operations and Compliance: 'Prescription historical load PARTIAL at 59% (1,247/2,105 emails). Last error: Database connection timeout at 2026-05-09 14:32 UTC. Restart from interruption point? [Resume from interruption] [Investigate first]' with run_id link"
+        },
+        {
+          "step": 4,
+          "actor": "user",
+          "action": "Receives alert and clicks [Resume from interruption]"
+        },
+        {
+          "step": 5,
+          "actor": "system",
+          "action": "Queries audit table: 'SELECT last_processed_email_id FROM runs WHERE run_id='RUN-HIST-...' AND status='PARTIAL'' → returns 'msg-1247' and next_unprocessed='msg-1248'"
+        },
+        {
+          "step": 6,
+          "actor": "system",
+          "action": "Updates run_status='RESUMING' in audit table and resumes email retrieval starting from email_index=1247 (msg-1248 onward)"
+        },
+        {
+          "step": 7,
+          "actor": "system",
+          "action": "Processes remaining 858 emails (from 1,248 to 2,105), extracting records and logging each to audit table with email_id, outcome, records_extracted, no duplication logic triggered because email_id already tracked per FR-11"
+        },
+        {
+          "step": 8,
+          "actor": "system",
+          "action": "On successful resume and completion, sends confirmation: 'Historical load RESUMED and COMPLETED: 1,247 emails already processed (previous run), 858 emails newly processed (this resume). Total 2,105 emails processed, 2,087 records stored (18 duplicates skipped). Status: SUCCESS.'"
+        },
+        {
+          "step": 9,
+          "actor": "system",
+          "action": "Updates run record: status='SUCCESS', end_timestamp=2026-05-09 19:55 UTC, total_elapsed=5 hours 23 minutes (including interruption time)"
+        }
+      ],
+      "postconditions": [
+        "Run resumed safely from interruption point (email 1,247/2,105) per FR-11",
+        "Zero duplicate records introduced per NFR-4 (no emails 1-1247 reprocessed)",
+        "Audit trail complete showing original attempt, failure, and successful resume per FR-10",
+        "Dataset remains consistent throughout interruption and recovery per NFR-5",
+        "IT Operations can audit exact recovery sequence via audit table"
+      ],
+      "error_paths": [
+        {
+          "trigger": "IT Operations clicks [Resume from interruption] but database is still unavailable",
+          "system_response": "System attempts connection, detects unavailability, displays: 'Database connection still unavailable. Cannot resume. Recommend investigating database health before retry. Last checkpoint: 1,247/2,105 emails.' Operator can retry or escalate to DBA."
+        },
+        {
+          "trigger": "Multiple interruptions occur during single run (second failure at email 1,800)",
+          "system_response": "System logs second failure with last_processed_email_id='msg-1800', status='PARTIAL', allows another resume attempt. Run can be resumed multiple times until completion per FR-11 design."
+        }
+      ],
+      "links_to": [
+        "FR-10",
+        "FR-11",
+        "NFR-4",
+        "NFR-5",
+        "GOAL-3"
+      ]
+    },
+    {
+      "id": "FLOW-6",
+      "name": "Pharmacy Operations Verifies Data Accuracy (Sample Audit)",
+      "trigger": "Go-live acceptance requires Operations to spot-check captured records",
+      "actor": "Pharmacy Operations",
+      "preconditions": [
+        "Data loaded (either historical or daily run completed)",
+        "Captured Records tab is accessible",
+        "Pharmacy Operations user has audit interface access"
+      ],
+      "steps": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Opens 'Captured Records' tab on monitoring dashboard"
+        },
+        {
+          "step": 2,
+          "actor": "system",
+          "action": "Displays query interface with filters: date range picker, prescriber dropdown, patient search field, record count range slider, and search button"
+        },
+        {
+          "step": 3,
+          "actor": "user",
+          "action": "Enters query: date=2026-05-09 to retrieve today's batch for spot-checking"
+        },
+        {
+          "step": 4,
+          "actor": "system",
+          "action": "Queries database and returns: 'Captured Records for 2026-05-09: 156 records found' with list showing: Record ID, Patient name, Drug name, Dose, Quantity, Prescriber, Rx#, Received date"
+        },
+        {
+          "step": 5,
+          "actor": "user",
+          "action": "Clicks on record ID 'RX-2026-05-09-0042' to open detail view"
+        },
+        {
+          "step": 6,
+          "actor": "system",
+          "action": "Displays full record detail with all 23 captured fields: Prescription#, Patient name, Patient DOB, Patient sex, Drug name, Drug type, Brand indicator, Dose, Day supply, Quantity, Dispense-as-written indicator, Prescriber name, Prescriber NPI, Prescriber license, Prescription status, Dispensing date, Order date, Refill authorization, Lot number, Patient type, Drug class, 340B indicator, Total prescription amount. Each field shows: captured value, data type, field source reference"
+        },
+        {
+          "step": 7,
+          "actor": "system",
+          "action": "Displays metadata section: 'Source email: msg-54321 from pharmacy@rx.com received 2026-05-09 15:12:33 UTC' with link 'View source email/PDF'"
+        },
+        {
+          "step": 8,
+          "actor": "user",
+          "action": "Clicks 'View source email/PDF' link to examine original source"
+        },
+        {
+          "step": 9,
+          "actor": "system",
+          "action": "Displays PDF preview of original attachment from email msg-54321 or links to original email in mailbox, showing prescription document that was source for RX-2026-05-09-0042 per NFR-8"
+        },
+        {
+          "step": 10,
+          "actor": "user",
+          "action": "Compares captured record values against PDF: 'Rx# in record (2026-05-09-0042) matches PDF value, patient name matches, drug matches, dose matches, all 23 fields correct'"
+        },
+        {
+          "step": 11,
+          "actor": "user",
+          "action": "Closes PDF and returns to record detail"
+        },
+        {
+          "step": 12,
+          "actor": "user",
+          "action": "Clicks 'Add verification comment' field and types: 'Sample verified 5/5 records accurate - all fields match source PDFs - QA sign-off for go-live acceptance'"
+        },
+        {
+          "step": 13,
+          "actor": "system",
+          "action": "Records comment in audit table: verification_record_id='VER-2026-05-09-001', sampled_record_id='RX-2026-05-09-0042', verification_status='VERIFIED', comment='Sample verified...', operator='Pharmacy_Ops_User1', timestamp=2026-05-09 15:47 UTC per FR-10"
+        },
+        {
+          "step": 14,
+          "actor": "user",
+          "action": "Repeats steps 5-13 for 4 additional records from the 156-record batch"
+        },
+        {
+          "step": 15,
+          "actor": "user",
+          "action": "Generates verification report: 'Spot check completed: 5/156 records sampled (3.2%), 5/5 verified accurate (100% accuracy). All 23 fields captured correctly from source PDFs. Sample covers variety: 2 branded, 3 generic; 1 refill auth, 4 new; 5 different prescribers. Confidence: High. Recommendation: Proceed to go-live.'"
+        }
+      ],
+      "postconditions": [
+        "Pharmacy Operations confirmed data accuracy per acceptance criterion 8 (from goals/requirements)",
+        "Traceability demonstrated from captured record to source PDF per NFR-8",
+        "Verification audit trail recorded with operator, timestamp, and spot-check methodology",
+        "Go-live acceptance criterion satisfied: data integrity validated"
+      ],
+      "error_paths": [
+        {
+          "trigger": "User finds discrepancy: captured Rx# does not match PDF value",
+          "system_response": "User marks record as 'FAILED_VERIFICATION' with reason 'Rx# mismatch: captured 2026-05-09-0042 vs PDF 2026-05-09-0041'. System logs failure to audit table and alerts Compliance: 'Data accuracy verification failed on record RX-2026-05-09-0042. Possible extraction error. Recommend investigation.' per NFR-3"
+        },
+        {
+          "trigger": "PDF preview fails to load (attachment corrupted or missing)",
+          "system_response": "System displays: 'Source PDF unavailable. Email msg-54321 may have been deleted or attachment removed. Verification cannot be completed for this record. Contact IT Operations to investigate email archival.' Prevents completion of this record's verification."
+        }
+      ],
+      "links_to": [
+        "FR-3",
+        "FR-4",
+        "NFR-3",
+        "NFR-8",
+        "GOAL-2",
+        "GOAL-4"
+      ]
+    }
+  ],
+
+  "states": [
+    {
+      "name": "Dashboard - Run Viewing",
+      "description": "Monitoring dashboard displaying current and historical run status.",
+      "ui_condition": "Run list visible, status badges (SUCCESS/PARTIAL/FAILED) clearly marked, metrics displayed, refresh button available"
+    },
+    {
+      "name": "Dashboard - Loading",
+      "description": "Monitoring dashboard refreshing or querying run data.",
+      "ui_condition": "Spinner or progress indicator visible, data may be stale, 'Loading...' message shown"
+    },
+    {
+      "name": "Dashboard - Alert",
+      "description": "System has surfaced failure or partial status alert to Operations.",
+      "ui_condition": "Alert banner or modal visible at top of dashboard with status, metrics, and action buttons (View details, Retry, Dismiss)"
+    },
+    {
+      "name": "Alert - Failure Detail",
+      "description": "Viewing detailed list of failed emails with error reasons.",
+      "ui_condition": "Expandable/collapsible failed email list visible with columns: Email ID, Sender, Received date, Error reason, Classification (transient/permanent). Retry buttons visible for transient-only subset."
+    },
+    {
+      "name": "Audit - Query Interface",
+      "description": "Compliance Officer entering query filters for audit trail.",
+      "ui_condition": "Date picker, status dropdown, sender filter, and search button visible. Results area empty until query executed."
+    },
+    {
+      "name": "Audit - Results Viewing",
+      "description": "Audit query results displayed as run and email records.",
+      "ui_condition": "Table of run records with columns: Run ID, Start time, End time, Emails examined, Records stored, Status. Each row clickable to drill down to email list."
+    },
+    {
+      "name": "Audit - Drill-down (Email Detail)",
+      "description": "Viewing emails processed in specific run.",
+      "ui_condition": "Nested email list showing 5+ columns per email. Each row clickable to show email-level detail. Back button or breadcrumb visible to return to run level."
+    },
+    {
+      "name": "Audit - Email-Level Detail",
+      "description": "Viewing individual email audit record with extraction outcome.",
+      "ui_condition": "Email metadata (ID, subject, sender, received date) displayed. Records extracted count shown. If extraction succeeded, link to PDF preview or source email visible. Export button available."
+    },
+    {
+      "name": "Admin - Manual Run Panel",
+      "description": "IT Operations triggering manual run (historical load or daily run).",
+      "ui_condition": "Mode selector visible, date picker shown (conditional on Historical load selection), confirmation modal displayed before execution."
+    },
+    {
+      "name": "Admin - Run Progress",
+      "description": "Historical load or manual run executing in background.",
+      "ui_condition": "Progress panel showing: 'Processing: X/Y emails (Z%). Elapsed: T. ETA: T2.' Real-time update visible. Operator can close panel; background job continues."
+    },
+    {
+      "name": "Captured Records - Query Interface",
+      "description": "Pharmacy Operations filtering captured prescription records.",
+      "ui_condition": "Date picker, prescriber dropdown, patient search field, and filters visible. Search button available. Results area empty until query executed."
+    },
+    {
+      "name": "Captured Records - Results Viewing",
+      "description": "List of captured prescription records matching query.",
+      "ui_condition": "Table showing record ID, patient name, drug, dose, quantity, prescriber, received date. Each row clickable to open detail view."
+    },
+    {
+      "name": "Captured Records - Detail View",
+      "description": "Viewing full prescription record with all 23 fields and source traceability.",
+      "ui_condition": "All 23 fields displayed with values and metadata. Source email link visible. Verification comment field present. PDF preview or source email link clickable."
+    },
+    {
+      "name": "PDF Preview",
+      "description": "Displaying source PDF attachment from source email.",
+      "ui_condition": "PDF viewer embedded or linked. Close button visible to return to record detail. If PDF corrupted, error message shown."
+    },
+    {
+      "name": "Error - System",
+      "description": "Unexpected system error occurred (e.g., database unavailable, network failure).",
+      "ui_condition": "Error message banner displayed with error code, brief description, and 'Retry' or 'Contact Support' button. Details logged to browser console or error tracking system."
+    },
+    {
+      "name": "Error - Validation",
+      "description": "User input validation failed (e.g., invalid date range, future start date for historical load).",
+      "ui_condition": "Inline error message displayed adjacent to invalid input field (e.g., 'Start date cannot be in the future'). Input field highlighted with red border. Submit button disabled until corrected."
+    }
+  ],
+
+  "accessibility_requirements": [
+    "Note: goals.json contains no keyboard or accessibility-specific NFRs. Accessibility requirements are optional per Stage 3 schema guidance.",
+    "Optional enhancements (not required by specification): All dashboard buttons reachable by Tab key; status badges announced via aria-label; alert messages announced by aria-live region; date pickers support keyboard navigation; data tables support keyboard selection and sorting."
+  ],
+
+  "ambiguities": [
+    "Historical load ETA calculation: Assumption is system estimates based on average processing rate (e.g., 5 emails/min). Actual rate may vary by PDF complexity, network latency, and database load.",
+    "Retry transient errors: FLOW-2 allows manual retry of transient failures. Unclear whether system auto-retries transient errors (e.g., 3 retries with exponential backoff) before surfacing to Operations, or manual retry only. Recommend clarification in implementation plan (Stage 5).",
+    "PDF preview mechanism: FLOW-6 step 8 assumes PDF can be displayed via embedded viewer or email link. If email is permanently deleted from mailbox, alternative audit trail mechanism needed (e.g., archived PDF copy stored in database). Implementation detail for Stage 6.",
+    "Alert delivery channels: FLOWs 2, 4, 5 reference email/dashboard alerts. Specific delivery mechanism (email only, dashboard banner, SMS, Slack integration) not specified in requirements. Recommend clarification in implementation plan.",
+    "Verification sample size: FLOW-6 describes 5-record spot-check (3.2% of 156). Actual sample size methodology (e.g., stratified random, fixed n, statistical power) should be defined by QA team or compliance requirements, not this UX flow."
+  ]
+}

@@ -1,0 +1,61 @@
+{
+  "size": "medium",
+  "size_source": "default (no size field found)",
+  "score": 1.0,
+  "threshold": 0.8,
+  "passed": true,
+  "llm_available": false,
+  "deterministic_checks": [
+    {
+      "id": "required_sections",
+      "description": "All required sections present (size-aware)",
+      "weight": 0.2,
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "no_placeholders",
+      "description": "No {{placeholder}} tokens remaining",
+      "weight": 0.15,
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "goal_ids_present",
+      "description": "All GOAL-* IDs from goals.json appear in PRD",
+      "weight": 0.15,
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "fr_ids_present",
+      "description": "All FR-* IDs from goals.json appear in PRD",
+      "weight": 0.15,
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "traceability_links",
+      "description": "Traceability matrix links each GOAL to at least one FR",
+      "weight": 0.15,
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "no_stub_sections",
+      "description": "No required section is empty/stub-only",
+      "weight": 0.05,
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "no_vague_phrases",
+      "description": "No stub/vague filler phrases detected",
+      "weight": 0.05,
+      "passed": true,
+      "failures": []
+    }
+  ],
+  "llm_checks": [],
+  "failure_summary": []
+}
