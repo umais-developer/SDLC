@@ -137,10 +137,31 @@ def verify_evidence(stage_dir: Path, repo_root: Path, test_plan: dict, results: 
             artifacts = evidence.get("artifacts", []) if isinstance(evidence, dict) else []
             if not artifacts:
                 raise GateError("Stage 8", f"Browser test {test_id} missing artifact paths")
+            # Browser PASS evidence must include at least one captured-pixel artifact —
+            # screenshot, video, Playwright trace, or HTML report. A plain `.log` or `.txt`
+            # is not sufficient: it does not prove the browser executed the flow.
+            BROWSER_PIXEL_EXTS = {
+                ".png", ".jpg", ".jpeg", ".gif", ".webp",       # screenshots
+                ".webm", ".mp4", ".mov",                          # videos
+                ".zip",                                            # Playwright trace bundles
+                ".html",                                           # Playwright HTML report
+            }
+            has_pixel_evidence = False
             for path in artifacts:
                 artifact_path = Path(path)
                 if not artifact_path.exists() or artifact_path.stat().st_size == 0:
                     raise GateError("Stage 8", f"Missing or empty artifact for {test_id}: {path}")
+                if artifact_path.suffix.lower() in BROWSER_PIXEL_EXTS:
+                    has_pixel_evidence = True
+            if not has_pixel_evidence:
+                raise GateError(
+                    "Stage 8",
+                    f"Browser test {test_id} has no pixel/video/trace evidence "
+                    f"(only logs found). Required: at least one screenshot, video, "
+                    f"trace.zip, or Playwright HTML report. "
+                    f"Capture with: `npx playwright test --trace on --screenshot on "
+                    f"--video retain-on-failure`."
+                )
 
 
 def verify_bug_schema(results: dict) -> None:
@@ -229,6 +250,52 @@ def verify_coverage(artifacts_root: Path, test_plan: dict) -> None:
         raise GateError("Stage 8", f"Acceptance criteria missing from test_plan.json: {missing}")
 
 
+def verify_browser_coverage_per_flow(artifacts_root: Path, test_plan: dict) -> None:
+    """
+    Each user-facing flow in flows.json must have at least one P0 browser test in the
+    plan that links to it. Skipped for Trivial (where flows.json may not exist) and
+    when the project is non-user-facing (no flows.json or empty flows array).
+    """
+    problem_path = artifacts_root / "stage-1" / "problem.json"
+    flows_path = artifacts_root / "stage-3" / "flows.json"
+    if not problem_path.exists() or not flows_path.exists():
+        return  # nothing to enforce against
+    problem = load_json(problem_path)
+    size = (problem.get("size") or "medium").lower()
+    if size == "trivial":
+        return
+    flows = load_json(flows_path)
+    flow_entries = flows.get("flows", []) if isinstance(flows, dict) else []
+    flow_ids = [
+        f.get("id") for f in flow_entries
+        if isinstance(f, dict) and isinstance(f.get("id"), str) and f.get("id").strip()
+    ]
+    if not flow_ids:
+        return  # non-user-facing project
+
+    # Flows reachable by P0 browser tests
+    covered: set[str] = set()
+    for tc in test_plan.get("test_cases", []):
+        if tc.get("type") != "browser":
+            continue
+        if tc.get("priority", "P1") != "P0":
+            continue
+        for fid in tc.get("links_to_flow", []) or []:
+            if isinstance(fid, str):
+                covered.add(fid.strip())
+
+    missing = sorted(set(flow_ids) - covered)
+    if missing:
+        raise GateError(
+            "Stage 8",
+            f"User-facing flows without a P0 browser test: {missing}. "
+            f"For Medium/Large projects, every flow in flows.json must have at least "
+            f"one P0 browser test in test_plan.json with `type: 'browser'` and "
+            f"`links_to_flow: ['<flow-id>']`. Capture screenshot/video/trace evidence "
+            f"under .agents/artifacts/stage-8/playwright/<test-id>/."
+        )
+
+
 
 def compute_gates(test_plan: dict, results: dict) -> tuple[str, str]:
     plan_by_id = {t.get("id"): t for t in test_plan.get("test_cases", []) if t.get("id")}
@@ -265,6 +332,7 @@ def main(stage_dir_path: str) -> None:
     verify_app_health(stage_dir)
     verify_summary_consistency(results)
     verify_coverage(artifacts_root, test_plan)
+    verify_browser_coverage_per_flow(artifacts_root, test_plan)
     verify_bug_schema(results)
     verify_no_unfixed_critical_bugs(results)
     verify_evidence(stage_dir, repo_root, test_plan, results)

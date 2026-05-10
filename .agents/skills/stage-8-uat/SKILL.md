@@ -43,9 +43,16 @@ Requires Stage 1–7 artifacts and a running app. Pick the form that matches you
 
 | Size | UAT depth |
 |------|-----------|
-| **Trivial** | Reuse Stage 6 unit test evidence + at least one browser test per user-facing FR (min 1). |
-| **Medium** | Full automated suite + at least one browser test per flow in `flows.json` referenced by affected stories. |
-| **Large** | Full automated suite + at least one browser test per flow in `flows.json`. |
+| **Trivial** | Reuse Stage 6 unit test evidence + at least one P0 browser test per user-facing FR (min 1). |
+| **Medium** | Full automated suite + at least one P0 browser test per flow in `flows.json` referenced by affected stories. |
+| **Large** | Full automated suite + at least one P0 browser test per flow in `flows.json`. |
+
+> **Browser tests are no longer optional for Medium/Large.** The verifier
+> (`verify_browser_coverage_per_flow`) refuses to APPROVE the deployment gate
+> unless every user-facing flow has a P0 browser test that links to it via
+> `links_to_flow: ["<FLOW-X>"]`, AND that test produces real pixel/video/trace
+> evidence (screenshot, video, or Playwright trace zip). A `.log` file is **not**
+> sufficient evidence for a browser test.
 
 ---
 
@@ -121,8 +128,15 @@ Before starting Step 2, look for `.agents/artifacts/stage-8/uat_progress.json`. 
 - Load prompt: `.agents/skills/stage-8-uat/prompts/test_execution.md`
 - Substitute: `{{test_plan_json}}`, `{{app_url}}`
 - Execute:
-  - Unit tests: if Stage 6 logs exist (e.g., `.agents/artifacts/stage-6/test.log`, `.agents/artifacts/stage-6/test.exit`), copy them into `.agents/artifacts/stage-8/unit/`; otherwise re-run `test_command` and write logs to `.agents/artifacts/stage-8/unit/`
-  - Browser tests: Playwright with captured artifacts (screenshot/video/trace)
+  - **Unit tests:** if Stage 6 logs exist (e.g., `.agents/artifacts/stage-6/test.log`, `.agents/artifacts/stage-6/test.exit`), copy them into `.agents/artifacts/stage-8/unit/`; otherwise re-run `test_command` and write logs to `.agents/artifacts/stage-8/unit/`.
+  - **Browser tests (mandatory for Medium/Large):**
+    1. If `@playwright/test` is not in `node_modules`: `npm install -D @playwright/test`.
+    2. If Chromium is not installed: `npx playwright install chromium`.
+    3. Make sure the app is running at `{{app_url}}` (Step 0 should have started it).
+    4. Run with full evidence capture:
+       `npx playwright test --reporter=list,html --trace on --screenshot on --video retain-on-failure`
+    5. After the run, **map each Playwright test to a `test_id` in `test_plan.json`** (by test title or `test.info().annotations`) and copy its artifacts into `.agents/artifacts/stage-8/playwright/<test-id>/`. Required per case: at least one `.png` (screenshot), one `.zip` (trace), or one `.webm`/`.mp4` (video). The Playwright HTML report under `playwright-report/` is also accepted as evidence.
+    6. Record the resulting paths in `uat_results.json` under `results[].evidence.artifacts[]`.
 - Write output to: `.agents/artifacts/stage-8/uat_results.json`
 
 **Atomic resume update:** for each test case, the order is (1) write evidence file(s) to disk, (2) append the result to `uat_results.json`, (3) update `uat_progress.json` (move the test from `in_progress_test_id` into `completed_test_ids[]` or `failed_test_ids[]`, refresh `last_updated`). If the run is interrupted mid-test, `in_progress_test_id` lets the next invocation re-attempt that test only.
@@ -159,7 +173,7 @@ python .agents/skills/stage-8-uat/verify/uat_gate.py .agents/artifacts/stage-8/
 python .agents/skills/stage-8-uat/verify/uat_gate.py .agents/artifacts/stage-8/
 ```
 
-**Pass criteria:** All P0 automated tests pass, no unfixed Critical bugs, computed `deployment_gate` is `APPROVED`, and summary counts are consistent.
+**Pass criteria:** All P0 automated tests pass, no unfixed Critical bugs, computed `deployment_gate` is `APPROVED`, summary counts are consistent, **every user-facing flow in `flows.json` has at least one P0 browser test with `links_to_flow: [<FLOW-X>]`** (Medium/Large), and **every browser test marked PASS has at least one screenshot / video / trace artifact** (no `.log`-only evidence).
 
 Bug schema (for `uat_results.json`):
 - `id`, `severity`, `title`, `description`, `related_test_id`, `evidence`, `steps_to_reproduce`, `root_cause`, `fix_applied`, `fix_verified`, `upstream_target` (optional: `"stage-4"` or `"stage-5"` when the root cause is an upstream gap).

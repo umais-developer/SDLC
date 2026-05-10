@@ -1,7 +1,7 @@
 ---
 role: QA engineer
 description: Generate UAT test plan from story acceptance criteria
-prompt_version: "2026-05-11"
+prompt_version: "2026-05-12"
 ---
 
 # Stage 8a: UAT Test Plan Generation
@@ -30,11 +30,12 @@ Return **valid JSON only**. Match `.agents/schemas/test_plan.json` (when defined
 2. **Test ID = Story ID + criterion index.** (e.g., story S-1.1 criterion 0 → T1.1.1)
 3. **Define preconditions.** Every test starts from a known state.
 4. **Define expected result precisely.** No vague "works correctly." State exact values.
-5. **Mark test type.** Unit (automated), Browser (Playwright).
-6. **Prefer automation.** Use `browser` for UI flows; use `unit` only if mapped to existing unit tests.
-7. **Test paths.** For `unit` and `browser` tests, include `test_path` pointing to the expected test file path from `tasks.json`.
+5. **Mark test type.** `unit` (Vitest/Jest/etc) or `browser` (Playwright).
+6. **Prefer automation.** Use `browser` for any UI flow. Use `unit` only when the criterion is purely a logic/contract test that can be exercised at the module boundary.
+7. **Test paths.** For `unit` and `browser` tests, include `test_path` pointing to the expected test file path from `tasks.json`. Browser tests must live under `tests/e2e/` (or the project's equivalent Playwright spec directory).
 8. **Priority default.** Use `P0` unless the requirement explicitly indicates lower priority.
-9. **Size-based browser coverage.** Use `problem.json` size and `flows.json` to ensure browser tests meet the size-based expectations from the Stage 8 skill.
+9. **Browser coverage per flow (Medium/Large — verifier-enforced).** For every flow in `flows.json` whose `links_to` references at least one user-facing FR, generate **at least one P0 browser test** that includes `"links_to_flow": ["<FLOW-X>"]`. The Stage 8 verifier rejects the gate if any flow lacks a P0 browser test linked to it. If a single browser test legitimately exercises multiple flows, list them all in `links_to_flow`.
+10. **Browser test evidence is captured pixels.** Browser tests run via Playwright with `--trace on --screenshot on --video retain-on-failure`. The `expected_result` must describe what is expected on screen (URL, visible text, element state) so the captured screenshot is meaningful as evidence. Steps must reference DOM selectors or visible text — not internal API state.
 
 ## Input
 
@@ -76,7 +77,8 @@ Return **valid JSON only**. Match `.agents/schemas/test_plan.json` (when defined
       ],
       "expected_result": "Cell at (100,100) is rendered green (#4ade80); live-count reads 'Live cells: 1'",
       "priority": "P0",
-      "test_path": "tests/e2e/search_bar_basic.test.ts"
+      "test_path": "tests/e2e/search_bar_basic.spec.ts",
+      "links_to_flow": ["FLOW-1"]
     },
     {
       "id": "T2.1.4",
@@ -89,7 +91,8 @@ Return **valid JSON only**. Match `.agents/schemas/test_plan.json` (when defined
       ],
       "expected_result": "#btn-step has attribute disabled; aria-disabled='true'",
       "priority": "P0",
-      "test_path": "tests/e2e/search_empty_state.test.ts"
+      "test_path": "tests/e2e/search_empty_state.spec.ts",
+      "links_to_flow": ["FLOW-2"]
     }
   ],
 

@@ -291,13 +291,13 @@ def build() -> None:
         prs,
         "Agenda",
         bullets=[
-            "Why a structured pipeline (and why we built two of them)",
+            "Why a structured pipeline",
             "The 9-stage pipeline at a glance",
-            "Stage-by-stage walkthrough",
+            "Anatomy of a stage skill",
             "Case study: building a Snake game with replays end-to-end",
-            "The 3-stage 'lite' pipeline — when full ceremony is overkill",
-            "Side-by-side comparison",
+            "The Stage 8 upgrade: real browser-driven UAT",
             "Retrospective: what went well, what didn't, what we learned",
+            "What we could do better next",
             "How to teach this to the next person",
         ],
         footer="Estimated walkthrough time: 25-30 minutes",
@@ -406,49 +406,42 @@ def build() -> None:
         footer="When the constraints are explicit, the design falls out.",
     )
 
-    # 10. Lite pipeline
+    # 10. Stage 8 upgrade — section
     section_divider(
         prs,
-        "When ceremony is overkill",
-        "Introducing /lite-build — the 3-stage variant.",
+        "Stage 8: from theatre to evidence",
+        "The biggest gap we caught — and the fix that's now baked into the pipeline.",
     )
 
-    # 11. Lite spec
+    # 11. Stage 8 problem
     content_slide(
         prs,
-        "/lite-build at a glance",
+        "The problem we caught in retro",
         bullets=[
-            "Three stages: Spec -> Build -> Verify.",
-            "One markdown per stage. No JSON, no separate UX flows, no traceability matrix.",
-            "Single combined verifier (~150 lines of Python).",
-            "Kept: anti-hallucination on assumptions, FR-id traceability into tests, build + tests must pass.",
-            "Dropped: stories, tasks, drift hashes, dimension-tagged review, separate UAT.",
-            "Use it when: small feature, prototype, focused enhancement.",
+            "Stage 8 originally accepted any 'evidence artifact' that existed and was non-empty.",
+            "On a real run, that loophole let 101 'PASS' rows all point at the same Vitest log.",
+            "Coverage in shape, not in substance. The deployment gate flipped APPROVED with zero browser pixels captured.",
+            "Self-graded structure, no independent proof the UI works.",
+            "If we'd shipped on that signal, a regression in any UI flow would slip past every gate.",
         ],
-        footer=".agents/skills-lite/  +  /lite-build slash command",
     )
 
-    # 12. Side-by-side
-    table_slide(
+    # 12. Stage 8 fix
+    content_slide(
         prs,
-        "Lite vs full — Snake rebuilt under both",
-        ["Metric", "9-stage", "3-stage lite"],
-        [
-            ["Stages", "8 (9 with deploy)", "3"],
-            ["Skill files", "9 + ~12 prompts + verifiers", "4 + 1 verifier"],
-            ["Pipeline artifacts", "17 JSON + Markdown", "3 files"],
-            ["Source files", "21 TS + 1 CSS", "6 TS + 1 CSS"],
-            ["Lines of source", "~5000", "~1500"],
-            ["Tests", "112 (22 files)", "21 (4 files)"],
-            ["Bundle (gzip)", "12.65 KB JS + 2 KB CSS", "8.41 KB JS + 1.43 KB CSS"],
-            ["Wall time", "~hours", "~25 minutes"],
-            ["Verifier fights (mechanical)", "~12", "1"],
+        "The Stage 8 upgrade — what's now in the pipeline",
+        bullets=[
+            "Browser tests are required for every user-facing flow on medium/large runs.",
+            "Verifier rejects '.log' as evidence for browser tests — must be screenshot, video, or trace bytes.",
+            "Stage 8 SKILL.md drives Playwright execution explicitly: install if missing, run with --trace on --screenshot on --video retain-on-failure.",
+            "Per-test artifacts go under .agents/artifacts/stage-8/playwright/<test-id>/, mapped to test_plan.json IDs.",
+            "Stage 5 plan template now bakes in playwright.config.ts and one e2e spec per flow as P0 tasks.",
+            "Net: an agent can no longer pass Stage 8 without Playwright actually running and capturing pixels.",
         ],
-        footer="Same product, same gates green. Lite trades audit depth for speed.",
     )
 
     # 13. Section: retro
-    section_divider(prs, "Retrospective", "Honest reflection from running both pipelines.")
+    section_divider(prs, "Retrospective", "Honest reflection from the end-to-end Snake run.")
 
     # 14. What went well
     content_slide(
@@ -460,7 +453,7 @@ def build() -> None:
             "Anti-hallucination rule pushed assumptions out of comments and into a tagged list.",
             "Determinism fixture caught two would-be regressions during Stage 6 retries.",
             "Final deliverable shipped: 40 KB gzip bundle, 200 OK on preview, 112/112 tests.",
-            "The lite pipeline got to a working build in roughly 1/3 the time and 1/3 the LOC.",
+            "Stage 8 weakness was caught in retro and fed straight back into the pipeline definition.",
         ],
     )
 
@@ -488,7 +481,7 @@ def build() -> None:
             "Story-coverage comments added to test files to satisfy the verifier are exactly the fake compliance the rule is meant to prevent.",
             "12+ verifier cycles were spent on schema mechanics (line-range bounds, missing 'quality' dimension, key renames). Zero product-quality signal.",
             "inject_meta.py mangled em-dashes into garbled escape sequences — forced a full ASCII rewrite of artifacts.",
-            "Two near-identical engines exist (full + lite) because greenfield runs in the same session aren't independent.",
+            "We tried a 3-stage 'lite' pipeline as a counter-experiment; we didn't keep it. Two parallel pipelines split attention and one of them never got browser-tested.",
         ],
     )
 
@@ -511,9 +504,10 @@ def build() -> None:
         prs,
         "Teaching it to the next person",
         bullets=[
-            "Day 1: read README + STAGE-CONVENTIONS.md. Run /lite-build on a tiny feature. Read every artifact.",
-            "Day 2: run /create-product on a small medium-size feature. Stop at each gate. Inspect the verifier output.",
+            "Day 1: read README + STAGE-CONVENTIONS.md. Run /create-product on a small (medium-size) feature. Stop at every gate.",
+            "Day 2: read each generated artifact in order. Trace one FR from goals.json -> components.json -> stories.json -> tasks.json -> the test that covers it.",
             "Day 3: deliberately break something — change goals.json after stories.json is generated. Run check_drift.py. Watch it catch you.",
+            "Day 4: run a Stage 8 with Playwright. Open the captured screenshots. That's what 'evidence' looks like.",
             "Week 1: pair with someone running a real customer feature end-to-end. Discuss every assumption tag.",
             "Mental model: 'the pipeline is a contract negotiator.' Stages are not phases of work, they are checkpoints where the agent has to commit to a story upstream.",
             "Failure mode to flag early: passing tests do not equal passing UAT. The two should rhyme but never collapse into each other.",
@@ -526,12 +520,12 @@ def build() -> None:
         "Quick reference",
         ["Want to...", "Do this"],
         [
-            ["Build a small feature", "/lite-build <description>"],
             ["Build a product end-to-end", "/create-product <description>"],
-            ["Re-run a single stage", "/stage-N (full) or python .agents/skills-lite/_verify.py <stage> (lite)"],
+            ["Re-run a single stage", "/stage-N"],
             ["Smoke-test all verifiers", "python .agents/tests/run_verifiers.py"],
             ["Detect upstream/downstream drift", "python .agents/tests/check_drift.py"],
             ["Recover from wedged Stage 6 run", "python .agents/skills/stage-6-implement/recovery.py --status"],
+            ["Run Stage 8 browser tests locally", "npx playwright test --trace on --screenshot on"],
             ["Read the conventions", ".agents/skills/STAGE-CONVENTIONS.md"],
         ],
         col_widths=[Inches(4.5), Inches(8.0)],

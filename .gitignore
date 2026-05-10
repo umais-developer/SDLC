@@ -28,6 +28,9 @@ env/
 node_modules/
 /dist/
 
+# Microsoft Office lock files (created when a file is open in Word/PowerPoint/Excel)
+~$*
+
 # Project-specific implementation code does NOT belong on main.
 # Main is the pipeline-only branch; src/, tests/, requirements, and
 # project requirements docs live on feature branches. The leading slash

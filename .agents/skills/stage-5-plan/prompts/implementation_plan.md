@@ -1,7 +1,7 @@
 ---
 role: Tech lead
 description: Break stories into concrete implementation tasks with dependencies
-prompt_version: "2026-05-11"
+prompt_version: "2026-05-12"
 ---
 
 # Stage 5a: Implementation Plan
@@ -32,6 +32,10 @@ Return **valid JSON only**. Match `.agents/schemas/tasks.json` (when defined).
 4. **Every story has tasks.** No story without at least one task.
 5. **No estimates** unless explicitly required by the PRD.
 6. **Large only:** include `execution_order` and task-level dependencies when they block progress.
+7. **Browser-test scaffolding (Medium/Large with a UI).** When `tech_stack.json` lists Playwright (or the project is otherwise a browser app), the plan **must include**:
+   - One task that creates `playwright.config.ts` at the repo root (or `playwright.config.js`), targeting the project's `dev` / `preview` URL and configured with `trace: 'on'`, `screenshot: 'on'`, `video: 'retain-on-failure'`.
+   - **One e2e spec task per flow** in `flows.json` (path: `tests/e2e/<flow-id-or-name>.spec.ts`). Each spec annotates its tests with the corresponding `test_id` from the upcoming Stage 8 plan so Stage 8 can map results back deterministically.
+   - These tasks are P0; Stage 8 fails its gate without them. Skipping them only when `flows.json` is absent or empty (non-user-facing project).
 
 ## Input
 

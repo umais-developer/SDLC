@@ -1,11 +1,10 @@
 # SDLC Pipeline
 
-A reusable, **agent-driven** Software Development Life Cycle pipeline. Two flavours live in this repo:
+A reusable, **agent-driven** Software Development Life Cycle pipeline.
 
-- **`/create-product`** — full **9-stage** pipeline (PRD → Architecture → UX → Epics → Plan → Implement → Review → UAT → Deploy). Use it for greenfield products and large cross-cutting features where traceability across handoffs matters.
-- **`/lite-build`** — compact **3-stage** pipeline (Spec → Build → Verify). Use it for small features, prototypes, and focused enhancements where the full ceremony would slow you down.
+**`/create-product`** runs the full **9-stage** flow: PRD → Architecture → UX → Epics & Stories → Implementation Plan → Implementation → Code Review → UAT → Deploy. It enforces upstream-ID traceability, gated handoffs at every stage, and real browser-driven UAT evidence (Playwright screenshots/video/trace) before the deployment gate flips to APPROVED.
 
-Both are **tool-neutral**: they're documented as Markdown skill files under `.agents/skills/` and `.agents/skills-lite/`. Claude Code, GitHub Copilot, and any other agent that can read a file and follow instructions can run them. The slash commands in `.claude/commands/` are thin pointers to the corresponding skill.
+The pipeline is **tool-neutral**: it's documented as Markdown skill files under `.agents/skills/`. Claude Code, GitHub Copilot, and any other agent that can read a file and follow instructions can run it. The slash commands in `.claude/commands/` are thin pointers to the corresponding skill.
 
 ---
 
@@ -21,12 +20,11 @@ Both are **tool-neutral**: they're documented as Markdown skill files under `.ag
 │   │   ├── stage-9-deploy/
 │   │   ├── _shared/             # shared Python helpers (meta, hashes, anti-halluc)
 │   │   └── STAGE-CONVENTIONS.md # shared rules (size classification, anti-halluc, traceability, etc.)
-│   ├── skills-lite/             # 3-stage pipeline (Spec / Build / Verify + _verify.py)
 │   ├── schemas/                 # JSON schemas for the structured artifacts
 │   ├── scripts/                 # helpers (e.g. detect_capabilities.py)
 │   └── tests/                   # smoke + drift verifiers across all stages
 ├── .claude/
-│   └── commands/                # slash commands: /create-product, /stage-N, /lite-build, …
+│   └── commands/                # slash commands: /create-product, /stage-N, …
 ├── .github/                     # CI: runs the smoke tests on every push
 ├── CLAUDE.md                    # project-level instructions for Claude Code
 ├── pyrightconfig.json           # editor type-checking config (Pyright/Pylance)
@@ -93,35 +91,6 @@ All structured artifacts also carry a `meta` block with prompt versions and sour
 
 ---
 
-## Running the lite pipeline
-
-### In Claude Code
-
-```
-/lite-build <description>
-```
-
-That's it. Three stages, three artifacts, one combined verifier:
-
-```
-.agents/artifacts-lite/
-├── spec.md       (Stage A)
-├── build.log     (Stage B — code under src/)
-└── REVIEW.md     (Stage C)
-```
-
-What the lite pipeline drops vs the full one: stories/tasks decomposition, separate UX flows, dimension-tagged review, separate UAT stage, JSON+markdown duplication, drift hashes. What it keeps: anti-hallucination on assumptions, FR-id traceability into tests, build + tests must actually pass.
-
-### When to use which
-
-| Signal | Pipeline |
-|---|---|
-| Greenfield product, multi-developer, audit/compliance, rich UX, multiple cross-cutting flows | `/create-product` |
-| Single feature you can hold in your head, prototype, focused enhancement | `/lite-build` |
-| In doubt | start with `/lite-build`; you can re-run with `/create-product` if it grows |
-
----
-
 ## Verifying any artifact set
 
 Every stage has a deterministic verifier you can run directly. There's also a smoke runner that runs them all:
@@ -129,14 +98,6 @@ Every stage has a deterministic verifier you can run directly. There's also a sm
 ```bash
 python .agents/tests/run_verifiers.py        # run every stage's verifier against current artifacts
 python .agents/tests/check_drift.py          # detect upstream/downstream drift via meta hashes
-```
-
-For the lite pipeline:
-
-```bash
-python .agents/skills-lite/_verify.py spec    # gate Stage A
-python .agents/skills-lite/_verify.py build   # gate Stage B
-python .agents/skills-lite/_verify.py verify  # gate Stage C
 ```
 
 ---
@@ -159,9 +120,7 @@ These are codified in [.agents/skills/STAGE-CONVENTIONS.md](./.agents/skills/STA
 
 1. **Create or branch a repo** that contains this `.agents/` tree (clone this repo, then strip `.agents/artifacts/` from your feature branch start).
 2. **Add a one-line `CLAUDE.md`** at the repo root pointing the agent at the pipeline (`README.md` already does most of the work).
-3. **Decide on a feature** and run either pipeline:
-   - Full: `/create-product <description>`
-   - Lite: `/lite-build <description>`
+3. **Decide on a feature** and run the pipeline: `/create-product <description>`.
 4. **Review each gate output** before letting the agent proceed. Verifiers do the structural work; you do the judgment.
 5. **For Stage 9 (deploy)**, ensure your project actually builds to a static bundle. The current Stage 9 verifier supports GitHub Pages targets; server-side deploys (Postgres/Redis/server-rendered frameworks) are intentionally out of scope and trigger a halt with a recommendation.
 

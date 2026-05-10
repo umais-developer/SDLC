@@ -1,7 +1,7 @@
 ---
 role: QA engineer
 description: Execute UAT test cases and record pass/fail results
-prompt_version: "2026-05-11"
+prompt_version: "2026-05-12"
 ---
 
 # Stage 8b: UAT Test Execution
@@ -42,13 +42,47 @@ Return **valid JSON only**. Match `.agents/schemas/uat_results.json` (when defin
 ```
 Mark all test cases of type `unit` as PASS/FAIL based on actual exit code and output. Capture logs to `.agents/artifacts/stage-8/unit/test.log` and exit code to `.agents/artifacts/stage-8/unit/test.exit`.
 
-### Browser Tests
-Execute using Playwright browser tools. For each test:
-1. Navigate to the running app
-2. Perform the steps from `test_plan.json`
-3. Capture the actual result
-4. Compare to expected_result
-5. Record PASS or FAIL with artifact paths
+### Browser Tests (Playwright — mandatory for Medium/Large)
+
+**Setup (run once per Stage 8 invocation, idempotent):**
+```bash
+# Install Playwright if not present
+test -f node_modules/@playwright/test/package.json || npm install -D @playwright/test
+# Install Chromium browser bundle (~150 MB; cached after first run)
+npx playwright install chromium
+```
+
+**Execution — every browser test in test_plan.json runs in one Playwright invocation:**
+```bash
+npx playwright test \
+  --reporter=list,html \
+  --trace on \
+  --screenshot on \
+  --video retain-on-failure
+```
+
+This produces a `playwright-report/` directory (HTML report) and per-test artifacts under `test-results/` (screenshots, videos, traces).
+
+**Mapping Playwright tests to `test_id`s.** Inside each `.spec.ts` file under `tests/e2e/`, annotate the test with the corresponding `test_id` so the mapping is unambiguous:
+```ts
+test("FLOW-1: snake reaches food and grows by one", async ({ page }, testInfo) => {
+  testInfo.annotations.push({ type: "test_id", description: "T1.1.1" });
+  // ...
+});
+```
+
+**After the run** (still in Stage 8):
+1. For each test case in `test_plan.json` with `type: "browser"`, locate the matching Playwright result by annotation or by exact test title containing the `test_id`.
+2. Copy the artifacts (screenshot.png, trace.zip, optional video.webm) from `test-results/<test-folder>/` into `.agents/artifacts/stage-8/playwright/<test-id>/`. Preserve at least one image and one trace per case.
+3. Record the resulting paths in the `evidence.artifacts[]` array of the corresponding `results[]` entry.
+4. **Required:** every browser-test PASS row must have **at least one** `.png` / `.jpg` / `.webm` / `.mp4` / `.zip` / `.html` artifact. The verifier rejects browser results whose only evidence is a `.log` file.
+
+**Failure path.** If a browser test fails:
+- Mark `status: "FAIL"`.
+- Keep the captured screenshot/video as evidence (Playwright captures on failure automatically with `--video retain-on-failure`).
+- File a bug in `bugs[]` with `related_test_id`, `evidence` pointing at the failing screenshot, `root_cause`, and `fix_applied`. After the fix, re-run only that spec (`npx playwright test path/to/file.spec.ts:<line>`) and update both the result and `bugs[].fix_verified` to `true`.
+
+**Coverage rule (verifier-enforced).** Every flow ID in `flows.json` must have at least one P0 browser test linked to it via `links_to_flow`. If `test_plan.json` is missing a flow, that's a Stage 8a defect — return to test plan generation rather than executing an incomplete plan.
 
 ## Input
 
@@ -94,7 +128,7 @@ Execute using Playwright browser tools. For each test:
       "story": "S-1.1",
       "status": "PASS",
       "evidence": {
-        "notes": "Unit test suite passed",
+        "notes": "Unit test 'GridState.toggle' from src/engine/GridState.test.ts: 3 assertions passed",
         "artifacts": [
           ".agents/artifacts/stage-8/unit/test.log",
           ".agents/artifacts/stage-8/unit/test.exit"
