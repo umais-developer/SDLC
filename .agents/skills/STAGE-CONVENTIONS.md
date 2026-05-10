@@ -20,6 +20,29 @@ Each stage's SKILL.md defines what "trivial / medium / large" means for its own 
 
 ---
 
+## 1b. Target Platform
+
+Every stage reads the `target_platform` field from `.agents/artifacts/stage-2/tech_stack.json`. Stage 2 sets it; downstream stages branch their behavior on it (especially Stage 8 UI testing and Stage 9 deployment).
+
+| Target | Meaning | Where it's typical |
+|---|---|---|
+| `web` | Static or SPA browser app, deployable to GitHub Pages or any static host. Default. | The most common target. |
+| `desktop` | Cross-platform desktop application (Electron, Tauri, .NET MAUI, Flutter Desktop). Distributed as signed installers (`.dmg`, `.msi`, `.exe`, `.AppImage`). | Apps that need offline operation, on-device ML, native filesystem access, or local-first privacy. |
+| `cli` | Command-line tool. No GUI, no browser, no installer beyond a package registry entry. | Reserved; not yet differentiated by Stage 8/9. |
+| `library` | Importable package (npm/pypi/crate/etc.) — no end-user UI of its own. | Reserved; not yet differentiated by Stage 8/9. |
+
+**Default when absent:** `web` — the pipeline's historical default.
+
+**How downstream stages branch:**
+
+- **Stage 5** plan: e2e specs are mandated for any target with a UI (`web` or `desktop`). For `desktop` they use Playwright in Electron mode (`_electron.launch`) instead of `page.goto`.
+- **Stage 8** UAT: the per-flow P0 browser-test rule and the pixel-evidence rule apply to **both** `web` and `desktop`. Playwright is the canonical UI test runner in either case; the spec wiring differs but the evidence shape is identical (screenshots, video, traces).
+- **Stage 9** deploy: `web` follows the GitHub Pages path; `desktop` follows the signed-installer path. The two share `deployment_config.json` as the gate artifact but the schema differs by `target` field.
+
+A project's `target_platform` is set once in Stage 2 and never re-derived downstream.
+
+---
+
 ## 2. Anti-Hallucination Rule
 
 **Every justification must be traceable to a specific upstream artifact ID.**

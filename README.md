@@ -144,9 +144,22 @@ When you start a new project off this repo, branch from `main`, force-add the im
 
 ---
 
+## Targets supported
+
+The pipeline branches on `target_platform` (set in Stage 2's `tech_stack.json`):
+
+| Target | Stage 8 (UAT) | Stage 9 (Deploy) |
+|---|---|---|
+| `web` | Playwright + Chromium against the local dev/preview URL | GitHub Pages flow (Path A) — patches `vite.config.ts`, pushes `deploy/<repo>` branch |
+| `desktop` | Playwright in Electron mode (`_electron.launch`); same pixel-evidence rules | Signed-installer flow (Path B) — produces `.dmg` / `.msi` / `.AppImage` per OS, automated verifier checks size + sha256 + signature |
+| `cli` / `library` | Reserved | Reserved (out of scope today) |
+
+For desktop, expect to bring code-signing certificates yourself (Apple Developer ID + notarization for macOS, Authenticode for Windows). Stage 9 halts cleanly if signing isn't configured rather than producing unsigned installers.
+
 ## Out of scope
 
-- **Server-side deployment.** Stage 9 covers GitHub Pages only. Apps that depend on Postgres/Redis/server-rendered frameworks halt at Stage 9 with a recommendation to use Vercel/Render/Azure/etc. Those deploy paths belong in your project's own CI/CD config (e.g. `.github/workflows/`), not in the SDLC pipeline.
+- **Server-side deployment.** Stage 9 covers GitHub Pages and signed desktop installers. Apps that depend on Postgres/Redis/server-rendered frameworks halt at Stage 9 with a recommendation to use Vercel/Render/Azure/etc. Those deploy paths belong in your project's own CI/CD config (e.g. `.github/workflows/`), not in the SDLC pipeline.
+- **Mobile (iOS/Android).** Reserved for a future extension; not handled today.
 - **Security review.** Stage 7 catches structural and contract violations and missing test coverage. It is **not** a substitute for a focused security review — use `/security-review` separately.
 
 ---

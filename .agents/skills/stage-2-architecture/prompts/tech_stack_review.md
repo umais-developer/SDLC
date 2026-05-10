@@ -1,7 +1,7 @@
 ---
 role: Solutions architect
 description: Inspect existing stack or select stack for greenfield; mode is inferred from codebase_context
-prompt_version: "2026-05-11"
+prompt_version: "2026-05-12"
 ---
 
 # Stage 2a: Technology Stack Review
@@ -83,6 +83,32 @@ These are **advisory inputs, not the universe of valid choices**. Vanilla HTML/J
 
 ---
 
+## Target Platform — required field on every selection
+
+Every selection-mode output **must** include `target_platform` at the top level: one of `"web"`, `"desktop"`, `"cli"`, `"library"`. Inspection mode mirrors what the existing project is. Default when uncertain: `"web"`.
+
+The PRD signals desktop when it says any of: "desktop application", "installs on Mac/Windows", "works fully offline", "code-signed installer", "on-device ML/AI", "no cloud", "MSI/DMG/AppImage". When you see those, set `target_platform: "desktop"` and pick a stack that fits.
+
+### Desktop stack guidance (when `target_platform: "desktop"`)
+
+| Choice | Strengths | Caveats |
+|---|---|---|
+| **Electron + TypeScript + React** | Mature, huge ecosystem, easy to staff, Playwright supports Electron natively (`_electron.launch`) | Larger binaries (~80–150 MB); RAM cost of bundled Chromium |
+| **Tauri + Rust + (any frontend)** | Tiny binaries (~3–10 MB), uses OS webview, native performance | Smaller community; OS webview differences across platforms; native ML access via Rust crates |
+| **.NET MAUI / WPF (Windows-first)** | First-class Windows integration; signed via standard Authenticode | Mac story is weaker; less mainstream for cross-platform UI |
+| **Flutter Desktop** | Single codebase across mobile + desktop; pixel-perfect UI | Heavier runtime; ecosystem geared toward mobile; native ML access requires platform channels |
+
+For desktop, your output **must** include:
+- `target_platform: "desktop"`
+- `desktop_targets`: an array of OS targets, each with installer format and code-signing approach. Example: `[{"os": "macos", "installer": "dmg", "signing": "Apple Developer ID + notarization"}, {"os": "windows", "installer": "msi", "signing": "Authenticode (DigiCert / Sectigo)"}]`
+- `build_command`: produces all target installers. For Electron projects, `npm run build && npm run dist` (electron-builder). Single command only — chains via `&&` are forbidden in this field; if you need multi-step, name a script under `scripts/`.
+
+**Stage 8 implication.** For `target_platform: "desktop"`, browser tests still use Playwright — but in **Electron mode** via `_electron.launch()`. The pixel-evidence and per-flow rules apply unchanged. Note this in the `testing` block so Stage 5 generates the right kind of e2e specs.
+
+**Stage 9 implication.** For `target_platform: "desktop"`, deployment produces signed installers per `desktop_targets[]`. GitHub Pages does not apply.
+
+---
+
 ## Output Contract
 
 Return **valid JSON only** — no markdown, no explanation.
@@ -147,6 +173,7 @@ Return **valid JSON only** — no markdown, no explanation.
 ```json
 {
   "mode": "selection",
+  "target_platform": "web",
   "recommendation": "TypeScript + Vite + Vitest + Playwright",
   "opinion_reference": "spa-opinion.md",
   "architectural_pattern": "MVC-inspired (Model in store modules, View in render functions, Controller in event handlers)",

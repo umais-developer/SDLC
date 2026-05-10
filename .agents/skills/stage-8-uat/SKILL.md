@@ -131,9 +131,9 @@ Before starting Step 2, look for `.agents/artifacts/stage-8/uat_progress.json`. 
   - **Unit tests:** if Stage 6 logs exist (e.g., `.agents/artifacts/stage-6/test.log`, `.agents/artifacts/stage-6/test.exit`), copy them into `.agents/artifacts/stage-8/unit/`; otherwise re-run `test_command` and write logs to `.agents/artifacts/stage-8/unit/`.
   - **Browser tests (mandatory for Medium/Large):**
     1. If `@playwright/test` is not in `node_modules`: `npm install -D @playwright/test`.
-    2. If Chromium is not installed: `npx playwright install chromium`.
-    3. Make sure the app is running at `{{app_url}}` (Step 0 should have started it).
-    4. Run with full evidence capture:
+    2. **For `target_platform: "web"`:** if Chromium is not installed, `npx playwright install chromium`. Make sure the app is running at `{{app_url}}` (Step 0 should have started it).
+    3. **For `target_platform: "desktop"` (Electron):** ensure the desktop app has been packaged (`npm run build && npm run dist` or equivalent). Each Playwright spec uses `_electron.launch({ args: ['<path-to-built-app>'] })` instead of navigating to a URL. Step 0's "app health" check is the verification that the binary launches and reaches its first window.
+    4. Run with full evidence capture (the same command works for both web and Electron projects — Playwright projects are configured in `playwright.config.ts`):
        `npx playwright test --reporter=list,html --trace on --screenshot on --video retain-on-failure`
     5. After the run, **map each Playwright test to a `test_id` in `test_plan.json`** (by test title or `test.info().annotations`) and copy its artifacts into `.agents/artifacts/stage-8/playwright/<test-id>/`. Required per case: at least one `.png` (screenshot), one `.zip` (trace), or one `.webm`/`.mp4` (video). The Playwright HTML report under `playwright-report/` is also accepted as evidence.
     6. Record the resulting paths in `uat_results.json` under `results[].evidence.artifacts[]`.

@@ -46,10 +46,32 @@ Mark all test cases of type `unit` as PASS/FAIL based on actual exit code and ou
 
 **Setup (run once per Stage 8 invocation, idempotent):**
 ```bash
-# Install Playwright if not present
+# Install Playwright if not present (works for both web and desktop targets)
 test -f node_modules/@playwright/test/package.json || npm install -D @playwright/test
+```
+
+For `target_platform: "web"` only:
+```bash
 # Install Chromium browser bundle (~150 MB; cached after first run)
 npx playwright install chromium
+```
+
+For `target_platform: "desktop"` (Electron) only:
+```bash
+# Ensure the desktop app is packaged (Electron) so specs can _electron.launch it
+npm run build && npm run dist
+```
+Spec entry pattern for Electron — each `.spec.ts` opens the packaged binary:
+```ts
+import { test, _electron as electron } from "@playwright/test";
+
+test("FLOW-1: import folder, restore, render preview", async ({}, info) => {
+  info.annotations.push({ type: "test_id", description: "T1.1.1" });
+  const app = await electron.launch({ args: ["./dist/main.js"] });
+  const window = await app.firstWindow();
+  // ... interactions on `window` use the same Playwright Page API as web ...
+  await app.close();
+});
 ```
 
 **Execution — every browser test in test_plan.json runs in one Playwright invocation:**
