@@ -5,6 +5,7 @@
   "required": [
     "raw_request",
     "request_type",
+    "size",
     "primary_goal",
     "user_pain_point",
     "scope_boundaries",
@@ -22,6 +23,11 @@
     "request_type": {
       "type": "string",
       "enum": ["feature", "bug_fix", "refactor", "other"]
+    },
+    "size": {
+      "type": "string",
+      "enum": ["trivial", "medium", "large"],
+      "description": "Request scope: trivial = single isolated change touching ≤2 files; medium = self-contained feature, 1-3 components; large = cross-cutting, new subsystem, or greenfield. Set during Stage 1 problem interpretation; downstream stages inherit this without re-deriving."
     },
     "primary_goal": {
       "type": "string",

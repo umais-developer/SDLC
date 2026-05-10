@@ -111,26 +111,46 @@ All verify scripts follow this pattern:
 
 ---
 
-## 8. Prompt Versioning
+## 8. Prompt Versioning and Drift Detection
 
-Every file under `.agents/skills/<stage>/prompts/` carries a `prompt_version` (date string, e.g. `"2026-05-09"`) in its YAML frontmatter. When a stage produces a structured artifact (`problem.json`, `goals.json`, `components.json`, `flows.json`, `stories.json`, `tasks.json`, `review.json`, `test_plan.json`, `uat_results.json`), it must record the prompt versions that produced it under a `meta` field:
+Every file under `.agents/skills/<stage>/prompts/` carries a `prompt_version` (date string, e.g. `"2026-05-09"`) in its YAML frontmatter. When a stage produces a structured artifact (`problem.json`, `goals.json`, `components.json`, `flows.json`, `stories.json`, `tasks.json`, `review.json`, `test_plan.json`, `uat_results.json`), it records a `meta` block:
 
 ```json
 {
   "meta": {
+    "generated_at": "2026-05-09T14:32:00Z",
     "prompt_versions": {
       "problem_interpretation": "2026-05-09",
       "goals_extraction": "2026-05-09"
     },
-    "generated_at": "2026-05-09T14:32:00Z"
+    "source_hashes": {
+      "stage-1/problem.json": "sha256:9c8f2a1b4d6e",
+      "stage-1/goals.json":   "sha256:1f0a3b5c7d2e"
+    }
   },
   ...
 }
 ```
 
-This lets a future verifier compare artifact versus current prompt and flag stale outputs ("artifact was produced under prompt v2026-04-01; current prompt is v2026-05-09 — re-run").
+Three drift signals, in increasing order of strictness:
+
+1. **`generated_at`** is informational — useful when reading an artifact, no enforcement.
+2. **`prompt_versions`** lets a verifier compare the recorded prompt revision against the current one. If a prompt was revised after the artifact was generated, the artifact may be stale.
+3. **`source_hashes`** is load-bearing: a verifier compares each recorded hash against the current file on disk. If `goals.json` changed after `stories.json` was generated, the recorded hash will not match — the downstream is provably stale.
+
+**Helpers:** `.agents/skills/_shared/meta.py` provides `hash_artifact(path)`, `build_meta(prompt_versions, source_artifacts)`, and `check_drift(artifact_path, artifacts_root)`. The drift checker `python .agents/tests/check_drift.py` walks every artifact and reports mismatches.
+
+**Required post-write step.** After writing any structured JSON artifact listed in `.agents/skills/_shared/inject_meta.py:ARTIFACT_MAPPING`, the stage MUST run:
+
+```bash
+python .agents/skills/_shared/inject_meta.py .agents/artifacts/<stage-N>/<artifact>.json
+```
+
+This reads the relevant prompts' `prompt_version` from frontmatter, hashes the upstream source artifacts, and writes the `meta` block into the artifact. Stages do not assemble the meta block by hand — the helper does it deterministically. New artifact paths must be added to `ARTIFACT_MAPPING` before the helper will inject anything for them.
 
 **Bumping `prompt_version`:** when you change a prompt's behavior in a way that should invalidate prior artifacts, bump the date. Cosmetic changes (typo, formatting) do not require a bump.
+
+**Hash format:** `sha256:` prefix + first 12 hex chars of the file's SHA-256. Short enough to read inline; collision-resistant enough for drift detection.
 
 ---
 

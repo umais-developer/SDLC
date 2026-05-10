@@ -12,7 +12,7 @@ You design the component structure, data flow, and module boundaries for the fea
 
 ## Output Contract
 
-Return **valid JSON only**. Match `schemas/components.json`.
+Return **valid JSON only**. Match `.agents/schemas/components.json`.
 
 **Write to:** `.agents/artifacts/stage-2/components.json` — create the directory if it does not exist.
 

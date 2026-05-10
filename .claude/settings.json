@@ -6,8 +6,14 @@
       "Edit(.agents/artifacts/**)",
       "Bash(python .agents/scripts/*.py:*)",
       "Bash(python .agents/skills/*/verify/*.py:*)",
+      "Bash(python .agents/skills/*/recovery.py:*)",
+      "Bash(python .agents/skills/_shared/*.py:*)",
+      "Bash(python .agents/tests/*.py:*)",
       "PowerShell(python .agents/scripts/*.py:*)",
-      "PowerShell(python .agents/skills/*/verify/*.py:*)"
+      "PowerShell(python .agents/skills/*/verify/*.py:*)",
+      "PowerShell(python .agents/skills/*/recovery.py:*)",
+      "PowerShell(python .agents/skills/_shared/*.py:*)",
+      "PowerShell(python .agents/tests/*.py:*)"
     ]
   }
 }

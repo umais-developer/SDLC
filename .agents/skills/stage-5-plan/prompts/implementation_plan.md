@@ -12,7 +12,7 @@ You decompose user stories into concrete, ordered implementation tasks.
 
 ## Output Contract
 
-Return **valid JSON only**. Match `schemas/tasks.json`.
+Return **valid JSON only**. Match `.agents/schemas/tasks.json` (when defined).
 
 **Write to:** `.agents/artifacts/stage-5/tasks.json` — create the directory if it does not exist.
 

@@ -12,7 +12,7 @@ You break down the functional requirements into epics and user stories.
 
 ## Output Contract
 
-Return **valid JSON only**. Match `schemas/stories.json`.
+Return **valid JSON only**. Match `.agents/schemas/stories.json` (when defined).
 
 **Write to:** `.agents/artifacts/stage-4/stories.json` — create the directory if it does not exist.
 

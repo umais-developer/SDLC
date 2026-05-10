@@ -27,7 +27,6 @@ path the SKILL.md prescribes for that stage. The runner picks them up
 automatically.
 """
 
-import os
 import subprocess
 import sys
 from pathlib import Path
@@ -36,14 +35,19 @@ REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 ARTIFACTS = REPO_ROOT / ".agents" / "artifacts"
 SKILLS = REPO_ROOT / ".agents" / "skills"
 
+sys.path.insert(0, str(SKILLS / "_shared"))
+from console import setup as setup_console  # noqa: E402
+setup_console()
+
 
 def run(label: str, args: list[str]) -> tuple[bool, str]:
     """Run a verifier; return (passed, output).
 
-    Forces UTF-8 stdio in the child so the verifier's emoji-laced print
-    statements survive Windows cp1252 stdout.
+    Deliberately does NOT set PYTHONIOENCODING in the child. Each verify
+    script handles its own stdio (via _shared/console.setup() at import).
+    If a verifier prints unicode and the in-process setup is broken on the
+    target platform, this smoke test will surface it — that's the point.
     """
-    env = {**os.environ, "PYTHONIOENCODING": "utf-8"}
     try:
         result = subprocess.run(
             [sys.executable, *args],
@@ -53,7 +57,6 @@ def run(label: str, args: list[str]) -> tuple[bool, str]:
             encoding="utf-8",
             errors="replace",
             timeout=60,
-            env=env,
         )
         passed = result.returncode == 0
         output = (result.stdout + result.stderr).strip()

@@ -15,6 +15,8 @@ from pathlib import Path
 # Import shared exception classes and schema helper from _shared/
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "_shared"))
 
+from console import setup as setup_console
+setup_console()
 from exceptions import StructureError, TraceabilityError, CompletionError
 from schemas import validate as validate_schema
 

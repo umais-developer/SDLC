@@ -14,6 +14,11 @@ import sys
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
+# Force UTF-8 stdio so emoji prints survive Windows cp1252.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "skills" / "_shared"))
+from console import setup as setup_console  # noqa: E402
+setup_console()
+
 class CapabilityDetector:
     """Detects installed runtimes, frameworks, and tools"""
 
@@ -31,8 +36,8 @@ class CapabilityDetector:
 
     @staticmethod
     def _get_timestamp() -> str:
-        from datetime import datetime
-        return datetime.utcnow().isoformat() + "Z"
+        from datetime import datetime, timezone
+        return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     @staticmethod
     def _detect_os() -> str:

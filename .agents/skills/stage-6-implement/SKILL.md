@@ -155,6 +155,23 @@ python .agents/skills/stage-6-implement/verify/implementation_completeness.py \
 - Exit non-zero → **HALT** — report missing coverage, do not proceed
 - Exit 0 → Stage 6 complete
 
+## Recovery From a Stuck Run
+
+A Stage 6 run can leave the pipeline wedged: some tasks completed but none verified, some files written but not all, and Stage 7's structural gate then refuses to run because `tasks.json` references test files that don't exist on disk yet. Use the recovery tool to inspect and (with explicit confirmation) reset progress:
+
+```bash
+# Report current state and a recommendation
+python .agents/skills/stage-6-implement/recovery.py --status
+
+# Archive progress.json so /stage-6 starts clean (source files NOT touched)
+python .agents/skills/stage-6-implement/recovery.py --reset --yes
+
+# Remove a specific task from completed/verified/failed so it gets re-attempted
+python .agents/skills/stage-6-implement/recovery.py --unstage T-12 --yes
+```
+
+The recovery tool never modifies `src/`. If you want to also discard the code a previous attempt wrote, use `git restore <path>` on the specific files yourself — that's a deliberate split so a partial commit can be salvaged before reset.
+
 ## Outputs
 
 | Artifact | Path |

@@ -1,3 +1,4 @@
+# Secrets
 .env
 .env.*
 
@@ -6,5 +7,30 @@ __pycache__/
 *.py[cod]
 *.pyo
 
+# Virtual environments and tooling caches
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Logs
+*.log
+
 # Claude Code local overrides (personal/experimental settings)
 .claude/settings.local.json
+
+# Stage 6 recovery backups
+.agents/artifacts/stage-6/progress.json.bak.*
+
+# Project-specific implementation code does NOT belong on main.
+# Main is the pipeline-only branch; src/, tests/, requirements, and
+# project requirements docs live on feature branches. The leading slash
+# anchors these patterns to the repo root so they do not accidentally
+# match e.g. .agents/tests/ or .agents/skills/<stage>/.
+/src/
+/tests/
+/requirements.txt
+/Requirements*.md
+/Prescription_*.md

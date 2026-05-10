@@ -16,7 +16,7 @@ You extract functional and non-functional requirements from the problem statemen
 
 ## Output Contract
 
-Return **valid JSON only**. Match the schema in `schemas/goals.json` exactly.
+Return **valid JSON only**. Match the schema in `.agents/schemas/goals.json` exactly.
 
 **Write to:** `.agents/artifacts/stage-1/goals.json` — create the directory if it does not exist.
 

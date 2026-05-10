@@ -12,7 +12,7 @@ You map the primary and edge-case user flows for the feature.
 
 ## Output Contract
 
-Return **valid JSON only**. Match `schemas/flows.json`.
+Return **valid JSON only**. Match `.agents/schemas/flows.json` (when defined).
 
 **Write to:** `.agents/artifacts/stage-3/flows.json` — create the directory if it does not exist.
 

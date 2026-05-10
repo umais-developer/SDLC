@@ -25,6 +25,12 @@ import re
 import sys
 from pathlib import Path
 
+# Shared helpers: console encoding setup + anti-hallucination scanner.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "_shared"))
+from console import setup as setup_console  # noqa: E402
+setup_console()
+from anti_halluc import scan as scan_anti_halluc, format_violations  # noqa: E402
+
 # Load .env from the project root (two levels up from this script's verify/ dir)
 try:
     from dotenv import load_dotenv
@@ -109,6 +115,7 @@ ALL_CHECKS = [
     ("traceability_links", "Traceability matrix links each GOAL to at least one FR",     0.15),
     ("no_stub_sections",   "No required section is empty/stub-only",                     0.05),
     ("no_vague_phrases",   "No stub/vague filler phrases detected",                      0.05),
+    ("no_fabricated_authority", "No fabricated-authority phrases (anti-hallucination)",   0.05),
 ]
 
 # LLM qualitative dimensions — feature-agnostic rubric (no search-bar specifics).
@@ -346,7 +353,8 @@ def run_checks(prd_text: str, goals: dict, profile: dict) -> list:
 
     # Filter ALL_CHECKS down to those active for this size
     active_check_ids = {"required_sections", "no_placeholders",
-                        "no_stub_sections", "no_vague_phrases"}
+                        "no_stub_sections", "no_vague_phrases",
+                        "no_fabricated_authority"}
     active_check_ids.update(active_id_checks)
     if needs_matrix:
         active_check_ids.add("traceability_links")
@@ -443,6 +451,14 @@ def run_checks(prd_text: str, goals: dict, profile: dict) -> list:
             found = list(set(found))
             passed = len(found) == 0
             failures = [f"Vague filler phrase detected: '{p}'" for p in found]
+
+        elif check_id == "no_fabricated_authority":
+            violations = scan_anti_halluc(prd_text, stage="Stage 1")
+            passed = len(violations) == 0
+            failures = [
+                f"L{line_no} [{label}]: {snippet}"
+                for line_no, snippet, label in violations
+            ]
 
         results.append({
             "id": check_id,
