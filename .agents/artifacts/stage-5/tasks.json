@@ -1,0 +1,652 @@
+{
+  "tasks": [
+    {
+      "id": "T-1",
+      "story": "STORY-4-1",
+      "title": "Implement SecretsProvider Vault integration",
+      "file": "src/infrastructure/secrets_provider.py",
+      "action": "create",
+      "description": "Implement SecretsProvider with get_mailbox_credentials(), get_database_credentials(), rotate_credentials(), and is_credentials_expiring_soon() using Vault client abstraction.",
+      "depends_on": ["T-23", "T-27"],
+      "tests": [
+        "tests/unit/test_secrets_provider.py: vault auth success/failure",
+        "tests/unit/test_secrets_provider.py: credential rotation and ttl checks"
+      ],
+      "links_to": {
+        "fr": ["FR-1", "FR-4"],
+        "nfr": ["NFR-6"],
+        "con": ["CON-4", "CON-6"],
+        "goal": ["GOAL-2"]
+      },
+      "components": ["SecretsProvider"],
+      "definition_of_done": "`pytest tests/unit/test_secrets_provider.py -q` passes and Vault credential retrieval paths are covered."
+    },
+    {
+      "id": "T-2",
+      "story": "STORY-2-1",
+      "title": "Implement MailboxConnector Graph integration",
+      "file": "src/integrations/mailbox_connector.py",
+      "action": "create",
+      "description": "Implement MailboxConnector connect(), disconnect(), retrieve_emails(start_date, end_date), and is_connected() with mailbox-scoped Microsoft Graph access.",
+      "depends_on": ["T-1"],
+      "tests": [
+        "tests/unit/test_mailbox_connector.py: connect/disconnect lifecycle",
+        "tests/unit/test_mailbox_connector.py: bounded date range retrieval"
+      ],
+      "links_to": {
+        "fr": ["FR-1", "FR-12"],
+        "nfr": ["NFR-2"],
+        "con": ["CON-1", "CON-4"],
+        "goal": ["GOAL-1"]
+      },
+      "components": ["MailboxConnector"],
+      "definition_of_done": "`pytest tests/unit/test_mailbox_connector.py -q` passes with Graph SDK mocked and mailbox scope enforced."
+    },
+    {
+      "id": "T-3",
+      "story": "STORY-4-1",
+      "title": "Implement EmailNewIdentifier dedup tracking",
+      "file": "src/business_logic/email_new_identifier.py",
+      "action": "create",
+      "description": "Implement identify_new_emails(), mark_email_processed(email_id), and is_email_already_processed() for processed-email filtering.",
+      "depends_on": ["T-27"],
+      "tests": [
+        "tests/unit/test_email_new_identifier.py: identify new vs processed ids",
+        "tests/unit/test_email_new_identifier.py: mark and lookup processed emails"
+      ],
+      "links_to": {
+        "fr": ["FR-2", "FR-11"],
+        "nfr": ["NFR-4", "NFR-5"],
+        "con": [],
+        "goal": ["GOAL-3"]
+      },
+      "components": ["EmailNewIdentifier"],
+      "definition_of_done": "`pytest tests/unit/test_email_new_identifier.py -q` passes including duplicate email filtering cases."
+    },
+    {
+      "id": "T-4",
+      "story": "STORY-3-1",
+      "title": "Implement AuditLogger foundation CRUD",
+      "file": "src/persistence/audit_logger.py",
+      "action": "create",
+      "description": "Create AuditLogger with create_run_record(), record_email_processed(), finalize_run_record(), query_run_records(), and query_email_records().",
+      "depends_on": ["T-9", "T-28", "T-24"],
+      "tests": [
+        "tests/unit/test_audit_logger.py: run record create/finalize",
+        "tests/unit/test_audit_logger.py: query by date/status/sender"
+      ],
+      "links_to": {
+        "fr": ["FR-9", "FR-10", "FR-14"],
+        "nfr": ["NFR-8", "NFR-10"],
+        "con": [],
+        "goal": ["GOAL-4"]
+      },
+      "components": ["AuditLogger"],
+      "definition_of_done": "`pytest tests/unit/test_audit_logger.py -q` passes and queryable audit fields are asserted."
+    },
+    {
+      "id": "T-5",
+      "story": "STORY-4-3",
+      "title": "Implement PrescriptionRepository upsert and dedup",
+      "file": "src/persistence/prescription_repository.py",
+      "action": "create",
+      "description": "Implement store_or_update(), find_by_composite_key(), get_all_prescriptions(), and bulk_upsert() with composite-key dedup semantics.",
+      "depends_on": ["T-9", "T-28"],
+      "tests": [
+        "tests/unit/test_prescription_repository.py: insert/update/upsert paths",
+        "tests/unit/test_prescription_repository.py: composite-key duplicate suppression"
+      ],
+      "links_to": {
+        "fr": ["FR-4", "FR-5", "FR-6"],
+        "nfr": ["NFR-3", "NFR-4"],
+        "con": ["CON-3", "CON-5"],
+        "goal": ["GOAL-3"]
+      },
+      "components": ["PrescriptionRepository"],
+      "definition_of_done": "`pytest tests/unit/test_prescription_repository.py -q` passes and duplicate reprocessing keeps one record per composite key."
+    },
+    {
+      "id": "T-6",
+      "story": "STORY-4-1",
+      "title": "Implement JobStateManager state lifecycle",
+      "file": "src/business_logic/job_state_manager.py",
+      "action": "create",
+      "description": "Implement initialize_run_state(), get_resumption_point(), mark_email_as_processed(), and finalize_run_state() backed by persistent state.",
+      "depends_on": ["T-5"],
+      "tests": [
+        "tests/unit/test_job_state_manager.py: state init/finalize",
+        "tests/unit/test_job_state_manager.py: resumption point recovery"
+      ],
+      "links_to": {
+        "fr": ["FR-7", "FR-8", "FR-11"],
+        "nfr": ["NFR-5"],
+        "con": [],
+        "goal": ["GOAL-3"]
+      },
+      "components": ["JobStateManager"],
+      "definition_of_done": "`pytest tests/unit/test_job_state_manager.py -q` passes and restart checkpoints are persisted per email."
+    },
+    {
+      "id": "T-7",
+      "story": "STORY-5-1",
+      "title": "Implement PDFExtractionEngine core extraction",
+      "file": "src/business_logic/pdf_extraction_engine.py",
+      "action": "create",
+      "description": "Implement extract_fields(), validate_pdf_format(), and detect_format_change() for 23-field extraction with anomaly hooks.",
+      "depends_on": ["T-27"],
+      "tests": [
+        "tests/unit/test_pdf_extraction_engine.py: extract 23 fields from canonical PDFs",
+        "tests/unit/test_pdf_extraction_engine.py: malformed format detection"
+      ],
+      "links_to": {
+        "fr": ["FR-3", "FR-13"],
+        "nfr": ["NFR-3", "NFR-9"],
+        "con": ["CON-2"],
+        "goal": ["GOAL-3"]
+      },
+      "components": ["PDFExtractionEngine"],
+      "definition_of_done": "`pytest tests/unit/test_pdf_extraction_engine.py -q` passes including malformed PDF detection cases."
+    },
+    {
+      "id": "T-8",
+      "story": "STORY-5-2",
+      "title": "Implement DataValidator field and key validation",
+      "file": "src/business_logic/data_validator.py",
+      "action": "create",
+      "description": "Implement validate_prescription_fields(), is_field_present(), and validate_composite_key() for completeness checks before persistence.",
+      "depends_on": ["T-27"],
+      "tests": [
+        "tests/unit/test_data_validator.py: required 23-field validation",
+        "tests/unit/test_data_validator.py: composite key validity checks"
+      ],
+      "links_to": {
+        "fr": ["FR-3"],
+        "nfr": ["NFR-3"],
+        "con": [],
+        "goal": ["GOAL-2"]
+      },
+      "components": ["DataValidator"],
+      "definition_of_done": "`pytest tests/unit/test_data_validator.py -q` passes and all required field checks are asserted."
+    },
+    {
+      "id": "T-9",
+      "story": "STORY-4-1",
+      "title": "Create PostgreSQL schema for prescriptions and audits",
+      "file": "src/persistence/schema.sql",
+      "action": "create",
+      "description": "Create prescriptions, run_audit, email_audit, and processed_emails tables with required indexes and composite unique constraints.",
+      "depends_on": ["T-27"],
+      "tests": [
+        "tests/integration/test_schema.py: schema migrations apply cleanly",
+        "tests/integration/test_schema.py: unique and fk constraints enforced"
+      ],
+      "links_to": {
+        "fr": ["FR-4", "FR-5", "FR-10", "FR-14"],
+        "nfr": ["NFR-4", "NFR-8"],
+        "con": ["CON-3", "CON-5"],
+        "goal": ["GOAL-4"]
+      },
+      "components": ["PrescriptionRepository", "AuditLogger", "JobStateManager"],
+      "definition_of_done": "`pytest tests/integration/test_schema.py -q` passes and composite key constraint prevents duplicate inserts."
+    },
+    {
+      "id": "T-10",
+      "story": "STORY-1-1",
+      "title": "Implement IntakeOrchestrator foundation flows",
+      "file": "src/orchestration/intake_orchestrator.py",
+      "action": "create",
+      "description": "Implement run_historical_load(), run_daily_intake(), and execute_intake_job() coordinating mailbox retrieval, extraction, validation, persistence, and audit logging.",
+      "depends_on": ["T-1", "T-2", "T-3", "T-4", "T-5", "T-6", "T-7", "T-8"],
+      "tests": [
+        "tests/integration/test_intake_orchestrator.py: end-to-end orchestration happy path",
+        "tests/integration/test_intake_orchestrator.py: run status and metrics persistence"
+      ],
+      "links_to": {
+        "fr": ["FR-1", "FR-2", "FR-3", "FR-4", "FR-5", "FR-6", "FR-7", "FR-8", "FR-9", "FR-10", "FR-11", "FR-13", "FR-15"],
+        "nfr": ["NFR-1", "NFR-2"],
+        "con": [],
+        "goal": ["GOAL-1", "GOAL-3", "GOAL-4"]
+      },
+      "components": ["IntakeOrchestrator"],
+      "definition_of_done": "`pytest tests/integration/test_intake_orchestrator.py -q` passes with mocked Graph and test Postgres."
+    },
+    {
+      "id": "T-11",
+      "story": "STORY-1-1",
+      "title": "Implement APSchedulerJobRunner scheduling",
+      "file": "src/orchestration/apscheduler_job_runner.py",
+      "action": "create",
+      "description": "Implement start_scheduler(), stop_scheduler(), schedule_daily_run(), and get_scheduled_jobs() with persistent scheduler config.",
+      "depends_on": ["T-10"],
+      "tests": [
+        "tests/integration/test_apscheduler_job_runner.py: daily schedule registration",
+        "tests/integration/test_apscheduler_job_runner.py: scheduler restart persistence"
+      ],
+      "links_to": {
+        "fr": ["FR-7", "FR-8", "FR-15"],
+        "nfr": ["NFR-1"],
+        "con": [],
+        "goal": ["GOAL-1"]
+      },
+      "components": ["APSchedulerJobRunner"],
+      "definition_of_done": "`pytest tests/integration/test_apscheduler_job_runner.py -q` passes with scheduler lifecycle assertions."
+    },
+    {
+      "id": "T-12",
+      "story": "STORY-1-1",
+      "title": "Create application entrypoint and graceful shutdown",
+      "file": "src/orchestration/application_entry.py",
+      "action": "create",
+      "description": "Wire configuration, scheduler startup, signal handlers, and graceful shutdown behavior for unattended runtime.",
+      "depends_on": ["T-11"],
+      "tests": [
+        "tests/e2e/test_main_startup.py: boot and scheduler start",
+        "tests/e2e/test_main_startup.py: SIGTERM graceful shutdown"
+      ],
+      "links_to": {
+        "fr": ["FR-15"],
+        "nfr": ["NFR-1"],
+        "con": [],
+        "goal": ["GOAL-1"]
+      },
+      "components": ["APSchedulerJobRunner", "IntakeOrchestrator"],
+      "definition_of_done": "`pytest tests/e2e/test_main_startup.py -q` passes and process exits cleanly on signal."
+    },
+    {
+      "id": "T-13",
+      "story": "STORY-1-4",
+      "title": "Add monitoring dashboard routes and retry endpoint",
+      "file": "src/orchestration/dashboard_routes.py",
+      "action": "create",
+      "description": "Implement GET /runs, GET /runs/{id}, and POST /runs/{id}/retry for operations monitoring and targeted retry actions.",
+      "depends_on": ["T-12", "T-4", "T-10"],
+      "tests": [
+        "tests/integration/test_dashboard_routes.py: run list/detail filters",
+        "tests/integration/test_dashboard_routes.py: transient retry endpoint behavior"
+      ],
+      "links_to": {
+        "fr": ["FR-8", "FR-9", "FR-10", "FR-15"],
+        "nfr": ["NFR-10"],
+        "con": [],
+        "goal": ["GOAL-1", "GOAL-3"]
+      },
+      "components": ["AuditLogger", "IntakeOrchestrator", "APSchedulerJobRunner"],
+      "definition_of_done": "`pytest tests/integration/test_dashboard_routes.py -q` passes for list/detail/retry route contracts."
+    },
+    {
+      "id": "T-14",
+      "story": "STORY-1-3",
+      "title": "Implement failure alert dispatcher",
+      "file": "src/orchestration/alert_dispatcher.py",
+      "action": "create",
+      "description": "Implement PARTIAL/FAILED alert dispatch with transient/permanent failure classification and operator-ready message templates.",
+      "depends_on": ["T-13", "T-4"],
+      "tests": [
+        "tests/unit/test_alert_dispatcher.py: PARTIAL and FAILED alert triggering",
+        "tests/unit/test_alert_dispatcher.py: transient/permanent classification"
+      ],
+      "links_to": {
+        "fr": ["FR-9", "FR-10"],
+        "nfr": ["NFR-10"],
+        "con": [],
+        "goal": ["GOAL-1", "GOAL-4"]
+      },
+      "components": ["AuditLogger", "IntakeOrchestrator"],
+      "definition_of_done": "`pytest tests/unit/test_alert_dispatcher.py -q` passes and alert payload fields match run metrics schema."
+    },
+    {
+      "id": "T-15",
+      "story": "STORY-2-1",
+      "title": "Add historical load controls to orchestrator",
+      "file": "src/orchestration/intake_orchestrator.py",
+      "action": "modify",
+      "description": "Extend run_historical_load(start_date) to estimate candidate email count, initialize historical mode state, and write start markers to audit.",
+      "depends_on": ["T-12", "T-10", "T-4"],
+      "tests": [
+        "tests/integration/test_historical_load.py: start date bounded retrieval",
+        "tests/integration/test_historical_load.py: historical run metadata in audit"
+      ],
+      "links_to": {
+        "fr": ["FR-7", "FR-9"],
+        "nfr": ["NFR-2"],
+        "con": [],
+        "goal": ["GOAL-2", "GOAL-3"]
+      },
+      "components": ["IntakeOrchestrator", "AuditLogger", "APSchedulerJobRunner"],
+      "definition_of_done": "`pytest tests/integration/test_historical_load.py -q` passes for one-time load setup and auditing."
+    },
+    {
+      "id": "T-16",
+      "story": "STORY-2-2",
+      "title": "Implement real-time progress API",
+      "file": "src/orchestration/progress_api.py",
+      "action": "create",
+      "description": "Create GET /run/{id}/progress endpoint returning processed, total, elapsed, and ETA based on orchestrator and audit state.",
+      "depends_on": ["T-13", "T-15"],
+      "tests": [
+        "tests/integration/test_progress_api.py: progress shape and monotonic updates",
+        "tests/integration/test_progress_api.py: eta calculation sanity bounds"
+      ],
+      "links_to": {
+        "fr": ["FR-7", "FR-9"],
+        "nfr": ["NFR-1"],
+        "con": [],
+        "goal": ["GOAL-1"]
+      },
+      "components": ["APSchedulerJobRunner", "IntakeOrchestrator", "AuditLogger"],
+      "definition_of_done": "`pytest tests/integration/test_progress_api.py -q` passes and endpoint reflects in-flight historical runs."
+    },
+    {
+      "id": "T-17",
+      "story": "STORY-4-2",
+      "title": "Implement restart-safe resume behavior",
+      "file": "src/orchestration/intake_orchestrator.py",
+      "action": "modify",
+      "description": "Add interruption handling that records checkpoint state and resumes from first unprocessed email without duplicate writes.",
+      "depends_on": ["T-15", "T-6", "T-5", "T-14"],
+      "tests": [
+        "tests/integration/test_restart_safety.py: interrupt at midpoint and resume",
+        "tests/integration/test_restart_safety.py: final dataset has zero duplicates"
+      ],
+      "links_to": {
+        "fr": ["FR-7", "FR-11", "FR-15"],
+        "nfr": ["NFR-4", "NFR-5"],
+        "con": [],
+        "goal": ["GOAL-3"]
+      },
+      "components": ["JobStateManager", "PrescriptionRepository", "AuditLogger", "IntakeOrchestrator"],
+      "definition_of_done": "`pytest tests/integration/test_restart_safety.py -q` passes with interruption/resume and zero-duplicate assertions."
+    },
+    {
+      "id": "T-18",
+      "story": "STORY-3-2",
+      "title": "Implement audit query and drill-down routes",
+      "file": "src/orchestration/audit_routes.py",
+      "action": "create",
+      "description": "Implement GET /audit/runs filters, GET /audit/runs/{id}/emails drill-down, and GET /audit/emails/{id} detail payload.",
+      "depends_on": ["T-13", "T-4", "T-12"],
+      "tests": [
+        "tests/integration/test_audit_routes.py: run-level filtering",
+        "tests/integration/test_audit_routes.py: email drill-down and detail"
+      ],
+      "links_to": {
+        "fr": ["FR-10", "FR-14"],
+        "nfr": ["NFR-8"],
+        "con": [],
+        "goal": ["GOAL-4"]
+      },
+      "components": ["AuditLogger"],
+      "definition_of_done": "`pytest tests/integration/test_audit_routes.py -q` passes for query and drill-down endpoints."
+    },
+    {
+      "id": "T-19",
+      "story": "STORY-3-3",
+      "title": "Implement CSV export service for audit records",
+      "file": "src/orchestration/export_service.py",
+      "action": "create",
+      "description": "Implement CSV export for audit query result sets and background queue path for large exports.",
+      "depends_on": ["T-18"],
+      "tests": [
+        "tests/integration/test_csv_export.py: csv column order and formatting",
+        "tests/integration/test_csv_export.py: large export queuing behavior"
+      ],
+      "links_to": {
+        "fr": ["FR-14"],
+        "nfr": ["NFR-8"],
+        "con": [],
+        "goal": ["GOAL-4"]
+      },
+      "components": ["AuditLogger"],
+      "definition_of_done": "`pytest tests/integration/test_csv_export.py -q` passes and exported file format matches compliance template."
+    },
+    {
+      "id": "T-20",
+      "story": "STORY-5-1",
+      "title": "Harden PDF format anomaly handling",
+      "file": "src/business_logic/pdf_extraction_engine.py",
+      "action": "modify",
+      "description": "Enforce explicit failure on schema mismatch before extraction and emit structured anomaly details to audit logger hooks.",
+      "depends_on": ["T-7", "T-4", "T-12"],
+      "tests": [
+        "tests/integration/test_format_detection.py: malformed PDF suite detection",
+        "tests/integration/test_format_detection.py: explicit failure reason propagation"
+      ],
+      "links_to": {
+        "fr": ["FR-13", "FR-3"],
+        "nfr": ["NFR-9", "NFR-3"],
+        "con": ["CON-2"],
+        "goal": ["GOAL-3"]
+      },
+      "components": ["PDFExtractionEngine", "AuditLogger"],
+      "definition_of_done": "`pytest tests/integration/test_format_detection.py -q` passes with malformed PDFs all classified as explicit failures."
+    },
+    {
+      "id": "T-21",
+      "story": "STORY-5-2",
+      "title": "Implement captured records query routes",
+      "file": "src/orchestration/records_routes.py",
+      "action": "create",
+      "description": "Implement GET /records and GET /records/{id} with date/prescriber filters and 23-field detail plus source traceability metadata.",
+      "depends_on": ["T-13", "T-5", "T-12"],
+      "tests": [
+        "tests/integration/test_records_routes.py: records list filters",
+        "tests/integration/test_records_routes.py: record detail includes source linkage"
+      ],
+      "links_to": {
+        "fr": ["FR-3", "FR-10"],
+        "nfr": ["NFR-3", "NFR-8"],
+        "con": [],
+        "goal": ["GOAL-2", "GOAL-4"]
+      },
+      "components": ["PrescriptionRepository", "AuditLogger"],
+      "definition_of_done": "`pytest tests/integration/test_records_routes.py -q` passes and detail payload includes all 23 fields with source references."
+    },
+    {
+      "id": "T-22",
+      "story": "STORY-5-3",
+      "title": "Implement verification audit trail service",
+      "file": "src/orchestration/verification_service.py",
+      "action": "create",
+      "description": "Implement verification comment capture with operator_id, timestamp, verification status, and retrieval hooks for compliance audit.",
+      "depends_on": ["T-21", "T-4"],
+      "tests": [
+        "tests/integration/test_verification_service.py: comment recording",
+        "tests/integration/test_verification_service.py: verification records queryability"
+      ],
+      "links_to": {
+        "fr": ["FR-10"],
+        "nfr": ["NFR-8"],
+        "con": [],
+        "goal": ["GOAL-4"]
+      },
+      "components": ["AuditLogger"],
+      "definition_of_done": "`pytest tests/integration/test_verification_service.py -q` passes and verification records are retrievable by audit filters."
+    },
+    {
+      "id": "T-23",
+      "story": "STORY-1-1",
+      "title": "Create runtime configuration module",
+      "file": "src/orchestration/config.py",
+      "action": "create",
+      "description": "Implement env-driven config loader for VAULT_ADDR, DB_CONNECTION, GRAPH_TENANT_ID, DAILY_RUN_TIME, and feature flags with validation.",
+      "depends_on": [],
+      "tests": [
+        "tests/unit/test_config.py: required env var validation",
+        "tests/unit/test_config.py: defaults and type parsing"
+      ],
+      "links_to": {
+        "fr": ["FR-15"],
+        "nfr": ["NFR-6"],
+        "con": ["CON-4"],
+        "goal": ["GOAL-1"]
+      },
+      "components": ["APSchedulerJobRunner", "IntakeOrchestrator"],
+      "definition_of_done": "`pytest tests/unit/test_config.py -q` passes and invalid environment raises actionable errors."
+    },
+    {
+      "id": "T-24",
+      "story": "STORY-3-4",
+      "title": "Create structured logging setup",
+      "file": "src/orchestration/logging_setup.py",
+      "action": "create",
+      "description": "Configure structlog JSON logging with run_id, date, status, email_id, and record_count dimensions for operations and audit queries.",
+      "depends_on": ["T-27"],
+      "tests": [
+        "tests/unit/test_logging_setup.py: json logging envelope",
+        "tests/unit/test_logging_setup.py: required context fields present"
+      ],
+      "links_to": {
+        "fr": ["FR-9", "FR-10"],
+        "nfr": ["NFR-8", "NFR-10"],
+        "con": [],
+        "goal": ["GOAL-4"]
+      },
+      "components": ["AuditLogger", "IntakeOrchestrator"],
+      "definition_of_done": "`pytest tests/unit/test_logging_setup.py -q` passes and logs include query dimensions used by audit endpoints."
+    },
+    {
+      "id": "T-25",
+      "story": "STORY-1-1",
+      "title": "Create dependency manifest",
+      "file": "requirements.txt",
+      "action": "create",
+      "description": "Pin runtime and test dependencies including python-dotenv, azure-identity, microsoft-graph-core, pdfplumber, sqlalchemy, psycopg2-binary, apscheduler, hvac, structlog, and flask.",
+      "depends_on": [],
+      "tests": [
+        "tests/integration/test_dependencies.py: import critical modules",
+        "tests/integration/test_dependencies.py: dependency version compatibility smoke"
+      ],
+      "links_to": {
+        "fr": ["FR-1", "FR-3", "FR-4", "FR-15"],
+        "nfr": ["NFR-1", "NFR-6"],
+        "con": [],
+        "goal": ["GOAL-1"]
+      },
+      "components": ["MailboxConnector", "PDFExtractionEngine", "PrescriptionRepository", "APSchedulerJobRunner"],
+      "definition_of_done": "`pytest tests/integration/test_dependencies.py -q` passes and required imports succeed in CI image."
+    },
+    {
+      "id": "T-26",
+      "story": "STORY-1-2",
+      "title": "Create GitHub Actions CI workflow",
+      "file": ".github/workflows/ci.yml",
+      "action": "create",
+      "description": "Define CI job for unit, integration, and e2e test execution with coverage and static checks for merge gating.",
+      "depends_on": ["T-25"],
+      "tests": [
+        ".github/workflows/ci.yml: workflow syntax and job graph",
+        "tests/integration/test_dependencies.py: executed in CI pipeline"
+      ],
+      "links_to": {
+        "fr": ["FR-15"],
+        "nfr": ["NFR-1"],
+        "con": [],
+        "goal": ["GOAL-1"]
+      },
+      "components": ["APSchedulerJobRunner", "IntakeOrchestrator"],
+      "definition_of_done": "`python -m yaml .github/workflows/ci.yml` succeeds and CI runs `pytest` suites without workflow errors."
+    },
+    {
+      "id": "T-27",
+      "story": "STORY-5-1",
+      "title": "Create pytest fixtures and shared mocks",
+      "file": "tests/conftest.py",
+      "action": "create",
+      "description": "Provide fixtures for mocked Vault, Graph SDK, ephemeral test DB, mock email sender, and sample PDF corpus.",
+      "depends_on": ["T-25"],
+      "tests": [
+        "tests/conftest.py: fixture bootstrap smoke via pytest collection",
+        "tests/unit/test_pdf_extraction_engine.py: fixture-backed pdf samples"
+      ],
+      "links_to": {
+        "fr": ["FR-3", "FR-13"],
+        "nfr": ["NFR-9"],
+        "con": [],
+        "goal": ["GOAL-3"]
+      },
+      "components": ["PDFExtractionEngine", "MailboxConnector", "SecretsProvider"],
+      "definition_of_done": "`pytest --collect-only -q` succeeds and fixture-dependent unit tests execute without setup failures."
+    },
+    {
+      "id": "T-28",
+      "story": "STORY-2-3",
+      "title": "Create integration test helper toolkit",
+      "file": "tests/integration/helpers.py",
+      "action": "create",
+      "description": "Implement DB setup/teardown, Graph response simulation, mail payload builders, and run interruption simulation helpers.",
+      "depends_on": ["T-27", "T-9"],
+      "tests": [
+        "tests/integration/helpers.py: helper unit smoke",
+        "tests/integration/test_restart_safety.py: helper-driven interruption simulation"
+      ],
+      "links_to": {
+        "fr": ["FR-7", "FR-11"],
+        "nfr": ["NFR-5"],
+        "con": [],
+        "goal": ["GOAL-3"]
+      },
+      "components": ["IntakeOrchestrator", "JobStateManager", "PrescriptionRepository"],
+      "definition_of_done": "`pytest tests/integration/test_restart_safety.py -q` runs using helpers and reproduces interruption/resume deterministically."
+    }
+  ],
+  "execution_order": [
+    ["T-23", "T-25"],
+    ["T-27", "T-3", "T-7", "T-8"],
+    ["T-1", "T-9", "T-24"],
+    ["T-2", "T-28"],
+    ["T-4", "T-5"],
+    ["T-6", "T-10", "T-26"],
+    ["T-11"],
+    ["T-12"],
+    ["T-13", "T-15", "T-18", "T-20", "T-21"],
+    ["T-14", "T-16", "T-19", "T-22"],
+    ["T-17"]
+  ],
+  "vertical_slices": [
+    {
+      "id": "VS-1",
+      "name": "Foundation Intake Pipeline",
+      "phase": "Foundation",
+      "stories": ["STORY-4-1", "STORY-1-1", "STORY-5-1", "STORY-3-1"],
+      "tasks": ["T-23", "T-25", "T-27", "T-1", "T-2", "T-3", "T-7", "T-8", "T-9", "T-28", "T-4", "T-5", "T-6", "T-24", "T-10", "T-11", "T-12", "T-26"],
+      "enables_fr": ["FR-1", "FR-2", "FR-3", "FR-4", "FR-5", "FR-8", "FR-9", "FR-10", "FR-11", "FR-13", "FR-15"],
+      "demo": "Run scheduled intake and show run metrics + persisted audit records with extraction and dedup in place."
+    },
+    {
+      "id": "VS-2",
+      "name": "Operations Monitoring and Recovery",
+      "phase": "Expansion",
+      "stories": ["STORY-1-2", "STORY-1-3", "STORY-1-4", "STORY-2-3", "STORY-4-2"],
+      "tasks": ["T-13", "T-14", "T-17"],
+      "enables_fr": ["FR-8", "FR-9", "FR-10", "FR-11", "FR-15"],
+      "demo": "Show failed-run alerting, failure details, and one-click transient retry with resume-safe behavior."
+    },
+    {
+      "id": "VS-3",
+      "name": "Historical Load Progress",
+      "phase": "Expansion",
+      "stories": ["STORY-2-1", "STORY-2-2"],
+      "tasks": ["T-15", "T-16"],
+      "enables_fr": ["FR-7", "FR-9"],
+      "demo": "Trigger historical load from a start date and observe real-time progress with ETA."
+    },
+    {
+      "id": "VS-4",
+      "name": "Compliance Audit Query and Export",
+      "phase": "Expansion",
+      "stories": ["STORY-3-1", "STORY-3-2", "STORY-3-3", "STORY-3-4"],
+      "tasks": ["T-18", "T-19"],
+      "enables_fr": ["FR-10", "FR-14"],
+      "demo": "Filter runs, drill to email-level detail, and export filtered audit records to CSV."
+    },
+    {
+      "id": "VS-5",
+      "name": "Data Accuracy Verification",
+      "phase": "Expansion",
+      "stories": ["STORY-5-1", "STORY-5-2", "STORY-5-3"],
+      "tasks": ["T-20", "T-21", "T-22"],
+      "enables_fr": ["FR-3", "FR-10", "FR-13"],
+      "demo": "Detect malformed PDF formats, inspect captured records with source traceability, and record verification sign-off comments."
+    }
+  ]
+}
