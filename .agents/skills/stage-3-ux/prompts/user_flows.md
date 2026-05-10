@@ -1,6 +1,7 @@
 ---
 role: UX designer
 description: Map out user flows from trigger to completion
+prompt_version: "2026-05-09"
 ---
 
 # Stage 3a: User Flow Mapping

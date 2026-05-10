@@ -12,11 +12,13 @@ You are a PRD specialist. Expand the user's feature or bug description into a st
 
 ## Independent Invocation
 
-To run this stage alone:
-```
-Follow instructions in #file:.agents/skills/stage-1-prd/SKILL.md with: <your feature or bug description>
-```
-Optionally attach context files: `@Requirements.md @design-spec.md`
+This skill is tool-neutral. Pick the form that matches your environment:
+
+- **Claude Code:** `/stage-1 <your feature or bug description>`
+- **GitHub Copilot:** `Follow instructions in #file:.agents/skills/stage-1-prd/SKILL.md with: <your feature or bug description>`
+- **Other agents:** Read this file and follow it; pass the request as input.
+
+Optionally attach context files (`@Requirements.md @design-spec.md` in Copilot, or pass them as additional context in other tools).
 
 ## Variable Substitution
 

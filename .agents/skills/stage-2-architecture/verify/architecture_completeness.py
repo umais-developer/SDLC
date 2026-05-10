@@ -19,14 +19,9 @@ import json
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "_shared"))
 from exceptions import StructureError, TraceabilityError, CompletionError
-
-try:
-    import jsonschema
-    HAS_JSONSCHEMA = True
-except ImportError:
-    HAS_JSONSCHEMA = False
+from schemas import validate as validate_schema
 
 
 def load(path: str) -> dict:
@@ -37,20 +32,6 @@ def load(path: str) -> dict:
         raise StructureError("Stage 2", f"Invalid JSON in {path}: {e}")
     except FileNotFoundError:
         raise StructureError("Stage 2", f"File not found: {path}")
-
-
-def verify_schema(data: dict, schema_path: str) -> None:
-    if not HAS_JSONSCHEMA:
-        print("⚠️  jsonschema not installed — skipping schema validation")
-        return
-    if not Path(schema_path).exists():
-        print("⚠️  schemas/components.json not found — skipping schema validation")
-        return
-    schema = load(schema_path)
-    try:
-        jsonschema.validate(data, schema)
-    except jsonschema.ValidationError as e:
-        raise StructureError("Stage 2", f"Schema validation failed: {e.message}")
 
 
 def verify_no_circular_deps(components: dict) -> None:
@@ -220,10 +201,9 @@ def main(components_json_path: str, goals_json_path: str | None, trivial: bool) 
         return
 
     data = load(components_json_path)
-    schema_path = Path(__file__).parent.parent / "schemas" / "components.json"
 
     verify_tech_stack_present(components_json_path)
-    verify_schema(data, str(schema_path))
+    validate_schema(data, "components", "Stage 2")
     verify_component_files(data)
     verify_interfaces(data)
     verify_dependency_references(data)

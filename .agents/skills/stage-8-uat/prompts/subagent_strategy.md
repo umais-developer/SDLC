@@ -1,6 +1,7 @@
 ---
 name: "UAT Test Execution Plan"
 description: "Master test plan partitioning for parallel UAT sub-agents"
+prompt_version: "2026-05-09"
 ---
 
 # Stage 8: UAT Test Execution Strategy

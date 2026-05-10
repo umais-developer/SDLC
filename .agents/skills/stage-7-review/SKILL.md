@@ -15,10 +15,11 @@ Stage 7 is read-only. Do not modify any files outside `.agents/artifacts/stage-7
 
 ## Independent Invocation
 
-To run this stage alone (requires Stage 1–6 artifacts and `src/`):
-```
-Follow instructions in #file:.agents/skills/stage-7-review/SKILL.md
-```
+Requires Stage 1–6 artifacts and `src/`. Pick the form that matches your environment:
+
+- **Claude Code:** `/stage-7`
+- **GitHub Copilot:** `Follow instructions in #file:.agents/skills/stage-7-review/SKILL.md`
+- **Other agents:** Read this file and follow it.
 
 ## Variable Substitution
 

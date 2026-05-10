@@ -14,10 +14,11 @@ Stage 4 outputs cover: decomposition of FRs that span multiple flows/components/
 
 ## Independent Invocation
 
-To run this stage alone (requires Stage 1–3 artifacts):
-```
-Follow instructions in #file:.agents/skills/stage-4-epics/SKILL.md
-```
+Requires Stage 1–3 artifacts. Pick the form that matches your environment:
+
+- **Claude Code:** `/stage-4`
+- **GitHub Copilot:** `Follow instructions in #file:.agents/skills/stage-4-epics/SKILL.md`
+- **Other agents:** Read this file and follow it.
 
 ## Variable Substitution
 

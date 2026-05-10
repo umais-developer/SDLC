@@ -1,2 +1,10 @@
 .env
 .env.*
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Claude Code local overrides (personal/experimental settings)
+.claude/settings.local.json

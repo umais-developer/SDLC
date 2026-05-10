@@ -14,10 +14,11 @@ Stage 5 outputs cover: file-level tasks, test specifics, task-level sequencing, 
 
 ## Independent Invocation
 
-To run this stage alone (requires Stage 1–4 artifacts):
-```
-Follow instructions in #file:.agents/skills/stage-5-plan/SKILL.md
-```
+Requires Stage 1–4 artifacts. Pick the form that matches your environment:
+
+- **Claude Code:** `/stage-5`
+- **GitHub Copilot:** `Follow instructions in #file:.agents/skills/stage-5-plan/SKILL.md`
+- **Other agents:** Read this file and follow it.
 
 ## Variable Substitution
 

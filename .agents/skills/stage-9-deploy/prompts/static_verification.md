@@ -1,6 +1,7 @@
 ---
 role: DevOps engineer
 description: Verify app is static-deployable and configure for GitHub Pages
+prompt_version: "2026-05-09"
 ---
 
 # Stage 9a: Static App Verification

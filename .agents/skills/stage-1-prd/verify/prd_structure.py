@@ -10,19 +10,13 @@ Exit code: 0 = pass, 1 = fail
 
 import json
 import sys
-import jsonschema
 from pathlib import Path
 
-# Add parent directory to path so we can import exceptions
-sys.path.insert(0, str(Path(__file__).parent))
+# Import shared exception classes and schema helper from _shared/
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "_shared"))
 
 from exceptions import StructureError, TraceabilityError, CompletionError
-
-
-def load_schema(schema_path: str) -> dict:
-    """Load JSON schema."""
-    with open(schema_path) as f:
-        return json.load(f)
+from schemas import validate as validate_schema
 
 
 def load_json(file_path: str) -> dict:
@@ -34,17 +28,6 @@ def load_json(file_path: str) -> dict:
         raise StructureError("Stage 1", f"Invalid JSON in {file_path}: {e}")
     except FileNotFoundError:
         raise StructureError("Stage 1", f"File not found: {file_path}")
-
-
-def verify_schema(goals_json: dict, schema: dict) -> None:
-    """Validate JSON against schema."""
-    try:
-        jsonschema.validate(goals_json, schema)
-    except jsonschema.ValidationError as e:
-        raise StructureError(
-            "Stage 1",
-            f"JSON schema validation failed: {e.message} at {'.'.join(str(p) for p in e.path)}"
-        )
 
 
 def verify_problem_structure(problem_json: dict) -> None:
@@ -229,12 +212,10 @@ def main(goals_json_path: str) -> None:
     """
     goals_path = Path(goals_json_path)
     problem_json_path = goals_path.parent / "problem.json"
-    schemas_dir = Path(__file__).parent.parent / "schemas"
 
     # --- Step 1a: Validate problem.json ---
     problem_json = load_json(str(problem_json_path))
-    problem_schema = load_schema(str(schemas_dir / "problem.json"))
-    verify_schema(problem_json, problem_schema)
+    validate_schema(problem_json, "problem", "Stage 1")
     verify_problem_structure(problem_json)
     print("✅ problem.json validation PASSED")
     print(f"   • request_type: {problem_json.get('request_type')}")
@@ -243,8 +224,7 @@ def main(goals_json_path: str) -> None:
 
     # --- Step 1b: Validate goals.json ---
     goals_json = load_json(goals_json_path)
-    goals_schema = load_schema(str(schemas_dir / "goals.json"))
-    verify_schema(goals_json, goals_schema)
+    validate_schema(goals_json, "goals", "Stage 1")
     verify_goal_structure(goals_json)
     verify_fr_structure(goals_json)
     verify_priority_distribution(goals_json)

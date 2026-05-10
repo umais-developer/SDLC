@@ -15,10 +15,11 @@ You are a Solutions Architect. Design the technical approach, component structur
 
 ## Independent Invocation
 
-To run this stage alone (requires Stage 1 artifacts):
-```
-Follow instructions in #file:.agents/skills/stage-2-architecture/SKILL.md
-```
+Requires Stage 1 artifacts. Pick the form that matches your environment:
+
+- **Claude Code:** `/stage-2`
+- **GitHub Copilot:** `Follow instructions in #file:.agents/skills/stage-2-architecture/SKILL.md`
+- **Other agents:** Read this file and follow it.
 
 ## Variable Substitution
 

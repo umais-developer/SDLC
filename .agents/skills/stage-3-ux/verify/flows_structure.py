@@ -14,14 +14,9 @@ import re
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "_shared"))
 from exceptions import StructureError, TraceabilityError, CompletionError
-
-try:
-    import jsonschema
-    HAS_JSONSCHEMA = True
-except ImportError:
-    HAS_JSONSCHEMA = False
+from schemas import validate as validate_schema
 
 
 def load(path: str) -> dict:
@@ -32,17 +27,6 @@ def load(path: str) -> dict:
         raise StructureError("Stage 3", f"Invalid JSON in {path}: {e}")
     except FileNotFoundError:
         raise StructureError("Stage 3", f"File not found: {path}")
-
-
-def verify_schema(data: dict, schema_path: str) -> None:
-    if not HAS_JSONSCHEMA:
-        print("⚠️  jsonschema not installed — skipping schema validation")
-        return
-    schema = load(schema_path)
-    try:
-        jsonschema.validate(data, schema)
-    except jsonschema.ValidationError as e:
-        raise StructureError("Stage 3", f"Schema validation failed: {e.message}")
 
 
 def verify_flows_completeness(flows_json: dict, accessibility_required: bool) -> None:
@@ -167,15 +151,13 @@ def main() -> int:
 
     flows_path = args[0]
     goals_path = args[1] if len(args) > 1 else ".agents/artifacts/stage-1/goals.json"
-    schema_path = Path(__file__).parent.parent / "schemas" / "flows.json"
 
     try:
         flows_json = load(flows_path)
         goals = load(goals_path) if Path(goals_path).exists() else {}
         accessibility_required = is_accessibility_required(goals)
         goal_ids = extract_goal_ids(goals) if goals else set()
-        if schema_path.exists():
-            verify_schema(flows_json, str(schema_path))
+        validate_schema(flows_json, "flows", "Stage 3")
         verify_flows_completeness(flows_json, accessibility_required)
         verify_states_defined(flows_json)
         if goal_ids:

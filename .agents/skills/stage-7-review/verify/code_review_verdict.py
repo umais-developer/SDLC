@@ -13,7 +13,7 @@ import sys
 from pathlib import Path
 import re
 
-sys.path.insert(0, str(Path(__file__).parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "_shared"))
 from exceptions import GateError, StructureError
 
 
@@ -186,6 +186,50 @@ def verify_checks_complete(review: dict, repo_root: Path, required_dimensions: s
         validate_file_and_range(repo_root, check["file"], check["line_range"])
         if check.get("result") not in ("pass", "fail"):
             raise StructureError("Stage 7", f"Invalid check result for {check.get('id')}")
+
+    missing = required_dimensions - seen_dimensions
+    if missing:
+        raise GateError("Stage 7", f"Missing required review dimensions: {sorted(missing)}")
+
+def verify_functional_integrity(repo_root: Path) -> None:
+    """
+    Scans source files for 'pass' statements, TODOs, or empty function bodies
+    that would indicate a 'Structural Skeleton'.
+    """
+    patterns = [
+        (re.compile(r"^\s*pass\s*$", re.MULTILINE), "'pass' statement found"),
+        (re.compile(r"TODO|FIXME", re.IGNORECASE), "TODO/FIXME comment found"),
+        (re.compile(r"return\s+\{\s*f:\s*\"sample\"\s*for\s*f\s*in\s*.*\}"), "Hardcoded sample collection found")
+    ]
+
+    src_dir = repo_root / "src"
+    if not src_dir.exists():
+        return
+
+    violations = []
+    for py_file in src_dir.rglob("*.py"):
+        relative_path = py_file.relative_to(repo_root)
+        content = py_file.read_text(encoding="utf-8", errors="ignore")
+        
+        # Simple heuristic to identify 'skeleton' files
+        lines = content.splitlines()
+        for i, line in enumerate(lines):
+            for pattern, msg in patterns:
+                if pattern.search(line):
+                    # Check if it's a valid 'pass' (e.g. in abstract method)
+                    if "pass" in line and ("@abstract" in content or "NotImplementedError" in content):
+                        continue
+                    violations.append(f"{relative_path}:L{i+1} - {msg}")
+
+    if violations:
+        # We only log these for now to avoid breaking the gate immediately,
+        # but in a stricter pipeline, this would raise a GateError.
+        print(f"⚠️  Functional Integrity Warning: {len(violations)} issues found:")
+        for v in violations[:5]:
+            print(f"   • {v}")
+        if len(violations) > 5:
+            print(f"   • ... and {len(violations)-5} more.")
+
 def verify_strengths(review: dict, repo_root: Path) -> None:
     strengths = review.get("strengths", [])
     if not isinstance(strengths, list):
@@ -198,11 +242,6 @@ def verify_strengths(review: dict, repo_root: Path) -> None:
         if not item.get("description"):
             raise StructureError("Stage 7", "strengths entry missing description")
         validate_file_and_range(repo_root, item["file"], item["line_range"])
-
-    missing = required_dimensions - seen_dimensions
-    if missing:
-        raise GateError("Stage 7", f"Missing required review dimensions: {sorted(missing)}")
-
 
 def get_size(problem_path: Path) -> str:
     try:
@@ -308,6 +347,7 @@ def main(stage_7_dir: str) -> None:
     verify_checks_complete(review, repo_root, required_dimensions)
     verify_must_fix_entries(review, repo_root)
     verify_strengths(review, repo_root)
+    verify_functional_integrity(repo_root)
     verify_structural_checks(repo_root, artifacts_root)
     verify_verdict_consistency(review)
 
@@ -331,7 +371,7 @@ def main(stage_7_dir: str) -> None:
         must_fix = review.get("must_fix_before_proceeding", [])
         raise GateError(
             "Stage 7",
-            f"verdict is CHANGES_REQUIRED — must fix: {must_fix} before proceeding to Stage 7.5"
+            f"verdict is CHANGES_REQUIRED — must fix the following before re-running Stage 6: {must_fix}"
         )
 
 

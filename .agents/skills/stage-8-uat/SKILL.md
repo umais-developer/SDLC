@@ -15,10 +15,11 @@ Human review is outside this pipeline; this stage is fully automated.
 
 ## Independent Invocation
 
-To run this stage alone (requires Stage 1–7 artifacts and a running app):
-```
-Follow instructions in #file:.agents/skills/stage-8-uat/SKILL.md
-```
+Requires Stage 1–7 artifacts and a running app. Pick the form that matches your environment:
+
+- **Claude Code:** `/stage-8`
+- **GitHub Copilot:** `Follow instructions in #file:.agents/skills/stage-8-uat/SKILL.md`
+- **Other agents:** Read this file and follow it.
 
 ## Variable Substitution
 
@@ -26,6 +27,7 @@ Follow instructions in #file:.agents/skills/stage-8-uat/SKILL.md
 |---|---|
 | `{{stories_json}}` | Full contents of `.agents/artifacts/stage-4/stories.json` |
 | `{{problem_json}}` | Full contents of `.agents/artifacts/stage-1/problem.json` |
+| `{{flows_json}}` | Full contents of `.agents/artifacts/stage-3/flows.json` |
 | `{{tech_stack_json}}` | Full contents of `.agents/artifacts/stage-2/tech_stack.json` |
 | `{{tasks_json}}` | Full contents of `.agents/artifacts/stage-5/tasks.json` |
 | `{{test_plan_json}}` | Full contents of `.agents/artifacts/stage-8/test_plan.json` (available after Step 1) |
@@ -96,6 +98,25 @@ Coverage requirements:
 - Every acceptance criterion in `stories.json` must map to a test case in `test_plan.json`.
 - Every test case in `test_plan.json` must have a corresponding result in `uat_results.json`.
 
+### Step 1a — Resume Check
+Before starting Step 2, look for `.agents/artifacts/stage-8/uat_progress.json`. If present and the `test_plan_id` matches the current `test_plan.json`, treat the run as a resume:
+
+- Skip test cases whose `id` is in `completed_test_ids[]` (their `evidence` and `status` from the prior run are reused).
+- Re-run test cases in `failed_test_ids[]` only when the operator has indicated the underlying issue is fixed (look for entries in `uat_results.json.bugs[]` with `fix_verified: true`); otherwise leave them as failed and proceed.
+- If `test_plan_id` does **not** match (the plan has been regenerated), discard `uat_progress.json` and run all cases from scratch.
+
+`uat_progress.json` format:
+```json
+{
+  "test_plan_id": "<sha256 prefix of test_plan.json bytes>",
+  "completed_test_ids": ["TC-1", "TC-2"],
+  "failed_test_ids": ["TC-3"],
+  "in_progress_test_id": null,
+  "started_at": "2026-05-09T10:00:00Z",
+  "last_updated": "2026-05-09T10:25:00Z"
+}
+```
+
 ### Step 2 — Test Execution
 - Load prompt: `.agents/skills/stage-8-uat/prompts/test_execution.md`
 - Substitute: `{{test_plan_json}}`, `{{app_url}}`
@@ -103,6 +124,8 @@ Coverage requirements:
   - Unit tests: if Stage 6 logs exist (e.g., `.agents/artifacts/stage-6/test.log`, `.agents/artifacts/stage-6/test.exit`), copy them into `.agents/artifacts/stage-8/unit/`; otherwise re-run `test_command` and write logs to `.agents/artifacts/stage-8/unit/`
   - Browser tests: Playwright with captured artifacts (screenshot/video/trace)
 - Write output to: `.agents/artifacts/stage-8/uat_results.json`
+
+**Atomic resume update:** for each test case, the order is (1) write evidence file(s) to disk, (2) append the result to `uat_results.json`, (3) update `uat_progress.json` (move the test from `in_progress_test_id` into `completed_test_ids[]` or `failed_test_ids[]`, refresh `last_updated`). If the run is interrupted mid-test, `in_progress_test_id` lets the next invocation re-attempt that test only.
 
 ### Step 3 — Verify Gate
 ```bash
@@ -126,6 +149,9 @@ python .agents/skills/stage-8-uat/verify/uat_gate.py .agents/artifacts/stage-8/
 | App health check | `.agents/artifacts/stage-8/app_health.json` |
 | Playwright artifacts | `.agents/artifacts/stage-8/playwright/<test-id>/...` |
 | Unit test evidence | `.agents/artifacts/stage-8/unit/test.log`, `.agents/artifacts/stage-8/unit/test.exit` |
+| Resume progress | `.agents/artifacts/stage-8/uat_progress.json` |
+| Amendment requests (when bugs trace upstream) | `.agents/artifacts/stage-8/amendment_requests.json` |
+| Escalation report (after 3 amendment cycles) | `.agents/artifacts/stage-8/escalation_report.json` |
 
 ## Gate
 
@@ -136,4 +162,34 @@ python .agents/skills/stage-8-uat/verify/uat_gate.py .agents/artifacts/stage-8/
 **Pass criteria:** All P0 automated tests pass, no unfixed Critical bugs, computed `deployment_gate` is `APPROVED`, and summary counts are consistent.
 
 Bug schema (for `uat_results.json`):
-- `id`, `severity`, `title`, `description`, `related_test_id`, `evidence`, `steps_to_reproduce`, `root_cause`, `fix_applied`, `fix_verified`.
+- `id`, `severity`, `title`, `description`, `related_test_id`, `evidence`, `steps_to_reproduce`, `root_cause`, `fix_applied`, `fix_verified`, `upstream_target` (optional: `"stage-4"` or `"stage-5"` when the root cause is an upstream gap).
+
+## Stage 8 → Upstream Amendment Loop
+
+When a bug's `root_cause` indicates a gap in stories or tasks (a missing acceptance criterion, an under-specified flow path, an absent task), Stage 8 cannot fix it by re-running tests alone — the upstream artifacts must change. In that case the bug entry sets `upstream_target` to `"stage-4"` (story gap) or `"stage-5"` (task gap), and Stage 8 writes `.agents/artifacts/stage-8/amendment_requests.json` instead of attempting a fix.
+
+`amendment_requests.json` format:
+```json
+{
+  "cycle": 1,
+  "requests": [
+    {
+      "id": "AR-1",
+      "target_stage": "stage-4",
+      "affected_id": "FR-3",
+      "related_bug_id": "BUG-2",
+      "related_test_id": "TC-7",
+      "reason": "TC-7 fails because the empty-state behavior in FR-3 has no acceptance criterion covering keyboard activation.",
+      "proposed_change": "Add story 'Keyboard activation of empty-state CTA' under FR-3 with acceptance criterion: pressing Enter while focus is on the empty-state link triggers the same action as click."
+    }
+  ]
+}
+```
+
+The operator (or an upstream stage skill) merges these into `stories.json` or `tasks.json`, re-runs the affected stage forward through Stage 8, and increments `cycle`.
+
+**Amendment cycle cap: 3.** On the third cycle, do not write a new `amendment_requests.json`. Write `.agents/artifacts/stage-8/escalation_report.json` with the remaining unfixed bugs and a summary of repeated failures, then HALT. Stage 8 does not modify upstream artifacts directly.
+
+## Pipeline leakage rule (reminder)
+
+Bug fixes that are *within* Stage 6's task scope (a code defect, not an upstream-spec defect) belong in `uat_results.json.bugs[]` with `upstream_target` omitted, and the operator re-runs Stage 6 to fix the code. Only use the amendment loop when the failing test reveals a gap in `stories.json` or `tasks.json` that no Stage 6 code change can satisfy.

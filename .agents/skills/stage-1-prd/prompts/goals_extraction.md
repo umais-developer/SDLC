@@ -1,6 +1,7 @@
 ---
 role: Requirements analyst
 description: Extract goals and requirements from problem statement
+prompt_version: "2026-05-09"
 ---
 
 # Stage 1b: Goals & Requirements Extraction

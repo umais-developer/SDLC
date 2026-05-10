@@ -749,6 +749,10 @@ class UserRepository(IRepository[User]):
 | **No request validation** | Invalid data reaches services | Use Pydantic models |
 | **Missing error handling** | Unhandled exceptions crash app | Use try-catch, custom exceptions |
 | **Tight coupling to ORM** | Hard to swap database | Use repositories + interfaces |
+| **Incorrect Graph SDK package** | `microsoft-graph-core` is deprecated | Use `msgraph-core` and `msgraph-sdk` |
+| **APScheduler Pickling Error** | `SQLAlchemyJobStore` fails to serialize objects with DB sessions | Use `MemoryJobStore` locally or schedule static/class methods |
+| **Windows compatibility** | `signal.pause()` causes `AttributeError` | Use `while True: time.sleep(1)` for main thread blocking |
+| **Indentation Errors** | Mixed spaces/tabs or rogue spaces crash on load | Ensure strict adherence to PEP8 indentation |
 
 ---
 

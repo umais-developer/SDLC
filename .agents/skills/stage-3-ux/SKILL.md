@@ -14,10 +14,11 @@ Stage 3 outputs cover: user flows, UI states (including empty/loading/error), in
 
 ## Independent Invocation
 
-To run this stage alone (requires Stage 1 and 2 artifacts):
-```
-Follow instructions in #file:.agents/skills/stage-3-ux/SKILL.md
-```
+Requires Stage 1 and 2 artifacts. Pick the form that matches your environment:
+
+- **Claude Code:** `/stage-3`
+- **GitHub Copilot:** `Follow instructions in #file:.agents/skills/stage-3-ux/SKILL.md`
+- **Other agents:** Read this file and follow it.
 
 ## Variable Substitution
 

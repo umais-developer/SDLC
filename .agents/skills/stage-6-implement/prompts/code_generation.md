@@ -1,6 +1,7 @@
 ---
 role: Senior developer
 description: Generate production-quality source code from implementation plan
+prompt_version: "2026-05-09"
 ---
 
 # Stage 6a: Source Code Generation
@@ -38,6 +39,9 @@ After all files are written, run the **build command** and **test command** from
 12. **Test mode.** Set `test_mode` in progress.json to `split` when using pre/new test runs, otherwise `full-suite`.
 13. **Failure tracking.** When retries are exhausted, add the task to `failed_tasks` with the command and log excerpt, then HALT.
 14. **Retry scope.** Max 3 attempts per command per task (build has its own 3, tests have their own 3).
+
+### Tech-Stack Specific Rules
+- **Pitfalls and Anti-Patterns:** Before writing any code, consult the relevant opinion file in `.agents/skills/stage-2-architecture/tech-stack-opinions/` (e.g., `python-opinion.md`, `java-opinion.md`) based on the stack defined in `tech_stack.json`. You must strictly avoid the anti-patterns and pitfalls listed in that document.
 
 ## Input
 

@@ -1,6 +1,7 @@
 ---
 role: PRD specialist
 description: Interpret user feature request into structured problem statement
+prompt_version: "2026-05-09"
 ---
 
 # Stage 1a: Problem Interpretation

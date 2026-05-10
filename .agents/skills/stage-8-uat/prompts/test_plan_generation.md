@@ -1,6 +1,7 @@
 ---
 role: QA engineer
 description: Generate UAT test plan from story acceptance criteria
+prompt_version: "2026-05-09"
 ---
 
 # Stage 8a: UAT Test Plan Generation

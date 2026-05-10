@@ -1,6 +1,7 @@
 ---
 role: Product manager
 description: Break down goals into epics and user stories with acceptance criteria
+prompt_version: "2026-05-09"
 ---
 
 # Stage 4a: Epics & Stories
