@@ -1,0 +1,29 @@
+[
+  {
+    "id": "T-AMEND-1",
+    "story": "STORY-1-1",
+    "title": "Fix placeholders in IntakeOrchestrator",
+    "file": "src/orchestration/intake_orchestrator.py",
+    "action": "modify",
+    "description": "Replace 'pass' with real orchestration logic: loop through emails, extract, validate, store, and log.",
+    "links_to": { "fr": ["FR-1", "FR-2", "FR-3", "FR-11"] }
+  },
+  {
+    "id": "T-AMEND-2",
+    "story": "STORY-5-1",
+    "title": "Implement real PDF extraction",
+    "file": "src/business_logic/pdf_extraction_engine.py",
+    "action": "modify",
+    "description": "Replace hardcoded 'sample' values with actual pdfplumber parsing for all 23 fields.",
+    "links_to": { "fr": ["FR-3"] }
+  },
+  {
+    "id": "T-AMEND-3",
+    "story": "STORY-5-2",
+    "title": "Complete prescription validation",
+    "file": "src/business_logic/data_validator.py",
+    "action": "modify",
+    "description": "Expand required_fields and validation rules to cover all 23 prescription fields.",
+    "links_to": { "fr": ["FR-3"] }
+  }
+]

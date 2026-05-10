@@ -1,0 +1,33 @@
+{
+  "completed_tasks": ["T-23", "T-25", "T-27", "T-3", "T-7", "T-8", "T-1", "T-9", "T-24", "T-2", "T-28", "T-4", "T-5", "T-6", "T-10", "T-26", "T-11", "T-12", "T-13", "T-14", "T-15", "T-16", "T-18", "T-19", "T-20", "T-21", "T-22"],
+  "tasks_verified": [],
+  "failed_tasks": [],
+  "test_mode": "split",
+  "modified_files": [
+    "src/orchestration/config.py", 
+    "requirements.txt",
+    "tests/conftest.py",
+    "src/business_logic/email_new_identifier.py",
+    "src/business_logic/pdf_extraction_engine.py",
+    "src/business_logic/data_validator.py",
+    "src/infrastructure/secrets_provider.py",
+    "src/persistence/schema.sql",
+    "src/orchestration/logging_setup.py",
+    "src/integrations/mailbox_connector.py",
+    "tests/integration/helpers.py",
+    "src/persistence/audit_logger.py",
+    "src/persistence/prescription_repository.py",
+    "src/business_logic/job_state_manager.py",
+    "src/orchestration/intake_orchestrator.py",
+    ".github/workflows/ci.yml",
+    "src/orchestration/apscheduler_job_runner.py",
+    "src/orchestration/application_entry.py",
+    "src/orchestration/dashboard_routes.py",
+    "src/orchestration/alert_dispatcher.py",
+    "src/orchestration/progress_api.py",
+    "src/orchestration/audit_routes.py",
+    "src/orchestration/export_service.py",
+    "src/orchestration/records_routes.py",
+    "src/orchestration/verification_service.py"
+  ]
+}

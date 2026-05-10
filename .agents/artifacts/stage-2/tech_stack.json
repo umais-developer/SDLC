@@ -55,6 +55,9 @@
     "http_client": "requests>=2.31.0 (for Graph API, Vault REST calls)",
     "database_driver": "psycopg2-binary>=2.9.0 (PostgreSQL native driver)"
   },
+  "dev_command": "python -m src.orchestration.application_entry",
+  "start_command": "python -m src.orchestration.application_entry",
+  "app_url": "http://localhost:5000",
   "deployment_environment": {
     "recommended_platform": "Linux container (Docker) or Windows Service",
     "container_base": "python:3.11-slim (if containerized)",
