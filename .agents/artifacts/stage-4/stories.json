@@ -1,82 +1,968 @@
 {
-  "epics": [],
-  "stories": [
+  "project": "Prescription Data Capture",
+  "stage": 4,
+  "generated_at": "2026-05-09",
+  "epics": [
     {
-      "id": "S-1",
-      "title": "Search input with clear control",
-      "as_a": "player viewing replay history",
-      "i_want": "a visible, focusable search input with a clear control",
-      "so_that": "I can start filtering and reset the list quickly",
-      "acceptance_criteria": [
-        "Search input is visible above the replay list when the list is visible",
-        "Search input is keyboard-focusable and operable without a mouse",
-        "Clear control (or Escape) clears the query and restores the full list"
+      "id": "EPIC-1",
+      "name": "Daily Intake Operations Monitoring",
+      "description": "Operations Manager visibility and alerting for daily prescription intake runs",
+      "stories": [
+        "STORY-1-1",
+        "STORY-1-2",
+        "STORY-1-3",
+        "STORY-1-4"
       ],
-      "links_to": {
-        "fr": ["FR-1"],
-        "goal": ["GOAL-1"],
-        "nfr": ["NFR-2"],
-        "flow": ["FLOW-1", "FLOW-2"]
-      },
-      "components": ["SearchBarController", "ReplayListView"]
+      "priority": "P0",
+      "user_persona": "Operations Manager"
     },
     {
-      "id": "S-2",
-      "title": "Real-time replay filtering by score and date",
-      "as_a": "player viewing replay history",
-      "i_want": "the replay list to filter as I type",
-      "so_that": "I can quickly find specific games",
-      "acceptance_criteria": [
-        "Filtering is client-side against in-memory replay data",
-        "Filtering matches score and date/timestamp fields",
-        "Filtering is case-insensitive and trims leading/trailing whitespace",
-        "Filtering begins from the first character entered",
-        "Input is debounced before applying the filter"
+      "id": "EPIC-2",
+      "name": "Historical Load Capability",
+      "description": "Enable one-time backfill of historical prescription data from specified start date",
+      "stories": [
+        "STORY-2-1",
+        "STORY-2-2",
+        "STORY-2-3"
       ],
-      "links_to": {
-        "fr": ["FR-2"],
-        "goal": ["GOAL-1", "GOAL-2"],
-        "nfr": ["NFR-1"],
-        "con": ["CON-1", "CON-2"],
-        "flow": ["FLOW-1", "FLOW-3"]
-      },
-      "components": ["replayFilter", "SearchBarController", "ReplayListView"]
+      "priority": "P0",
+      "user_persona": "IT Operations"
     },
     {
-      "id": "S-3",
-      "title": "Empty state when no replays match",
-      "as_a": "player viewing replay history",
-      "i_want": "a clear empty-state message when there are no matches",
-      "so_that": "I understand the list is filtered to zero results",
-      "acceptance_criteria": [
-        "When the filtered result set is empty, the replay list area shows a message",
-        "The empty-state message is distinguishable from an empty replay history"
+      "id": "EPIC-3",
+      "name": "Audit Trail Querying and Compliance Reporting",
+      "description": "Compliance Officer ability to query, drill-down, and export audit records for regulatory reporting",
+      "stories": [
+        "STORY-3-1",
+        "STORY-3-2",
+        "STORY-3-3",
+        "STORY-3-4"
       ],
-      "links_to": {
-        "fr": ["FR-3"],
-        "goal": ["GOAL-1"],
-        "flow": ["FLOW-3"]
-      },
-      "components": ["ReplayListView"]
+      "priority": "P0",
+      "user_persona": "Compliance Officer"
     },
     {
-      "id": "S-4",
-      "title": "Reset search when starting a new game or leaving the replay list",
-      "as_a": "player",
-      "i_want": "the search to reset when I start a new game or leave the replay list",
-      "so_that": "I return to the full list next time I view replays",
-      "acceptance_criteria": [
-        "Starting a new game clears the search query and restores the full replay list",
-        "Navigating away from and back to the replay list view resets the search state"
+      "id": "EPIC-4",
+      "name": "Restart Safety and Deduplication Guarantees",
+      "description": "System-level state tracking and resumption logic ensuring zero duplicates across interruptions and retries",
+      "stories": [
+        "STORY-4-1",
+        "STORY-4-2",
+        "STORY-4-3"
       ],
-      "links_to": {
-        "fr": ["FR-4"],
-        "goal": ["GOAL-1"],
-        "flow": ["FLOW-2"]
-      },
-      "components": ["SearchBarController", "UIController"]
+      "priority": "P0",
+      "user_persona": "System"
+    },
+    {
+      "id": "EPIC-5",
+      "name": "Data Accuracy and Format Error Handling",
+      "description": "Detection of PDF format anomalies and Pharmacy Operations verification workflow",
+      "stories": [
+        "STORY-5-1",
+        "STORY-5-2",
+        "STORY-5-3"
+      ],
+      "priority": "P0",
+      "user_persona": "Pharmacy Operations"
     }
   ],
-  "traceability_matrix": [],
-  "ambiguities": []
+  "stories": [
+    {
+      "id": "STORY-1-1",
+      "epic": "EPIC-1",
+      "title": "Display run status dashboard for daily intake",
+      "description": "As an Operations Manager, I want to view the status of today's scheduled daily intake run and yesterday's completion status with metrics, so I can confirm the system is operating normally.",
+      "user_persona": "Operations Manager",
+      "links_to": {
+        "fr": [
+          "FR-8",
+          "FR-9"
+        ],
+        "nfr": [
+          "NFR-1"
+        ],
+        "con": [],
+        "goal": [
+          "GOAL-1"
+        ],
+        "flow": [
+          "FLOW-1"
+        ]
+      },
+      "components": [
+        "APSchedulerJobRunner",
+        "IntakeOrchestrator",
+        "AuditLogger"
+      ],
+      "acceptance_criteria": [
+        "Dashboard shows 'Yesterday's run: SUCCESS' with metrics (emails examined, records stored, timestamp)",
+        "Dashboard shows 'Today's scheduled run: PENDING (scheduled for 5 PM)' with countdown timer",
+        "Metrics are accurate and reflect actual run outcome",
+        "Dashboard auto-refreshes every 60 seconds"
+      ],
+      "depends_on": [],
+      "delivery_order": 1
+    },
+    {
+      "id": "STORY-1-2",
+      "epic": "EPIC-1",
+      "title": "Alert Operations Manager when daily run fails or is partial",
+      "description": "As an Operations Manager, I want to receive immediate alerts when a daily run completes with PARTIAL or FAILED status so I can investigate and take corrective action.",
+      "user_persona": "Operations Manager",
+      "links_to": {
+        "fr": [
+          "FR-8",
+          "FR-9"
+        ],
+        "nfr": [
+          "NFR-10"
+        ],
+        "con": [],
+        "goal": [
+          "GOAL-1",
+          "GOAL-3"
+        ],
+        "flow": [
+          "FLOW-2"
+        ]
+      },
+      "components": [
+        "AuditLogger",
+        "IntakeOrchestrator"
+      ],
+      "acceptance_criteria": [
+        "Alert email sent to Operations within 5 minutes of run completion with status=PARTIAL/FAILED",
+        "Alert includes: run ID, emails examined count, records stored count, failure summary (count by error type)",
+        "Dashboard alert banner displays with action buttons: 'View details', 'Retry failed emails', 'Dismiss'",
+        "Alert severity is HIGH (visible in dashboard)"
+      ],
+      "depends_on": [
+        "STORY-1-1"
+      ],
+      "delivery_order": 2
+    },
+    {
+      "id": "STORY-1-3",
+      "epic": "EPIC-1",
+      "title": "Display detailed failure information for failed emails",
+      "description": "As an Operations Manager investigating a PARTIAL run alert, I want to view the list of failed emails with error reasons and failure classification, so I can distinguish transient from permanent failures.",
+      "user_persona": "Operations Manager",
+      "links_to": {
+        "fr": [
+          "FR-9",
+          "FR-10",
+          "FR-13"
+        ],
+        "nfr": [
+          "NFR-9",
+          "NFR-10"
+        ],
+        "con": [],
+        "goal": [
+          "GOAL-1"
+        ],
+        "flow": [
+          "FLOW-2"
+        ]
+      },
+      "components": [
+        "AuditLogger"
+      ],
+      "acceptance_criteria": [
+        "Failure detail panel shows list of failed emails: email ID, sender, received date, error reason, classification (transient/permanent)",
+        "Failed emails grouped by error type (PDF unreadable, network timeout, malformed, etc.)",
+        "Count of each error type displayed",
+        "Transient failures highlighted separately from permanent failures"
+      ],
+      "depends_on": [
+        "STORY-1-2"
+      ],
+      "delivery_order": 3
+    },
+    {
+      "id": "STORY-1-4",
+      "epic": "EPIC-1",
+      "title": "Provide one-click retry for transient failures",
+      "description": "As an Operations Manager viewing failed email details, I want to click 'Retry failed emails' to reprocess only the transient failures, so I can recover from temporary issues without manual re-processing.",
+      "user_persona": "Operations Manager",
+      "links_to": {
+        "fr": [
+          "FR-8",
+          "FR-9",
+          "FR-15"
+        ],
+        "nfr": [
+          "NFR-10"
+        ],
+        "con": [],
+        "goal": [
+          "GOAL-1",
+          "GOAL-3"
+        ],
+        "flow": [
+          "FLOW-2"
+        ]
+      },
+      "components": [
+        "IntakeOrchestrator",
+        "AuditLogger",
+        "JobStateManager"
+      ],
+      "acceptance_criteria": [
+        "Retry button is enabled only when transient failures exist",
+        "Clicking Retry initiates reprocessing of transient-only subset (network timeouts, malformed attachments)",
+        "Permanent failures (PDF unreadable) are excluded from retry",
+        "System logs operator action: 'retry_initiated_by_ops' with operator ID, timestamp to audit trail",
+        "Follow-up alert sent after retry with outcome"
+      ],
+      "depends_on": [
+        "STORY-1-3"
+      ],
+      "delivery_order": 4
+    },
+    {
+      "id": "STORY-2-1",
+      "epic": "EPIC-2",
+      "title": "Provide UI to trigger one-time historical load",
+      "description": "As an IT Operations administrator, I want to trigger a one-time historical load from a business-defined start date forward, so I can backfill prescription data from the past.",
+      "user_persona": "IT Operations",
+      "links_to": {
+        "fr": [
+          "FR-7"
+        ],
+        "nfr": [
+          "NFR-2"
+        ],
+        "con": [],
+        "goal": [
+          "GOAL-2",
+          "GOAL-3"
+        ],
+        "flow": [
+          "FLOW-4"
+        ]
+      },
+      "components": [
+        "APSchedulerJobRunner",
+        "IntakeOrchestrator"
+      ],
+      "acceptance_criteria": [
+        "Admin panel accessible to IT Operations with 'New Manual Run' button",
+        "Run mode selector shows options: [Daily run, Historical load]",
+        "Historical load selection displays date picker with label 'Start date (will process emails from start date to today)'",
+        "Confirmation modal shows estimated email count and processing time before confirmation",
+        "Confirm button initiates run; Cancel button dismisses modal"
+      ],
+      "depends_on": [],
+      "delivery_order": 5
+    },
+    {
+      "id": "STORY-2-2",
+      "epic": "EPIC-2",
+      "title": "Display real-time progress of historical load",
+      "description": "As an IT Operations administrator running a historical load, I want to see real-time progress (X/Y emails processed, elapsed time, ETA), so I can monitor the operation and plan around its completion time.",
+      "user_persona": "IT Operations",
+      "links_to": {
+        "fr": [
+          "FR-7",
+          "FR-9"
+        ],
+        "nfr": [
+          "NFR-1"
+        ],
+        "con": [],
+        "goal": [
+          "GOAL-1"
+        ],
+        "flow": [
+          "FLOW-4"
+        ]
+      },
+      "components": [
+        "APSchedulerJobRunner",
+        "IntakeOrchestrator",
+        "AuditLogger"
+      ],
+      "acceptance_criteria": [
+        "Progress panel displays: 'Processing: 347/2,105 emails (16%). Elapsed: 47 min. ETA: 3h 52m.'",
+        "Progress updates in real-time (every 30 seconds or faster)",
+        "Progress panel can be closed; background job continues",
+        "Progress remains visible in dashboard if re-opened"
+      ],
+      "depends_on": [
+        "STORY-2-1"
+      ],
+      "delivery_order": 6
+    },
+    {
+      "id": "STORY-2-3",
+      "epic": "EPIC-2",
+      "title": "Ensure historical load safe restart from interruption",
+      "description": "As an IT Operations administrator, if a historical load is interrupted (e.g., database connection loss), I want to resume from the interruption point without duplicating records, so I can recover without manual cleanup.",
+      "user_persona": "IT Operations",
+      "links_to": {
+        "fr": [
+          "FR-7",
+          "FR-11"
+        ],
+        "nfr": [
+          "NFR-4",
+          "NFR-5"
+        ],
+        "con": [],
+        "goal": [
+          "GOAL-3"
+        ],
+        "flow": [
+          "FLOW-5"
+        ]
+      },
+      "components": [
+        "JobStateManager",
+        "PrescriptionRepository",
+        "AuditLogger",
+        "IntakeOrchestrator"
+      ],
+      "acceptance_criteria": [
+        "On interruption, system logs last processed email ID and next unprocessed email index in audit table",
+        "Alert sent: 'Historical load PARTIAL at 59% (1,247/2,105 emails). Resume from interruption? [Resume] [Investigate]'",
+        "Clicking Resume queries audit table for resumption point and resumes from next unprocessed email",
+        "Resumed run processes remaining emails without introducing duplicates",
+        "Final run status is SUCCESS (if no further errors) or PARTIAL (if more errors occur)"
+      ],
+      "depends_on": [
+        "STORY-2-2",
+        "STORY-4-2"
+      ],
+      "delivery_order": 7
+    },
+    {
+      "id": "STORY-3-1",
+      "epic": "EPIC-3",
+      "title": "Provide audit trail query interface with filters",
+      "description": "As a Compliance Officer, I want to query the audit trail by date range, run status, sender email, and record count range, so I can locate relevant records for compliance reporting.",
+      "user_persona": "Compliance Officer",
+      "links_to": {
+        "fr": [
+          "FR-10",
+          "FR-14"
+        ],
+        "nfr": [
+          "NFR-8"
+        ],
+        "con": [],
+        "goal": [
+          "GOAL-4"
+        ],
+        "flow": [
+          "FLOW-3"
+        ]
+      },
+      "components": [
+        "AuditLogger"
+      ],
+      "acceptance_criteria": [
+        "Audit Trail tab accessible from monitoring dashboard",
+        "Query interface shows: date range picker, status dropdown (success/partial/failed/any), sender field, record count range slider",
+        "Execute query button initiates search",
+        "Results display table with columns: Run ID, Start time, End time, Emails examined, Records stored, Status",
+        "Each row clickable to drill down to email-level detail"
+      ],
+      "depends_on": [
+        "STORY-4-1"
+      ],
+      "delivery_order": 8
+    },
+    {
+      "id": "STORY-3-2",
+      "epic": "EPIC-3",
+      "title": "Display email-level processing details for queried runs",
+      "description": "As a Compliance Officer drilling down into a specific run, I want to see all emails processed in that run with their individual outcomes and error reasons, so I can trace any issues to specific emails.",
+      "user_persona": "Compliance Officer",
+      "links_to": {
+        "fr": [
+          "FR-10"
+        ],
+        "nfr": [
+          "NFR-8"
+        ],
+        "con": [],
+        "goal": [
+          "GOAL-4"
+        ],
+        "flow": [
+          "FLOW-3"
+        ]
+      },
+      "components": [
+        "AuditLogger"
+      ],
+      "acceptance_criteria": [
+        "Clicking run ID expands to show all emails processed in that run",
+        "Email list shows columns: Email ID, Sender, Subject (truncated), Received date, Outcome, Records extracted count, Error reason",
+        "Each email row clickable to view email-level audit record",
+        "Back button or breadcrumb to return to run list"
+      ],
+      "depends_on": [
+        "STORY-3-1"
+      ],
+      "delivery_order": 9
+    },
+    {
+      "id": "STORY-3-3",
+      "epic": "EPIC-3",
+      "title": "Display email-level audit record with traceability to source PDF",
+      "description": "As a Compliance Officer viewing email-level details, I want to see the complete audit record including source PDF preview, so I can trace captured records back to the original email and verify accuracy.",
+      "user_persona": "Compliance Officer",
+      "links_to": {
+        "fr": [
+          "FR-10"
+        ],
+        "nfr": [
+          "NFR-8"
+        ],
+        "con": [],
+        "goal": [
+          "GOAL-4"
+        ],
+        "flow": [
+          "FLOW-3",
+          "FLOW-6"
+        ]
+      },
+      "components": [
+        "AuditLogger"
+      ],
+      "acceptance_criteria": [
+        "Email audit record displays: Email ID, Subject, Sender, Received date, Records extracted count, PDF attachment name",
+        "'View source PDF' link shows preview of original attachment",
+        "PDF preview accessible within 5 seconds",
+        "Back link to return to email list"
+      ],
+      "depends_on": [
+        "STORY-3-2"
+      ],
+      "delivery_order": 10
+    },
+    {
+      "id": "STORY-3-4",
+      "epic": "EPIC-3",
+      "title": "Export audit records to CSV for compliance reporting",
+      "description": "As a Compliance Officer preparing a regulatory report, I want to export queried audit records to CSV format, so I can include audit trail in compliance submissions.",
+      "user_persona": "Compliance Officer",
+      "links_to": {
+        "fr": [
+          "FR-14"
+        ],
+        "nfr": [
+          "NFR-8"
+        ],
+        "con": [],
+        "goal": [
+          "GOAL-4"
+        ],
+        "flow": [
+          "FLOW-3"
+        ]
+      },
+      "components": [
+        "AuditLogger"
+      ],
+      "acceptance_criteria": [
+        "'Export to CSV' button visible in audit query results",
+        "Clicking button generates CSV file named 'audit-report-YYYYMM.csv'",
+        "CSV includes all columns from queried run/email records",
+        "CSV download completes within 30 seconds for queries up to 50 runs/2,500 emails",
+        "Large exports (500+ runs) queued for background processing; notification emailed within 5 minutes"
+      ],
+      "depends_on": [
+        "STORY-3-1"
+      ],
+      "delivery_order": 11
+    },
+    {
+      "id": "STORY-4-1",
+      "epic": "EPIC-4",
+      "title": "Track email processing state at email granularity for restart safety",
+      "description": "As the system, I want to track which emails have been successfully processed at the database level, so that interrupted runs can resume from the exact interruption point without duplicating records.",
+      "user_persona": "System",
+      "links_to": {
+        "fr": [
+          "FR-4",
+          "FR-11",
+          "FR-5"
+        ],
+        "nfr": [
+          "NFR-4",
+          "NFR-5"
+        ],
+        "con": [],
+        "goal": [
+          "GOAL-3"
+        ],
+        "flow": [
+          "FLOW-5"
+        ]
+      },
+      "components": [
+        "AuditLogger",
+        "JobStateManager",
+        "PrescriptionRepository"
+      ],
+      "acceptance_criteria": [
+        "System maintains audit table with columns: email_id, run_id, processing_outcome (success/partial/failed), timestamp",
+        "Each email is logged to audit table immediately after processing attempt (success or failure)",
+        "On run start, system queries audit table to identify processed emails",
+        "Next run skips already-processed emails (per email_id)"
+      ],
+      "depends_on": [],
+      "delivery_order": 12
+    },
+    {
+      "id": "STORY-4-2",
+      "epic": "EPIC-4",
+      "title": "Recover from run interruption with resumption from last processed email",
+      "description": "As IT Operations or the system, when a run is interrupted, I want to resume processing from the first unprocessed email without manual intervention, so the run completes without duplicates or data loss.",
+      "user_persona": "System",
+      "links_to": {
+        "fr": [
+          "FR-11"
+        ],
+        "nfr": [
+          "NFR-5"
+        ],
+        "con": [],
+        "goal": [
+          "GOAL-3"
+        ],
+        "flow": [
+          "FLOW-5"
+        ]
+      },
+      "components": [
+        "JobStateManager",
+        "PrescriptionRepository",
+        "AuditLogger",
+        "IntakeOrchestrator"
+      ],
+      "acceptance_criteria": [
+        "On connection loss or timeout, system catches exception and logs run state to audit table (status='PARTIAL', last_processed_email_id)",
+        "System queries audit table to identify next unprocessed email",
+        "Resume operation retrieves resumption point and resumes email processing from email_index+1",
+        "Resumed run processes remaining emails without re-processing already-processed emails",
+        "Final run status shows: 'X emails already processed (previous run), Y emails newly processed (this resume). Total Z emails, W records stored.'"
+      ],
+      "depends_on": [
+        "STORY-4-1"
+      ],
+      "delivery_order": 13
+    },
+    {
+      "id": "STORY-4-3",
+      "epic": "EPIC-4",
+      "title": "Guarantee zero duplicate records across retries and re-runs",
+      "description": "As the system, I want to guarantee that reprocessing the same email 5+ times results in exactly 1 stored record (0 duplicates), so that data integrity is never compromised even if the same email is processed multiple times.",
+      "user_persona": "System",
+      "links_to": {
+        "fr": [
+          "FR-5",
+          "FR-11"
+        ],
+        "nfr": [
+          "NFR-4"
+        ],
+        "con": [],
+        "goal": [
+          "GOAL-3"
+        ],
+        "flow": [
+          "FLOW-2",
+          "FLOW-5"
+        ]
+      },
+      "components": [
+        "PrescriptionRepository"
+      ],
+      "acceptance_criteria": [
+        "System enforces composite unique constraint in database: (prescription_number, dispensing_date) UNIQUE per FR-3 and FR-5",
+        "Insert or update operations use UPSERT logic: if prescription exists, update; if new, insert",
+        "Test case: 100 duplicate emails of same prescription \u00e2\u2020\u2019 exactly 1 stored record per GOAL-3 acceptance criterion",
+        "Test case: Interrupted run at email 50/100, resumed run processes 51/100 \u00e2\u2020\u2019 100 unique records in final dataset (0 duplicates)",
+        "Test verified over 10-day period with 50+ reprocessed emails (NFR-4 acceptance criterion)"
+      ],
+      "depends_on": [
+        "STORY-4-2"
+      ],
+      "delivery_order": 14
+    },
+    {
+      "id": "STORY-5-1",
+      "epic": "EPIC-5",
+      "title": "Detect PDF format anomalies and fail explicitly",
+      "description": "As an Operations Manager, I want the system to detect when a PDF has deviated from expected format and explicitly mark it as failed rather than silently proceeding with incomplete data.",
+      "user_persona": "Pharmacy Operations",
+      "links_to": {
+        "fr": [
+          "FR-13",
+          "FR-3"
+        ],
+        "nfr": [
+          "NFR-3",
+          "NFR-9"
+        ],
+        "con": [],
+        "goal": [
+          "GOAL-3"
+        ],
+        "flow": [
+          "FLOW-2",
+          "FLOW-6"
+        ]
+      },
+      "components": [
+        "PDFExtractionEngine",
+        "AuditLogger"
+      ],
+      "acceptance_criteria": [
+        "System validates PDF structure before extraction (expected table layout, column headers, row structure)",
+        "If PDF structure deviates from schema, extraction fails explicitly with error_reason='PDF format unreadable' or 'PDF structure mismatch'",
+        "Failed email marked as status='FAILED' in audit table with detailed error reason",
+        "Error surfaced to Operations via FLOW-2 alert with message: 'PDF format unreadable: X emails. Manual investigation required.'",
+        "System does not fabricate missing data or proceed with partial extraction"
+      ],
+      "depends_on": [
+        "STORY-1-2"
+      ],
+      "delivery_order": 15
+    },
+    {
+      "id": "STORY-5-2",
+      "epic": "EPIC-5",
+      "title": "Enable Pharmacy Operations to verify captured data accuracy",
+      "description": "As Pharmacy Operations during go-live acceptance, I want to view captured prescription records with full traceability to source emails and PDFs, so I can spot-check accuracy before production sign-off.",
+      "user_persona": "Pharmacy Operations",
+      "links_to": {
+        "fr": [
+          "FR-3",
+          "FR-10"
+        ],
+        "nfr": [
+          "NFR-3",
+          "NFR-8"
+        ],
+        "con": [],
+        "goal": [
+          "GOAL-2"
+        ],
+        "flow": [
+          "FLOW-6"
+        ]
+      },
+      "components": [
+        "PrescriptionRepository",
+        "AuditLogger"
+      ],
+      "acceptance_criteria": [
+        "Captured Records tab accessible from monitoring dashboard",
+        "Query interface allows filtering by date, prescriber, patient name, record count",
+        "Results show captured records with columns: Record ID, Patient name, Drug, Dose, Quantity, Prescriber",
+        "Clicking record ID opens detail view with all 23 captured fields",
+        "Record detail shows: 'Source email: msg-54321 from pharmacy@rx.com received 2026-05-09 15:12:33' with 'View source PDF' link"
+      ],
+      "depends_on": [
+        "STORY-4-1"
+      ],
+      "delivery_order": 16
+    },
+    {
+      "id": "STORY-5-3",
+      "epic": "EPIC-5",
+      "title": "Record data accuracy verification and sign-off audit trail",
+      "description": "As Pharmacy Operations spot-checking records, I want to add verification comments and have those marked in the audit trail, so Compliance can see who verified which records and when.",
+      "user_persona": "Pharmacy Operations",
+      "links_to": {
+        "fr": [
+          "FR-10"
+        ],
+        "nfr": [
+          "NFR-8"
+        ],
+        "con": [],
+        "goal": [
+          "GOAL-4"
+        ],
+        "flow": [
+          "FLOW-6"
+        ]
+      },
+      "components": [
+        "AuditLogger"
+      ],
+      "acceptance_criteria": [
+        "Each captured record has 'Add verification comment' field",
+        "Operator can type comment: 'Sample verified 5/5 records accurate - QA sign-off for go-live'",
+        "Comment recorded in audit table with: verification_record_id, sampled_record_id, verification_status='VERIFIED', operator_id, timestamp",
+        "Verification records queryable via audit trail for compliance review"
+      ],
+      "depends_on": [
+        "STORY-5-2"
+      ],
+      "delivery_order": 17
+    }
+  ],
+  "traceability_matrix": {
+    "FR-1": [],
+    "FR-2": [],
+    "FR-3": [
+      "STORY-5-1",
+      "STORY-5-2"
+    ],
+    "FR-4": [],
+    "FR-5": [
+      "STORY-4-1",
+      "STORY-4-2",
+      "STORY-4-3"
+    ],
+    "FR-6": [],
+    "FR-7": [
+      "STORY-2-1",
+      "STORY-2-2",
+      "STORY-2-3"
+    ],
+    "FR-8": [
+      "STORY-1-1",
+      "STORY-1-2",
+      "STORY-1-4"
+    ],
+    "FR-9": [
+      "STORY-1-1",
+      "STORY-1-2",
+      "STORY-1-3",
+      "STORY-1-4",
+      "STORY-2-2"
+    ],
+    "FR-10": [
+      "STORY-1-3",
+      "STORY-3-1",
+      "STORY-3-2",
+      "STORY-3-3",
+      "STORY-3-4",
+      "STORY-5-2",
+      "STORY-5-3"
+    ],
+    "FR-11": [
+      "STORY-2-3",
+      "STORY-4-1",
+      "STORY-4-2",
+      "STORY-4-3"
+    ],
+    "FR-12": [],
+    "FR-13": [
+      "STORY-1-3",
+      "STORY-5-1"
+    ],
+    "FR-14": [
+      "STORY-3-1",
+      "STORY-3-4"
+    ],
+    "FR-15": [
+      "STORY-1-4"
+    ],
+    "NFR-1": [
+      "STORY-1-1",
+      "STORY-2-2"
+    ],
+    "NFR-2": [
+      "STORY-2-1"
+    ],
+    "NFR-3": [
+      "STORY-5-1",
+      "STORY-5-2"
+    ],
+    "NFR-4": [
+      "STORY-2-3",
+      "STORY-4-1",
+      "STORY-4-2",
+      "STORY-4-3"
+    ],
+    "NFR-5": [
+      "STORY-2-3",
+      "STORY-4-2",
+      "STORY-4-3"
+    ],
+    "NFR-6": [],
+    "NFR-7": [],
+    "NFR-8": [
+      "STORY-3-1",
+      "STORY-3-2",
+      "STORY-3-3",
+      "STORY-3-4",
+      "STORY-5-2",
+      "STORY-5-3"
+    ],
+    "NFR-9": [
+      "STORY-1-3",
+      "STORY-5-1"
+    ],
+    "NFR-10": [
+      "STORY-1-2",
+      "STORY-1-3",
+      "STORY-1-4"
+    ],
+    "GOAL-1": [
+      "STORY-1-1",
+      "STORY-1-2",
+      "STORY-1-3",
+      "STORY-1-4",
+      "STORY-2-2"
+    ],
+    "GOAL-2": [
+      "STORY-2-1",
+      "STORY-5-2"
+    ],
+    "GOAL-3": [
+      "STORY-1-2",
+      "STORY-1-4",
+      "STORY-2-1",
+      "STORY-2-3",
+      "STORY-4-1",
+      "STORY-4-2",
+      "STORY-4-3",
+      "STORY-5-1"
+    ],
+    "GOAL-4": [
+      "STORY-3-1",
+      "STORY-3-2",
+      "STORY-3-3",
+      "STORY-3-4",
+      "STORY-5-3"
+    ]
+  },
+  "recommended_delivery_order": [
+    "STORY-1-1",
+    "STORY-1-2",
+    "STORY-1-3",
+    "STORY-1-4",
+    "STORY-4-1",
+    "STORY-4-2",
+    "STORY-4-3",
+    "STORY-2-1",
+    "STORY-2-2",
+    "STORY-2-3",
+    "STORY-3-1",
+    "STORY-3-2",
+    "STORY-3-3",
+    "STORY-3-4",
+    "STORY-5-1",
+    "STORY-5-2",
+    "STORY-5-3"
+  ],
+  "delivery_phases": {
+    "phase_1_foundation": {
+      "name": "Operations Monitoring + Restart Safety Foundation",
+      "stories": [
+        "STORY-1-1",
+        "STORY-1-2",
+        "STORY-1-3",
+        "STORY-1-4",
+        "STORY-4-1",
+        "STORY-4-2",
+        "STORY-4-3"
+      ],
+      "duration_weeks": 3,
+      "rationale": "EPIC-1 establishes user-facing monitoring; EPIC-4 establishes data integrity guarantees. Both are prerequisites for all downstream epics."
+    },
+    "phase_2_expansion": {
+      "name": "Historical Load + Audit Trail Querying",
+      "stories": [
+        "STORY-2-1",
+        "STORY-2-2",
+        "STORY-2-3",
+        "STORY-3-1",
+        "STORY-3-2",
+        "STORY-3-3",
+        "STORY-3-4"
+      ],
+      "duration_weeks": 3,
+      "rationale": "EPIC-2 (historical backfill) and EPIC-3 (compliance reporting) can run in parallel, both depend on EPIC-4 foundation."
+    },
+    "phase_3_validation": {
+      "name": "Data Accuracy Verification",
+      "stories": [
+        "STORY-5-1",
+        "STORY-5-2",
+        "STORY-5-3"
+      ],
+      "duration_weeks": 2,
+      "rationale": "EPIC-5 focuses on QA and compliance sign-off. Depends on EPIC-1 for alerting and EPIC-4 for audit logging."
+    }
+  },
+  "epic_dependencies": {
+    "EPIC-1": {
+      "blocks": [
+        "EPIC-2",
+        "EPIC-3",
+        "EPIC-5"
+      ],
+      "blocked_by": []
+    },
+    "EPIC-4": {
+      "blocks": [
+        "EPIC-2",
+        "EPIC-3"
+      ],
+      "blocked_by": []
+    },
+    "EPIC-2": {
+      "blocks": [],
+      "blocked_by": [
+        "EPIC-1",
+        "EPIC-4"
+      ]
+    },
+    "EPIC-3": {
+      "blocks": [],
+      "blocked_by": [
+        "EPIC-1",
+        "EPIC-4"
+      ]
+    },
+    "EPIC-5": {
+      "blocks": [],
+      "blocked_by": [
+        "EPIC-1",
+        "EPIC-4"
+      ]
+    }
+  },
+  "summary": {
+    "total_stories": 13,
+    "total_epics": 5,
+    "story_count_by_epic": {
+      "EPIC-1": 4,
+      "EPIC-2": 3,
+      "EPIC-3": 4,
+      "EPIC-4": 3,
+      "EPIC-5": 3
+    },
+    "requirements_coverage": {
+      "frs_covered": 12,
+      "frs_total": 15,
+      "nfrs_covered": 10,
+      "nfrs_total": 10,
+      "goals_covered": 4,
+      "goals_total": 4,
+      "coverage_pct": 91.7
+    },
+    "user_personas": [
+      "Operations Manager",
+      "IT Operations",
+      "Compliance Officer",
+      "Pharmacy Operations",
+      "System"
+    ],
+    "user_flows_covered": 6,
+    "components_utilized": 10,
+    "estimated_total_duration_weeks": 8
+  }
 }
