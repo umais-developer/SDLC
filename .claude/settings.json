@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(.agents/**)",
+      "Write(.agents/artifacts/**)",
+      "Edit(.agents/artifacts/**)",
+      "Bash(python .agents/scripts/*.py:*)",
+      "Bash(python .agents/skills/*/verify/*.py:*)",
+      "PowerShell(python .agents/scripts/*.py:*)",
+      "PowerShell(python .agents/skills/*/verify/*.py:*)"
+    ]
+  }
+}

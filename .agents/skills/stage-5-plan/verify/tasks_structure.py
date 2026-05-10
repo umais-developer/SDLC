@@ -13,14 +13,9 @@ import re
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "_shared"))
 from exceptions import StructureError, TraceabilityError, CompletionError
-
-try:
-    import jsonschema
-    HAS_JSONSCHEMA = True
-except ImportError:
-    HAS_JSONSCHEMA = False
+from schemas import validate as validate_schema
 
 
 def load(path: str) -> dict:
@@ -31,19 +26,6 @@ def load(path: str) -> dict:
         raise StructureError("Stage 5", f"Invalid JSON in {path}: {e}")
     except FileNotFoundError:
         raise StructureError("Stage 5", f"File not found: {path}")
-
-
-def verify_schema(data: dict, schema_path: str) -> None:
-    if not HAS_JSONSCHEMA:
-        print("⚠️  jsonschema not installed — skipping schema validation")
-        return
-    if not Path(schema_path).exists():
-        return
-    schema = load(schema_path)
-    try:
-        jsonschema.validate(data, schema)
-    except jsonschema.ValidationError as e:
-        raise StructureError("Stage 5", f"Schema validation failed: {e.message}")
 
 
 def verify_tasks_completeness(tasks_json: dict) -> None:
@@ -276,12 +258,10 @@ def main() -> int:
     stories_path = args[1] if len(args) > 1 else ".agents/artifacts/stage-4/stories.json"
     goals_path = args[2] if len(args) > 2 else ".agents/artifacts/stage-1/goals.json"
     components_path = args[3] if len(args) > 3 else ".agents/artifacts/stage-2/components.json"
-    schema_path = Path(__file__).parent.parent / "schemas" / "tasks.json"
 
     try:
         tasks_json = load(tasks_path)
-        if schema_path.exists():
-            verify_schema(tasks_json, str(schema_path))
+        validate_schema(tasks_json, "tasks", "Stage 5")
 
         goals = load(goals_path) if Path(goals_path).exists() else {}
         goal_ids = extract_goal_ids(goals) if goals else set()

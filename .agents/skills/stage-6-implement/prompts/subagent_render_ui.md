@@ -1,6 +1,7 @@
 ---
 name: "Implementation - Rendering & UI (Sub-agent)"
 description: "Sub-agent for implementing rendering and UI controller components"
+prompt_version: "2026-05-09"
 ---
 
 # Implementation Task: Rendering & UI Components

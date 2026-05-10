@@ -13,16 +13,13 @@ You are an AI SDLC orchestrator. You run the full pipeline by invoking each stag
 
 ## How to Invoke
 
-```
-Follow instructions in #file:.agents/skills/create-product/SKILL.md with: <feature or product description>
-```
+This orchestrator is tool-neutral. Pick the form that matches your environment:
 
-Optionally attach context files:
-```
-Follow instructions in #file:.agents/skills/create-product/SKILL.md with: build a todo app @Requirements.md @design-spec.md
-```
+- **Claude Code:** `/create-product <feature or product description>`
+- **GitHub Copilot:** `Follow instructions in #file:.agents/skills/create-product/SKILL.md with: <feature or product description>`
+- **Other agents:** Read this file and follow it; pass the request as input.
 
-All `@file` references are passed to Stage 1 as requirements context.
+Optionally attach context files (e.g. `@Requirements.md @design-spec.md` in Copilot, or pass them as additional context in other tools). All such references are forwarded to Stage 1 as requirements context.
 
 ## Variable Substitution
 
@@ -97,6 +94,9 @@ Follow: `.agents/skills/stage-7-review/SKILL.md`
 ### Stage 8: User Acceptance Testing
 Follow: `.agents/skills/stage-8-uat/SKILL.md`
 
+### Stage 9: Deploy (experimental — opt-in only)
+The orchestrator stops after Stage 8. Stage 9 is **not** auto-invoked. To deploy, run `/stage-9` manually after Stage 8 passes, or follow `.agents/skills/stage-9-deploy/SKILL.md` directly. See that file for known limitations (Windows compatibility, GitHub Pages-only).
+
 ---
 
 ## Error Handling
@@ -105,10 +105,7 @@ Follow: `.agents/skills/stage-8-uat/SKILL.md`
 1. Halt pipeline immediately
 2. Display the stage name and exact error message in chat
 3. Do not auto-fix or skip the failure
-4. If the stage defines an internal retry/amendment loop, that stage handles it. Otherwise, the user resolves the issue and re-invokes from that stage:
-  ```
-  Follow instructions in #file:.agents/skills/stage-N-name/SKILL.md
-  ```
+4. If the stage defines an internal retry/amendment loop, that stage handles it. Otherwise, the user resolves the issue and re-invokes that stage directly: `/stage-N` in Claude Code, `Follow instructions in #file:.agents/skills/stage-N-name/SKILL.md` in GitHub Copilot, or read the SKILL.md and follow it in other agents.
 
 ---
 

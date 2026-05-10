@@ -19,7 +19,7 @@ import sys
 from pathlib import Path
 import re
 
-sys.path.insert(0, str(Path(__file__).parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "_shared"))
 from exceptions import CompletionError, TraceabilityError, StructureError
 
 

@@ -1,6 +1,7 @@
 ---
 role: Senior engineer / code reviewer
 description: Audit implementation against architecture and identify issues
+prompt_version: "2026-05-09"
 ---
 
 # Stage 7a: Code Audit

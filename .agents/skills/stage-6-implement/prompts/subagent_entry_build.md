@@ -1,6 +1,7 @@
 ---
 name: "Implementation - Entry Points & Build (Sub-agent)"
 description: "Sub-agent for creating HTML, CSS, and build configuration"
+prompt_version: "2026-05-09"
 ---
 
 # Implementation Task: Entry Points & Build Verification

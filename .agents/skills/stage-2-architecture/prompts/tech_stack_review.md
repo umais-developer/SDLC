@@ -1,6 +1,7 @@
 ---
 role: Solutions architect
 description: Inspect existing stack or select stack for greenfield; mode is inferred from codebase_context
+prompt_version: "2026-05-09"
 ---
 
 # Stage 2a: Technology Stack Review

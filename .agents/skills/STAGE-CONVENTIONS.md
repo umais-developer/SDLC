@@ -111,7 +111,30 @@ All verify scripts follow this pattern:
 
 ---
 
-## 8. What Stages Do NOT Own
+## 8. Prompt Versioning
+
+Every file under `.agents/skills/<stage>/prompts/` carries a `prompt_version` (date string, e.g. `"2026-05-09"`) in its YAML frontmatter. When a stage produces a structured artifact (`problem.json`, `goals.json`, `components.json`, `flows.json`, `stories.json`, `tasks.json`, `review.json`, `test_plan.json`, `uat_results.json`), it must record the prompt versions that produced it under a `meta` field:
+
+```json
+{
+  "meta": {
+    "prompt_versions": {
+      "problem_interpretation": "2026-05-09",
+      "goals_extraction": "2026-05-09"
+    },
+    "generated_at": "2026-05-09T14:32:00Z"
+  },
+  ...
+}
+```
+
+This lets a future verifier compare artifact versus current prompt and flag stale outputs ("artifact was produced under prompt v2026-04-01; current prompt is v2026-05-09 — re-run").
+
+**Bumping `prompt_version`:** when you change a prompt's behavior in a way that should invalidate prior artifacts, bump the date. Cosmetic changes (typo, formatting) do not require a bump.
+
+---
+
+## 9. What Stages Do NOT Own
 
 To prevent scope creep across stages:
 
@@ -131,5 +154,5 @@ To prevent scope creep across stages:
 
 In any SKILL.md, reference shared conventions with:
 ```
-See `.agents/skills/STAGE-CONVENTIONS.md` for: size classification, anti-hallucination rule, traceability chain, pipeline leakage rule.
+See `.agents/skills/STAGE-CONVENTIONS.md` for: size classification, anti-hallucination rule, traceability chain, pipeline leakage rule, prompt versioning.
 ```

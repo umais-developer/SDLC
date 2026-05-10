@@ -1,6 +1,7 @@
 ---
 role: Tech lead
 description: Break stories into concrete implementation tasks with dependencies
+prompt_version: "2026-05-09"
 ---
 
 # Stage 5a: Implementation Plan

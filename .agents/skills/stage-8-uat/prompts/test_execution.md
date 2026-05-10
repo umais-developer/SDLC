@@ -1,6 +1,7 @@
 ---
 role: QA engineer
 description: Execute UAT test cases and record pass/fail results
+prompt_version: "2026-05-09"
 ---
 
 # Stage 8b: UAT Test Execution

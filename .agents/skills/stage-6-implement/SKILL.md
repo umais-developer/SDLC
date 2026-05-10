@@ -15,10 +15,11 @@ Stage 6 outputs cover: code changes limited to the task list, build/test evidenc
 
 ## Independent Invocation
 
-To run this stage alone (requires Stage 1–5 artifacts):
-```
-Follow instructions in #file:.agents/skills/stage-6-implement/SKILL.md
-```
+Requires Stage 1–5 artifacts. Pick the form that matches your environment:
+
+- **Claude Code:** `/stage-6`
+- **GitHub Copilot:** `Follow instructions in #file:.agents/skills/stage-6-implement/SKILL.md`
+- **Other agents:** Read this file and follow it.
 
 ## Variable Substitution
 
@@ -122,15 +123,17 @@ Failure tracking:
 - When retry limits are exhausted, add the task to `failed_tasks` with the command that failed and the log excerpt.
 - Failed tasks must be manually inspected and either re-attempted or removed before Stage 6 can resume.
 
+### Retry Semantics (applies to Steps 3 and 4)
+
+- **Retry limit:** maximum 3 fix attempts per failing command. On the final failure, write `progress.json` and HALT.
+- **Retry scope:** the limit is per-command-per-task — build has its own 3, tests have their own 3.
+- **Scope for fixes:** only modify files owned by the current task. If a fix requires modifying another task's file, HALT and report a cross-task dependency defect (see Step 4).
+
 ### Step 3 — Build Verification
 Run `build_command` from `tech_stack.json`:
 - Capture stdout/stderr to `.agents/artifacts/stage-6/build.log` and exit code to `.agents/artifacts/stage-6/build.exit`
 - Exit non-zero → **HALT** — identify the specific failing file, fix it (within task scope), re-run
 - Do not proceed to Step 4 until build succeeds
-
-**Retry limit:** maximum 3 fix attempts per failing command. On the final failure, write `progress.json` and HALT.
-
-**Retry scope:** maximum 3 attempts per command per task (build has its own 3, tests have their own 3).
 
 ### Step 4 — Test Verification
 Run `test_command` from `tech_stack.json`:
@@ -141,12 +144,6 @@ Run `test_command` from `tech_stack.json`:
 - Otherwise set `test_mode` to `split`
 - Exit non-zero → **HALT** — fix the failing test or implementation (within task scope), re-run
 - Do not proceed to Stage 7 until all tests pass
-
-**Retry limit:** maximum 3 fix attempts per failing command. On the final failure, write `progress.json` and HALT.
-
-**Retry scope:** maximum 3 attempts per command per task (build has its own 3, tests have their own 3).
-
-**Scope for fixes:** only modify files owned by the current task. If a fix requires modifying another task's file, HALT and report a cross-task dependency defect.
 
 When cross-task dependency defects are detected, write `.agents/artifacts/stage-6/cross_task_defects.json` with the failing task, the task whose file needs modification, and the failing test/log excerpt. Then HALT.
 

@@ -1,6 +1,7 @@
 ---
 name: "Implementation - Engine & Replay (Sub-agent)"
 description: "Sub-agent for implementing core game engine and replay system components"
+prompt_version: "2026-05-09"
 ---
 
 # Implementation Task: Core Engine & Replay Components

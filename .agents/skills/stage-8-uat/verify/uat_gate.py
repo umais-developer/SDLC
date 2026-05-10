@@ -12,7 +12,7 @@ import json
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "_shared"))
 from exceptions import GateError, StructureError
 
 
@@ -142,6 +142,7 @@ def verify_evidence(stage_dir: Path, repo_root: Path, test_plan: dict, results: 
 
 
 def verify_bug_schema(results: dict) -> None:
+    valid_upstream = {"stage-4", "stage-5"}
     for bug in results.get("bugs", []):
         for key in [
             "id",
@@ -163,6 +164,52 @@ def verify_bug_schema(results: dict) -> None:
             raise StructureError("Stage 8", "Bug steps_to_reproduce must be a list")
         if not isinstance(bug.get("fix_verified"), bool):
             raise StructureError("Stage 8", "Bug fix_verified must be boolean")
+        upstream = bug.get("upstream_target")
+        if upstream is not None and upstream not in valid_upstream:
+            raise StructureError(
+                "Stage 8",
+                f"Bug {bug.get('id')} upstream_target invalid: {upstream} (must be 'stage-4', 'stage-5', or omitted)",
+            )
+
+
+def verify_progress_consistency(stage_dir: Path, test_plan: dict, results: dict) -> None:
+    """Validate uat_progress.json (if present) matches the current test_plan and results."""
+    progress_path = stage_dir / "uat_progress.json"
+    if not progress_path.exists():
+        return
+
+    progress = load_json(progress_path)
+
+    plan_ids = {t.get("id") for t in test_plan.get("test_cases", []) if t.get("id")}
+    completed = set(progress.get("completed_test_ids", []) or [])
+    failed = set(progress.get("failed_test_ids", []) or [])
+    in_progress = progress.get("in_progress_test_id")
+
+    overlap = completed & failed
+    if overlap:
+        raise StructureError(
+            "Stage 8",
+            f"uat_progress.json: test ids in both completed and failed: {sorted(overlap)}",
+        )
+    unknown = (completed | failed) - plan_ids
+    if unknown:
+        raise StructureError(
+            "Stage 8",
+            f"uat_progress.json references test ids not in test_plan.json: {sorted(unknown)}",
+        )
+    if in_progress is not None and in_progress not in plan_ids:
+        raise StructureError(
+            "Stage 8",
+            f"uat_progress.json in_progress_test_id not in test_plan.json: {in_progress}",
+        )
+
+    result_ids = {r.get("test_id") for r in results.get("results", []) if r.get("test_id")}
+    missing_results = (completed | failed) - result_ids
+    if missing_results:
+        raise GateError(
+            "Stage 8",
+            f"uat_progress.json marks tests complete but uat_results.json has no entry: {sorted(missing_results)}",
+        )
 
 
 def verify_coverage(artifacts_root: Path, test_plan: dict) -> None:
@@ -219,6 +266,7 @@ def main(stage_dir_path: str) -> None:
     verify_bug_schema(results)
     verify_no_unfixed_critical_bugs(results)
     verify_evidence(stage_dir, repo_root, test_plan, results)
+    verify_progress_consistency(stage_dir, test_plan, results)
 
     automated_gate, deployment_gate = compute_gates(test_plan, results)
     if results.get("automated_gate") and results.get("automated_gate") != automated_gate:

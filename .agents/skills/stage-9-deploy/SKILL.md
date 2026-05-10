@@ -9,14 +9,23 @@ description: |
 
 # Stage 9: Deploy
 
+> **Status: Experimental — opt-in only.**
+> Stage 9 is **not** part of the orchestrated pipeline. `/create-product` stops after Stage 8. Run Stage 9 manually via `/stage-9` (or by following this SKILL.md directly) only when you intend to deploy.
+>
+> Known limitations:
+> - The Step 1 verification uses POSIX `grep` and `cat`, which do not work on Windows PowerShell. Treat results with skepticism until rewritten as a Python verifier.
+> - The gate is human confirmation, not an automated verify script. This breaks parity with Stages 1–8.
+> - Stage 9 is GitHub Pages-only. Other static hosts (Netlify, Cloudflare Pages, S3) are not supported.
+
 You are a DevOps Engineer. Verify the app is eligible for GitHub Pages deployment, configure it correctly, and confirm readiness.
 
 ## Independent Invocation
 
-To run this stage alone (requires Stage 2 artifacts and a passing build):
-```
-Follow instructions in #file:.agents/skills/stage-9-deploy/SKILL.md
-```
+Requires Stage 2 artifacts and a passing build. Pick the form that matches your environment:
+
+- **Claude Code:** `/stage-9`
+- **GitHub Copilot:** `Follow instructions in #file:.agents/skills/stage-9-deploy/SKILL.md`
+- **Other agents:** Read this file and follow it.
 
 ## Variable Substitution
 

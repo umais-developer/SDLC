@@ -14,14 +14,9 @@ import re
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "_shared"))
 from exceptions import StructureError, TraceabilityError, CompletionError
-
-try:
-    import jsonschema
-    HAS_JSONSCHEMA = True
-except ImportError:
-    HAS_JSONSCHEMA = False
+from schemas import validate as validate_schema
 
 
 def load(path: str) -> dict:
@@ -32,18 +27,6 @@ def load(path: str) -> dict:
         raise StructureError("Stage 4", f"Invalid JSON in {path}: {e}")
     except FileNotFoundError:
         raise StructureError("Stage 4", f"File not found: {path}")
-
-
-def verify_schema(data: dict, schema_path: str) -> None:
-    if not HAS_JSONSCHEMA:
-        return
-    if not Path(schema_path).exists():
-        return
-    schema = load(schema_path)
-    try:
-        jsonschema.validate(data, schema)
-    except jsonschema.ValidationError as e:
-        raise StructureError("Stage 4", f"Schema validation failed: {e.message}")
 
 
 def verify_stories_have_criteria(stories_json: dict) -> None:
@@ -76,14 +59,38 @@ def verify_epic_story_references(stories_json: dict) -> None:
 
 
 def verify_traceability_matrix(stories_json: dict) -> None:
+    """Validate every story reference in traceability_matrix exists in stories[].
+
+    Accepts two shapes:
+      (1) list of dicts: ``[{"stories": ["S-1", "S-2"]}, ...]``
+      (2) FR-keyed dict: ``{"FR-1": ["S-1"], "FR-2": ["S-2", "S-3"], ...}``
+    """
     story_ids = {s["id"] for s in stories_json.get("stories", [])}
-    for entry in stories_json.get("traceability_matrix", []):
-        for story_ref in entry.get("stories", []):
-            if story_ref not in story_ids:
-                raise TraceabilityError(
-                    "Stage 4",
-                    f"Traceability matrix references story '{story_ref}' which does not exist"
+    matrix = stories_json.get("traceability_matrix", [])
+
+    story_refs: list[str] = []
+    if isinstance(matrix, dict):
+        for refs in matrix.values():
+            if isinstance(refs, list):
+                story_refs.extend(r for r in refs if isinstance(r, str))
+    elif isinstance(matrix, list):
+        for entry in matrix:
+            if isinstance(entry, dict):
+                story_refs.extend(
+                    r for r in entry.get("stories", []) if isinstance(r, str)
                 )
+    else:
+        raise StructureError(
+            "Stage 4",
+            f"traceability_matrix must be a list or dict, got {type(matrix).__name__}",
+        )
+
+    for story_ref in story_refs:
+        if story_ref not in story_ids:
+            raise TraceabilityError(
+                "Stage 4",
+                f"Traceability matrix references story '{story_ref}' which does not exist",
+            )
 
 
 def extract_goal_ids(goals: dict) -> set[str]:
@@ -266,9 +273,8 @@ def main() -> None:
     components_json_path = args[3] if len(args) > 3 else None
 
     data = load(stories_json_path)
-    schema_path = Path(__file__).parent.parent / "schemas" / "stories.json"
 
-    verify_schema(data, str(schema_path))
+    validate_schema(data, "stories", "Stage 4")
     verify_stories_have_criteria(data)
     verify_epic_story_references(data)
 

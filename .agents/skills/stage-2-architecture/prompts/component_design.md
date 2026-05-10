@@ -1,6 +1,7 @@
 ---
 role: Solutions architect
 description: Design component structure, data flow, and module boundaries
+prompt_version: "2026-05-09"
 ---
 
 # Stage 2b: Component Design
